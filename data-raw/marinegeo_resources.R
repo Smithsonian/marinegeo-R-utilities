@@ -13,6 +13,15 @@ marinegeo_resources <- list(
     list.files(paste0(Sys.getenv("repository_filepath"),
                       "marinegeo-taxonomy-lookup/taxonomic-classifications/"),
                full.names = T)
+  ),
+
+  data_index = readr::read_csv("inst/marinegeo_data_index.csv"),
+
+  table_relationships = readr::read_csv("inst/marinegeo_table_relationships.csv"),
+
+  database_structure = readr::read_csv(
+    list.files("inst/data-structure/",
+               full.names = T)
   )
 
 )
