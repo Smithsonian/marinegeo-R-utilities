@@ -7,13 +7,13 @@
 #'
 #' @param df A data frame to join taxonomic levels to
 #' @param identification_column_name Defaults to "scientific_name"
-#' @param taxonomic_levels Vector of classification levels. By default, returns all available levels
+#' @param taxonomic_levels Vector of classification levels. By default, returns all options
 #'
 #' @returns A dataframe with taxonomic levels as columns
 #' @export
 #'
 #' @examples
-#' df <- readxl::read_excel("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
+#' df <- utl_rls_load_excel("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
 #'  dplyr::filter(Method == "1" | Method == "2")
 #' utl_join_taxonomy_by_scientific_name(df, identification_column_name = "Species")
 #' utl_join_taxonomy_by_scientific_name(df, identification_column_name = "Species", "phylum")
@@ -51,6 +51,14 @@ utl_join_taxonomy_by_scientific_name <- function(df,
 
     df_with_taxonomy <- df |>
       dplyr::left_join(taxonomic_lookup_df, by = "scientific_name")
+
+    # If necessary, rename column to original
+    if(identification_column_name != "scientific_name"){
+
+      df_with_taxonomy <- df_with_taxonomy |>
+        dplyr::rename_with(~identification_column_name, matches("scientific_name"))
+
+    }
 
     return(df_with_taxonomy)
 

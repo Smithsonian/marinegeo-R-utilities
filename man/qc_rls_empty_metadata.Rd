@@ -17,7 +17,9 @@ Looks for NA and Blank values in the dataframe summary table
 }
 \examples{
 filepath <- "inst/extdata/test_rls_data_EPA_one_header_row.xlsx"
+filepath <- "C:/Users/westbrooke/OneDrive - Smithsonian Institution/MarineGEO-Data/reef-life-survey/rls_excel_data/UK/RLS Florida_AV_UK_September2024.xlsx"
+
 df <- utl_rls_load_excel(filepath)
-summary_df <- utl_rls_summarize_table(df)
-dives_missing_metadata <- qc_rls_empty_metadata(summary_df)
+summary_df <- utl_rls_sample_event_summary(df)
+dives_missing_metadata <- qc_rls_empty_metadata(df)
 }
