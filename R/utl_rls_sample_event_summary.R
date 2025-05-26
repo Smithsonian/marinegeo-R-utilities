@@ -18,7 +18,7 @@ utl_rls_sample_event_summary <- function(df){
 
   stopifnot("`df` is not a data frame" = is.data.frame(df))
 
-  missing_columns <- dplyr::setdiff(c("diver","buddy","site_code","site_name", "latitude", "longitude", "date", "depth", "vis","direction","time", "photoquadrats", "method","block"), colnames(df))
+  missing_columns <- dplyr::setdiff(c("site_code", "date", "depth", "method","block"), colnames(df))
 
   # expect_error()
   if (length(missing_columns) > 0) {
@@ -35,7 +35,7 @@ utl_rls_sample_event_summary <- function(df){
 
         # Filtering dives where all four conditions are met
         summary_df <- df |>
-          dplyr::group_by(diver, site_code, site_name, latitude, longitude, date, vis, direction, time, depth) |>
+          dplyr::group_by(site_code, date, depth) |>
           dplyr::summarize(
             M1B1 = check_combination(pick(method, block), 1, 1),
             M1B2 = check_combination(pick(method, block), 1, 2),
