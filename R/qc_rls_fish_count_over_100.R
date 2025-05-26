@@ -15,7 +15,7 @@ qc_rls_fish_count_over_100 <- function(df){
   stopifnot("`df` is not a data frame" = is.data.frame(df))
 
   # Check for necessary columns to process dataframe
-  missing_columns <- dplyr::setdiff(c("Total", "phylum"), colnames(df))
+  missing_columns <- dplyr::setdiff(c("total", "phylum"), colnames(df))
 
   if (length(missing_columns) > 0) {
     stop(paste("Missing required column(s):", paste(missing_columns, collapse = ", ")))
@@ -34,7 +34,7 @@ qc_rls_fish_count_over_100 <- function(df){
 
     }else{
       row_numbers <- df_fish |>
-        dplyr::filter(Total > 100)|>
+        dplyr::filter(total > 100)|>
         dplyr::pull(rowid)
 
       if (length(row_numbers) == 0){

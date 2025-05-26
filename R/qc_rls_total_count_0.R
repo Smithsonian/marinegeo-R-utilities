@@ -14,7 +14,7 @@ qc_rls_total_count_0 <- function(df){
   stopifnot("`df` is not a data frame" = is.data.frame(df))
 
   # Check for necessary columns to process dataframe
-  missing_columns <- dplyr::setdiff(c("Total"), colnames(df))
+  missing_columns <- dplyr::setdiff(c("total"), colnames(df))
 
   if (length(missing_columns) > 0) {
     stop(paste("Missing required column(s):", paste(missing_columns, collapse = ", ")))
@@ -32,11 +32,11 @@ qc_rls_total_count_0 <- function(df){
 
     }else{
       row_numbers <- df_total |>
-        dplyr::filter(Total == 0)|>
+        dplyr::filter(total == 0)|>
         dplyr::pull(rowid)
 
       if (length(row_numbers) == 0){
-        message("There are no Total counts of 0")
+        message("There are no total counts of 0")
         return(NULL)
       }else{
         return(row_numbers)

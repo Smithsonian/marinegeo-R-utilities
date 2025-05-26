@@ -4,7 +4,7 @@ test_that("qc_mg_missing_taxonomic_id works with dummy data", {
   df <- utl_rls_load_excel(test_path("testdata/test_rls_data_EPA_one_header_row.xlsx"))
 
   expect_warning(
-    df <- utl_join_taxonomy_by_scientific_name(df, "Species")
+    df <- utl_join_taxonomy_by_scientific_name(df, "species")
   )
 
   result1 <- qc_mg_missing_taxonomic_id(df)

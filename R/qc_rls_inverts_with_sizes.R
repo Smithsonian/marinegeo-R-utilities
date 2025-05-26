@@ -20,7 +20,7 @@ qc_rls_inverts_with_sizes <- function(df){
     "87.5","100","112.5","137.5","150","162.5","175","187.5","200","250","300","350","400"
   )
 
-  missing_columns <- dplyr::setdiff(c("Total","Inverts", "phylum", size_count_columns), colnames(df))
+  missing_columns <- dplyr::setdiff(c("total","inverts", "phylum", size_count_columns), colnames(df))
   # expect_error()
   if (length(missing_columns) > 0) {
     stop(paste("Missing required column(s):", paste(missing_columns, collapse = ", ")))

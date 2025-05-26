@@ -3,7 +3,7 @@ test_that("qc_rls_fish_count_over_100 works with dummy data", {
 
   # Data frame with all required columns and no fish count over 100
   df_complete_under100 <- data.frame(
-    Total = c(4,5,2,10,14),
+    total = c(4,5,2,10,14),
     phylum = c("Invert","Invert","Chordata","Invert","Chordata")
   )
 
@@ -18,7 +18,7 @@ test_that("qc_rls_fish_count_over_100 works with dummy data", {
 
   # Data frame with all required columns and includes fish count over 100
   df_complete_over100 <- data.frame(
-    Total = c(4,25,22,22,105),
+    total = c(4,25,22,22,105),
     phylum = c("Invert","Invert","Chordata","Invert","Chordata")
   )
 
@@ -29,7 +29,7 @@ test_that("qc_rls_fish_count_over_100 works with dummy data", {
 
   # Data frame with no fish species
   df_only_inverts <- data.frame(
-    Total = c(4,5,2,10,14),
+    total = c(4,5,2,10,14),
     phylum = c("Invert","Invert","Invert","Invert","Invert")
   )
 
@@ -40,7 +40,7 @@ test_that("qc_rls_fish_count_over_100 works with dummy data", {
   expect_type(result3, "NULL")
   expect_equal(length(result3), 0)
 
-  # Data Frame Missing Total column
+  # Data Frame Missing total column
   df_missing_total_col <- data.frame(
     totals = c(12, 10, 20, 30, 0),
     phylum = c("Invert","Invert","Chordata","Invert","Chordata")
@@ -52,7 +52,7 @@ test_that("qc_rls_fish_count_over_100 works with dummy data", {
 
   # Data Frame Missing phylum column
   df_missing_phylum_col <- data.frame(
-    Total = c(12, 10, 20, 30, 0),
+    total = c(12, 10, 20, 30, 0),
     pylum = c("Invert","Invert","Chordata","Invert","Chordata")
   )
 
