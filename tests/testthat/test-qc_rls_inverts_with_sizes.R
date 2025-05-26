@@ -4,7 +4,7 @@ test_that("qc_rls_inverts_with_sizes works with rls data", {
   df <- utl_rls_load_excel(test_path("testdata/test_rls_data_EPA_one_header_row.xlsx"))
 
   expect_warning(
-    df <- utl_join_taxonomy_by_scientific_name(df, "Species")
+    df <- utl_join_taxonomy_by_scientific_name(df, "species")
   )
 
   result1 <- qc_rls_inverts_with_sizes(df)

@@ -8,7 +8,7 @@ test_that("utl_join_taxonomy_by_scientific_name works with EPA RLS data", {
   result1 <- lapply(input_list, function(i){
     expect_warning(
       utl_join_taxonomy_by_scientific_name(i,
-                                           identification_column_name = "Species"),
+                                           identification_column_name = "species"),
       "\\d{1,3} scientific names could not be matched in taxonomic database"
     )
   })

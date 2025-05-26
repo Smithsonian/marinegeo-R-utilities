@@ -4,46 +4,46 @@ setup_test_files <- function() {
   test_dir <- file.path(tempdir(), "test_excel")
   dir.create(test_dir, showWarnings = FALSE, recursive = TRUE)
 
-  # File with both Method and Total columns
+  # File with both method and total columns
   # a single header row
   # and trailing empty row
   df_complete_1_header <- data.frame(
-    Method = c("0, 1, 2", 1, 2, 1, 1),
-    Total = c(NA, 10, 20, 30, 0)
+    method = c("0, 1, 2", 1, 2, 1, 1),
+    total = c(NA, 10, 20, 30, 0)
   )
   complete_1_file <- file.path(test_dir, "complete_1_header.xlsx")
   writexl::write_xlsx(list("DATA" = df_complete_1_header), complete_1_file)
 
-  # File with both Method and Total columns
+  # File with both method and total columns
   # two header rows
   # and trailing empty row
   df_complete_2_header <- data.frame(
-    Method = c("0, 1, 2", "0, 1, 2", 1, 2, 1, 1),
-    Total = c(NA, NA, 10, 20, 30, 0)
+    method = c("0, 1, 2", "0, 1, 2", 1, 2, 1, 1),
+    total = c(NA, NA, 10, 20, 30, 0)
   )
   complete_2_file <- file.path(test_dir, "complete_2_header.xlsx")
   writexl::write_xlsx(list("DATA" = df_complete_2_header), complete_2_file)
 
   # File with no total values
   df_empty_totals <- data.frame(
-    Method = c("0, 1, 2", "0, 1, 2", 1, 2, 1, 1),
-    Total = c(NA, NA, 0, 0, 0, 0)
+    method = c("0, 1, 2", "0, 1, 2", 1, 2, 1, 1),
+    total = c(NA, NA, 0, 0, 0, 0)
   )
   empty_total_file <- file.path(test_dir, "empty_total.xlsx")
   writexl::write_xlsx(list("DATA" = df_empty_totals), empty_total_file)
 
-  # File missing Total
+  # File missing total
   df_missing_total_col <- data.frame(
-    Method = c("0, 1, 2", 1, 2, 1, 1),
+    method = c("0, 1, 2", 1, 2, 1, 1),
     total = c(NA, 10, 20, 30, 0)
   )
   missing_total_file <- file.path(test_dir, "missing_total_column.xlsx")
   writexl::write_xlsx(list("DATA" = df_missing_total_col), missing_total_file)
 
-  # File missing Method
+  # File missing method
   df_missing_method_col <- data.frame(
     method = c("0, 1, 2", 1, 2, 1, 1),
-    Total = c(NA, 10, 20, 30, 0)
+    total = c(NA, 10, 20, 30, 0)
   )
   missing_method_file <- file.path(test_dir, "missing_method_column.xlsx")
   writexl::write_xlsx(list("DATA" = df_missing_method_col), missing_method_file)
@@ -99,7 +99,7 @@ test_that("utl_rls_load_excel works with dummy data", {
   # File 6
   expect_warning(
     result6 <- utl_rls_load_excel(files$no_total_vals),
-    "Dataframe only has rows with a Total equal to 0"
+    "Dataframe only has rows with a total equal to 0"
   )
   expect_type(result6, "list")
   expect_equal(nrow(result6), 4)
