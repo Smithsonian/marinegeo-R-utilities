@@ -41,7 +41,7 @@ utl_rls_sample_event_summary <- function(df){
             M2B1 = check_combination(pick(Method, Block), 2, 1),
             M2B2 = check_combination(pick(Method, Block), 2, 2)
           ) |>
-          dplyr::mutate(sample_event_id = paste(`Site No.`, Date, Depth, sep = "_")) |>
+          dplyr::mutate(sample_event_id = paste(`Site No.`, "RLS", Date, Depth, sep = "_")) |>
           dplyr::select(sample_event_id, everything()) |>
           dplyr::arrange(sample_event_id)
 

@@ -33,3 +33,20 @@ utl_mg_data_structure <- function(){
   df <- marinegeo_resources$database_structure
   return(df)
 }
+
+#' Return the column order for a MarineGEO table
+#'
+#' @param table_id
+#'
+#' @returns a character vector representing column names
+#' @export
+#'
+#' @examples
+utl_mg_column_order <- function(table_id){
+
+  column_names <- marinegeo_resources$database_structure |>
+    dplyr::filter(table_id == !!table_id) |>
+    dplyr::pull(column_name)
+
+  return(column_names)
+}

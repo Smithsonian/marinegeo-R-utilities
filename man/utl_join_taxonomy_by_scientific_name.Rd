@@ -15,7 +15,7 @@ utl_join_taxonomy_by_scientific_name(
 
 \item{identification_column_name}{Defaults to "scientific_name"}
 
-\item{taxonomic_levels}{Vector of classification levels. By default, returns all available levels}
+\item{taxonomic_levels}{Vector of classification levels. By default, returns all options}
 }
 \value{
 A dataframe with taxonomic levels as columns
@@ -26,7 +26,7 @@ database by scientific name. If the sample is identified by a column not named "
 it should be defined in the \code{identification_column_name} argument.
 }
 \examples{
-df <- readxl::read_excel("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
+df <- utl_rls_load_excel("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
  dplyr::filter(Method == "1" | Method == "2")
 utl_join_taxonomy_by_scientific_name(df, identification_column_name = "Species")
 utl_join_taxonomy_by_scientific_name(df, identification_column_name = "Species", "phylum")
