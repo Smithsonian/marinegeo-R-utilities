@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(rls.marinegeo)
+library(marinegeo.utils)
 
-test_check("rls.marinegeo")
+test_check("marinegeo.utils")
