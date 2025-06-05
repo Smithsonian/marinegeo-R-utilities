@@ -1,7 +1,10 @@
 protocol,level,table_name,table_id,directory,script_directory,location
-Reef Life Survey,1,Reef Life Survey Data (L1),reef-life-survey-data-marinegeo-input,marinegeo-reef-life-survey/L1-data/rls-data,marinegeo-reef-life-survey/scripts,github
+Reef Life Survey,1,Reef Life Survey Data (L1),reef-life-survey-data-marinegeo-input,marinegeo-reef-life-survey/L1-data/rls-data,,github
 Reef Life Survey,1,Reef Life Survey Dive Roster (L1),,marinegeo-reef-life-survey/L1-data/rls-data,,github
-Reef Life Survey,2,Reef Life Survey Data (L2),reef-life-survey-data-marinegeo-v1,marinegeo-reef-life-survey/L2-data/reef-life-survey-data-marinegeo-v1,,github
+Reef Life Survey,2,Reef Life Survey Data (L2),reef-life-survey-data-marinegeo-v1,marinegeo-reef-life-survey/L2-data/reef-life-survey-data-marinegeo-v1,marinegeo-reef-life-survey/scripts,github
+Oyster Experiment 2025,1,Oyster Experiment 2025 Deployment (L1),oyster-2025-deployment-input,oyster-network-project-2025/L1-data/oyster-2025-deployment-input,,github
+Oyster Experiment 2025,2,Oyster Experiment 2025 Deployment (L2),oyster-2025-reef-metadata-deployment,oyster-network-project-2025/L2-data/oyster-2025-reef-metadata-deployment,oyster-network-project-2025/scripts/oyster-2025-reef-metadata-deployment,github
+Oyster Experiment 2025,2,Oyster Experiment 2025 Rugosity (L2),oyster-2025-rugosity,oyster-network-project-2025/L2-data/oyster-2025-rugosity,oyster-network-project-2025/scripts/oyster-2025-rugosity,github
 Beach Seines,2,seine-metadata,seine-metadata-monitoring-v1,annual-monitoring/beach-seines/seine-metadata-monitoring-v1,,
 Beach Seines,2,length,length-seines-monitoring-v1,annual-monitoring/beach-seines/length-seines-monitoring-v1,,
 Beach Seines,2,abundance,abundance-seines-monitoring-v1,annual-monitoring/beach-seines/abundance-seines-monitoring-v1,,
