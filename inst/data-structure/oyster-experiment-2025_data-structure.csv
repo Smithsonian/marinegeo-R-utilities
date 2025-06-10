@@ -14,9 +14,10 @@ Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,water_temperature_
 Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,salinity_ppt,DOUBLE
 Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,logger_deployed,STRING
 Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,logger_serial_number,STRING
-Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,spat_stick_or_pvc,STRING
+Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,spat_stick,STRING
 Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,personnel,STRING
-Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,site_notes,STRING
+Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,notes,STRING
+Oyster Experiment 2025,oyster-2025-reef-metadata-deployment,2,input_filename,STRING
 Oyster Experiment 2025,oyster-2025-rugosity,2,sample_event_id,STRING
 Oyster Experiment 2025,oyster-2025-rugosity,2,site_name,STRING
 Oyster Experiment 2025,oyster-2025-rugosity,2,reef_name,STRING
@@ -27,3 +28,4 @@ Oyster Experiment 2025,oyster-2025-rugosity,2,chain_distance_cm,DOUBLE
 Oyster Experiment 2025,oyster-2025-rugosity,2,rugosity,DOUBLE
 Oyster Experiment 2025,oyster-2025-rugosity,2,cluster_height_mm,DOUBLE
 Oyster Experiment 2025,oyster-2025-rugosity,2,notes,STRING
+Oyster Experiment 2025,oyster-2025-rugosity,2,input_filename,STRING
