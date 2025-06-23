@@ -23,16 +23,17 @@ Oyster Reef Monitoring,2,excavation-length,excavation-length-annual-monitoring-v
 Oyster Reef Monitoring,2,excavation-count,excavation-count-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/excavation-count-annual-monitoring-v1,,
 Oyster Reef Monitoring,2,rugosity,oyster-rugosity-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-rugosity-annual-monitoring-v1,,
 Oyster Reef Monitoring,2,biobox-data,oyster-biobox-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-biobox-annual-monitoring-v1,,
-Seagrass Monitoring,2,biomass,seagrass-biomass-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-biomass-monitoring-v1,,
-Seagrass Monitoring,2,cover,seagrass-cover-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-cover-monitoring-v1,,
-Seagrass Monitoring,2,macroinvertebrates,seagrass-macroinvertebrates-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-macroinvertebrates-monitoring-v1,,
-Seagrass Monitoring,2,shoot-count,shoot-count-monitoring-v1,annual-monitoring/seagrass-monitoring/shoot-count-monitoring-v1,,
-Seagrass Monitoring,2,seagrass-metadata,seagrass-metadata-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-metadata-monitoring-v1,,
-Seagrass Monitoring,2,macrophyte-mass,seagrass-macrophyte-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-macrophyte-monitoring-v1,,
-Seagrass Monitoring,2,epifauna-data,seagrass-epifauna-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-epifauna-monitoring-v1,,
-Seagrass Monitoring,2,macroalgae,seagrass-macroalgae-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-macroalgae-monitoring-v1,,
-Seagrass Monitoring,2,blade-measurements,seagrass-blades-monitoring-v1,annual-monitoring/seagrass-monitoring/seagrass-blades-monitoring-v1,,
-Seagrass Monitoring,2,sheath-and-epibiont-data,sheath-and-epibiont-monitoring-v1,annual-monitoring/seagrass-monitoring/sheath-and-epibiont-monitoring-v1,,
+Seagrass Monitoring,1,Seagrass Monitoring Excel,seagrass-monitoring-marinegeo-excel,marinegeo-seagrass-monitoring/L1-data/seagrass-monitoring-marinegeo-excel,,github
+Seagrass Monitoring,2,Seagrass Biomass (core),seagrass-biomass-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-biomass-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-biomass-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Cover,seagrass-cover-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-cover-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-cover-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Macroinvertebrates,seagrass-macroinvertebrates-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-macroinvertebrates-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-macroinvertebrates-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Density,shoot-count-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/shoot-count-monitoring-v1,marinegeo-seagrass-monitoring/scripts/shoot-count-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Metadata,seagrass-metadata-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-metadata-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-metadata-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Macrophyte Mass,seagrass-macrophyte-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-macrophyte-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-macrophyte-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Epifauna,seagrass-epifauna-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-epifauna-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-epifauna-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Macroalgae,seagrass-macroalgae-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-macroalgae-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-macroalgae-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Blade Measurements,seagrass-blades-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-blades-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-blades-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Sheath and Epibiont Measurements,sheath-and-epibiont-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/sheath-and-epibiont-monitoring-v1,marinegeo-seagrass-monitoring/scripts/sheath-and-epibiont-monitoring-v1,github
 Temperature Loggers,2,data,envlogger-data-L2-v1,temperature-loggers/2_data/envlogger-data-L2-v1/,,
 Temperature Loggers,2,header-metadata,envlogger-header-v1,temperature-loggers/2_deployment/envlogger-header-v1/,,
 Temperature Loggers,2,deployment,envlogger-deployment-v1,temperature-loggers/2_deployment/envlogger-deployment-v1,,
