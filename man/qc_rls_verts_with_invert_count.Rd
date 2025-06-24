@@ -13,7 +13,7 @@ qc_rls_verts_with_invert_count(df)
 a list of row numbers that are vertebrae species with an invert count assigned to them.
 }
 \description{
-Check that the rls dataset is a dataframe and contains columns \code{Inverts} and \code{phylum}
+Check that the rls dataset is a dataframe and contains columns \code{inverts} and \code{phylum}
 finds rows where the phylum is "Chordata" and the invert count column has a numerical value over 0.
 }
 \examples{

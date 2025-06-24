@@ -1,2 +1,10 @@
 ﻿table_id_in,table_id_out,notes
 reef-life-survey-data-marinegeo-input,reef-life-survey-data-marinegeo-v1,
+oyster-2025-deployment-input,oyster-2025-reef-metadata-deployment,
+oyster-2025-deployment-input,oyster-2025-rugosity,
+seagrass-monitoring-marinegeo-excel,seagrass-cover-monitoring-v1,
+seagrass-monitoring-marinegeo-excel,shoot-count-monitoring-v1,
+seagrass-monitoring-marinegeo-excel,seagrass-macroinvertebrates-monitoring-v1,
+seagrass-monitoring-marinegeo-excel,seagrass-metadata-monitoring-v1,
+seagrass-monitoring-marinegeo-excel,seagrass-macrophyte-monitoring-v1,
+seagrass-monitoring-marinegeo-excel,seagrass-epifauna-monitoring-v1,
