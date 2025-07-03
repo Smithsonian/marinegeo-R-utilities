@@ -5,12 +5,13 @@
 #'
 #' @param filepath
 #' @param output_table
+#' @param sheet_name
 #'
 #' @returns a dataframe
 #' @export
 #'
 #' @examples
-utl_mg_load_excel <- function(filepath, output_table){
+utl_mg_load_excel <- function(filepath, output_table, sheet_name){
 
   # Check that the output table matches a table_id in the data structure
 
@@ -23,17 +24,17 @@ utl_mg_load_excel <- function(filepath, output_table){
     #### Deployment Reef Metadata ####
     if(output_table == "oyster-2025-reef-metadata-deployment") {
 
-      target_sheet <- "REEF METADATA"
-      df_raw <- readxl::read_excel(filepath, sheet = target_sheet)
+      # target_sheet <- "REEF METADATA"
+      df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
 
       # Rename some columns to match MarineGEO column standards
       df <- df_raw %>%
         rename(
-          water_present = `Water Present Y N`,
-          logger_deployed = `Logger Deployed Y N`,
-          spat_stick = `Spat Stick PVC or biobox`,
-          personnel = `Sampling Personnel`,
-          notes = `Site Notes (including recent perturbations and weather conditions)`
+          water_present = any_of("Water Present Y N"),
+          logger_deployed = any_of("Logger Deployed Y N"),
+          spat_stick = any_of("Spat Stick PVC or biobox"),
+          personnel = any_of("Sampling Personnel"),
+          notes = any_of("Site Notes (including recent perturbations and weather conditions)")
         ) %>%
         mutate(input_filename = basename(filepath))
 
@@ -41,7 +42,7 @@ utl_mg_load_excel <- function(filepath, output_table){
     } else if(output_table == "oyster-2025-rugosity") {
 
       target_sheet <- "RUGOSITY & CLUSTER HEIGHT"
-      df_raw <- readxl::read_excel(filepath, sheet = target_sheet)
+      df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
 
       # Rename some columns to match MarineGEO column standards
       df <- df_raw %>%
@@ -52,7 +53,7 @@ utl_mg_load_excel <- function(filepath, output_table){
       #### Standard RLS Template ####
     } else if(output_table == "reef-life-survey-data-marinegeo-v1") {
 
-      df_raw <- readxl::read_excel(filepath, sheet = "DATA")
+      df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
 
       # Check for necessary columns to process dataframe
       missing_columns <- dplyr::setdiff(c("Total", "Method", "Site No.", "P-Qs"), colnames(df_raw))
@@ -110,8 +111,8 @@ utl_mg_load_excel <- function(filepath, output_table){
       # Rename some columns to match MarineGEO column standards
       df <- df |>
         dplyr::rename(
-          site_code = `Site No.`,
-          photoquadrats = `P-Qs`
+          site_code = any_of("Site No."),
+          photoquadrats = any_of("P-Qs")
         ) |>
         # Input filename is metadata used to track file curation
         dplyr::mutate(input_filename = basename(filepath)) |>
