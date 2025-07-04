@@ -19,23 +19,66 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
 
   tryCatch({
 
+    ## Seagrass Monitoring ####
+    if(output_table %in% c("seagrass-biomass-monitoring-v1",
+                           "seagrass-cover-monitoring-v1",
+                           "seagrass-macroinvertebrates-monitoring-v1",
+                           "shoot-count-monitoring-v1",
+                           "seagrass-metadata-monitoring-v1",
+                           "seagrass-macrophyte-monitoring-v1",
+                           "seagrass-epifauna-monitoring-v1",
+                           "seagrass-macroalgae-monitoring-v1",
+                           "seagrass-blades-monitoring-v1",
+                           "sheath-and-epibiont-monitoring-v1")){
+
+      df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
+
+      if("ID" %in% colnames(df_raw)){
+        df_raw <- df_raw %>%
+          select(-ID) %>%
+          filter(if_any(everything(), ~ !is.na(.)))
+      }
+
+      df <- df_raw |>
+        rename(
+          transect = any_of("Transect ID"),
+          site_name = any_of("Location Name"),
+          transect_begin_decimal_latitude = any_of("Start Latitude"),
+          transect_begin_decimal_longitude = any_of("Start Longitude"),
+          transect_end_decimal_latitude = any_of("End Latitude"),
+          transect_end_decimal_longitude = any_of("End Longitude"),
+          depth_min_m = any_of("Min Depth m"),
+          depth_max_m = any_of("Max Depth m"),
+          sample_metadata_notes = any_of("Transect Notes"),
+          shoot_count = any_of("Shoots Count"),
+          flowers_p_a = any_of("Flowers Count"),
+          grazing_scars_p_a = any_of("Grazing Scars Y N"),
+          tin_mass_g_epibionts = any_of("Tin Mass g (Epibionts)"),
+          tin_mass_g_blades = any_of("Tin Mass g (Blades)")
+          #x = any_of(""),
+          #x = any_of(""),
+        ) |>
+        mutate(input_filename = basename(filepath))
+
+      colnames(df) <- gsub(" ", "_", tolower(colnames(df)))
+
     ## Oyster Network Project 2025 ####
 
     #### Deployment Reef Metadata ####
-    if(output_table == "oyster-2025-reef-metadata-deployment") {
+    } else if(output_table == "oyster-2025-reef-metadata-deployment") {
 
       # target_sheet <- "REEF METADATA"
       df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
 
       # Rename some columns to match MarineGEO column standards
-      df <- df_raw %>%
+      df <- df_raw  |>
         rename(
           water_present = any_of("Water Present Y N"),
           logger_deployed = any_of("Logger Deployed Y N"),
           spat_stick = any_of("Spat Stick PVC or biobox"),
           personnel = any_of("Sampling Personnel"),
           notes = any_of("Site Notes (including recent perturbations and weather conditions)")
-        ) %>%
+        ) |>
         mutate(input_filename = basename(filepath))
 
       #### Deployment Rugosity and Cluster Height ####
@@ -45,7 +88,7 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
       df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
 
       # Rename some columns to match MarineGEO column standards
-      df <- df_raw %>%
+      df <- df_raw |>
         mutate(input_filename = basename(filepath))
 
       ## Reef Life Survey ####
@@ -122,6 +165,11 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
                                                               taxonomic_levels = "phylum") |>
         dplyr::relocate(taxonomic_id, .after = "Species")
 
+
+    } else {
+
+      message(paste("Target table is not defined in utl_mg_load_excel(): ", output_table))
+      return(NULL)
 
     }
 
