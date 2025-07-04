@@ -23,7 +23,7 @@ Oyster Reef Monitoring,2,excavation-length,excavation-length-annual-monitoring-v
 Oyster Reef Monitoring,2,excavation-count,excavation-count-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/excavation-count-annual-monitoring-v1,,
 Oyster Reef Monitoring,2,rugosity,oyster-rugosity-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-rugosity-annual-monitoring-v1,,
 Oyster Reef Monitoring,2,biobox-data,oyster-biobox-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-biobox-annual-monitoring-v1,,
-Seagrass Monitoring,1,Seagrass Monitoring Excel,seagrass-monitoring-marinegeo-excel,marinegeo-seagrass-monitoring/L1-data/seagrass-monitoring-marinegeo-excel,,github
+Seagrass Monitoring,1,Seagrass Monitoring (L1),seagrass-monitoring-marinegeo,marinegeo-seagrass-monitoring/L1-data/seagrass-monitoring-marinegeo,,github
 Seagrass Monitoring,2,Seagrass Biomass (core),seagrass-biomass-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-biomass-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-biomass-monitoring-v1,github
 Seagrass Monitoring,2,Seagrass Cover,seagrass-cover-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-cover-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-cover-monitoring-v1,github
 Seagrass Monitoring,2,Seagrass Macroinvertebrates,seagrass-macroinvertebrates-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-macroinvertebrates-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-macroinvertebrates-monitoring-v1,github
