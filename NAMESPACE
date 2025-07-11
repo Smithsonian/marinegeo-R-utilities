@@ -3,6 +3,7 @@
 export(api_worms_get_aphia_id)
 export(api_worms_get_classification)
 export(db_get_taxonomy_by_scientific_name)
+export(db_marinegeo_L2)
 export(qc_mg_missing_taxonomic_id)
 export(qc_rls_empty_metadata)
 export(qc_rls_fish_count_over_100)

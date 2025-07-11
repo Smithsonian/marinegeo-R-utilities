@@ -4,10 +4,10 @@
 \alias{utl_mg_load_excel}
 \title{Load MarineGEO Excel data into R}
 \usage{
-utl_mg_load_excel(filepath, output_table)
+utl_mg_load_excel(filepath, output_table, sheet_name)
 }
 \arguments{
-\item{output_table}{}
+\item{sheet_name}{}
 }
 \value{
 a dataframe
