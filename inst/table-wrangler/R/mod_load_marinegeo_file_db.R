@@ -228,9 +228,6 @@ load_marinegeo_data_server <- function(id, input_list) {
         # Set up the code chain
         script_filename <- get_script_filepath()
         
-        # Save the input IDs of the code chain that are about to be replaced
-        input_list$flush_code_chain_ids <- names(input_list$code_chain)
-
         if(length(script_filename) == 0){
           
           script_repository_directory <- marinegeo.utils::utl_mg_data_index() %>%
@@ -240,12 +237,25 @@ load_marinegeo_data_server <- function(id, input_list) {
           
           # This needs to point toward the script directory
           input_list$script_filepath <- paste0(
+            Sys.getenv("repository_filepath"),
             script_repository_directory, "/",
             gsub(".xlsx", ".R", data_filename)
           )
           
-          # Replace the existing code chain with an empty list
-          input_list$code_chain <- list()
+          # Create a template script
+          if(!file.exists(input_list$script_filepath)){
+            
+            local_data_filepath <- gsub(Sys.getenv("repository_filepath"),
+                                        "",
+                                        input_list$data_filepath)
+            
+            script_lines <- create_template_script(
+              script_filepath = input_list$script_filepath,
+              target_table = input_list$output_table_id,
+              input_filepath = local_data_filepath
+            )
+            
+          }
           
         } else {
           # Save the name of the script's filepath for other modules to use 
@@ -271,14 +281,7 @@ load_marinegeo_data_server <- function(id, input_list) {
           # evaluate, script should run on a dataframe named `df`
           input_list$out_df <- df_out
           
-          # code_chain <- import_R_script_to_code_chain(get_script_filepath())
-          # # Replace the existing code chain with the loaded one
-          # input_list$code_chain <- code_chain
-          
         }
-        
-        # Update a flag that will trigger a rerender in `mod_active_code_chain.R`
-        input_list$load_code_chain_flag <- input_list$load_code_chain_flag + 1
         
       })
       
