@@ -220,6 +220,15 @@ load_marinegeo_data_server <- function(id, input_list) {
         
         input_list$data_filepath <- filepath
         input_list$data_filename <- data_filename
+        
+        input_list$project_directory <- get_data_dir_inventory() %>%
+          filter(filename == data_filename) %>%
+          mutate(local_filepath = case_when(
+            local_filepath == filename ~ NA,
+            T ~ local_filepath
+          )) %>%
+          pull(local_filepath)
+        
         input_list$input_table_id <- input$select_input_data_table
         input_list$output_table_id <- input$select_output_data_table
         input_list$in_df <- df

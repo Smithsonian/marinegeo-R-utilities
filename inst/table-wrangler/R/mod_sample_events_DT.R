@@ -11,7 +11,7 @@ sample_event_server <- function(id, input_list) {
   moduleServer(
     id,
     function(input, output, session) {
-    
+      
       output$sample_event_summary <- renderUI({
         
         ns <- NS(id)
@@ -34,9 +34,10 @@ sample_event_server <- function(id, input_list) {
       
       load_rls_roster <- function(){
         
+        # South Florida roster
         rls_roster_filepath <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/EPA_project_dive_roster.xlsx")
         
-        rls_roster <- readxl::read_excel(rls_roster_filepath) %>%
+        epa_roster <- readxl::read_excel(rls_roster_filepath) %>%
           filter(!is.na(`T1 Year`) | !is.na(`T2 Year`)) %>%
           select(`Site Code`, 
                  `T1 Initials`, `T1 Depth`, `T1 Year`, `T1 Month`, `T1 Day`,
@@ -55,6 +56,31 @@ sample_event_server <- function(id, input_list) {
                  initials = Initials) %>%
           dplyr::mutate(sample_event_id = paste(site_code, "RLS", date, depth, sep = "_")) %>%
           select(sample_event_id, site_code, initials)
+        
+        # PAFF 2025 rosters
+        roster_dr <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/DR 2025 Transect Metadata.xlsx")
+        roster_usvi <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/USVI Metadata.xlsx")
+        roster_bra <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/Metadata Table_Brazil.xlsx")
+        
+        paff_roster <- readxl::read_excel(roster_bra) %>%
+          mutate(Date = ymd(paste(Year, Month, Day, sep = "-"))) %>%
+          bind_rows(
+            readxl::read_excel(roster_dr),
+            readxl::read_excel(roster_usvi)
+          ) %>%
+          rename(site_code = Code,
+                 site_name = `SiteName`,
+                 depth = Depth,
+                 date = Date,
+                 diver = Diver) %>%
+          dplyr::mutate(sample_event_id = paste(site_code, "RLS", date, depth, sep = "_")) %>%
+          select(sample_event_id, site_code, site_name, diver) %>%
+          distinct()
+        
+        rls_roster <- list(
+          "EPA-South-Florida" = epa_roster,
+          "PAFF-2025" = paff_roster
+        )
         
         return(rls_roster)
       }
@@ -82,25 +108,31 @@ sample_event_server <- function(id, input_list) {
         if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
           
-        } else if(!is.Date(input_list$out_df$date) | !is.numeric(input_list$out_df$method) | !is.numeric(input_list$out_df$block)){
-          df <- tibble(status = "check data type of date, method, or block to evaluate sample events")
+          # } else if(!is.Date(input_list$out_df$date) | !is.numeric(input_list$out_df$method) | !is.numeric(input_list$out_df$block)){
+          #   df <- tibble(status = "check data type of date, method, or block to evaluate sample events")
           
         } else {
           
           rls_data <- input_list$out_df %>%
-              select(all_of(req_cols)) %>%
-              distinct()
+            select(any_of(req_cols)) %>%
+            distinct()
           
           rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data) %>%
             select(sample_event_id, site_code, date, depth)
           
-          df <- left_join(rls_sample_events, load_rls_roster(), 
+          if(str_starts(input_list$project_directory, "EPA-project/")){
+            proj_roster <- "EPA-South-Florida"
+          } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
+            proj_roster <- "PAFF-2025"
+          }
+          
+          df <- left_join(rls_sample_events, load_rls_roster()[[proj_roster]], 
                           by = c("sample_event_id", "site_code"))
           
         }
         
         df %>%
-          select(-sample_event_id) %>%
+          select(-any_of("sample_event_id")) %>%
           DT::datatable(
             style = "default"
           )
@@ -110,14 +142,14 @@ sample_event_server <- function(id, input_list) {
       output$all_sample_events <- renderDT({
         
         req(input_list$selected_flag)
-
+        
         req_cols <- c("sample_event_id", "site_code", "date", "depth", "method", "block", "input_filename")
         
         if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
-            
-        } else if(!is.Date(input_list$out_df$date) | !is.numeric(input_list$out_df$method) | !is.numeric(input_list$out_df$block)){
-          df <- tibble(status = "check data type of date, method, or block to evaluate sample events")
+          
+          # } else if(!is.Date(input_list$out_df$date) | !is.numeric(input_list$out_df$method) | !is.numeric(input_list$out_df$block)){
+          #   df <- tibble(status = "check data type of date, method, or block to evaluate sample events")
           
         } else {
           
@@ -125,7 +157,7 @@ sample_event_server <- function(id, input_list) {
           
           rls_data <- bind_rows(
             input_list$out_df %>%
-              select(all_of(req_cols)) %>%
+              select(any_of(req_cols)) %>%
               distinct(), 
             
             load_rls_l2_data() %>%
@@ -135,14 +167,19 @@ sample_event_server <- function(id, input_list) {
           
           rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data)
           
+          if(str_starts(input_list$project_directory, "EPA-project/")){
+            proj_roster <- "EPA-South-Florida"
+          } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
+            proj_roster <- "PAFF-2025"
+          }
           
           df <- left_join(rls_sample_events, 
-                          load_rls_roster(),
+                          load_rls_roster()[[proj_roster]],
                           by = c("sample_event_id", "site_code"))
         }
         
         df %>%
-          select(-sample_event_id) %>%
+          select(-any_of("sample_event_id")) %>%
           DT::datatable(
             style = "default"
           )

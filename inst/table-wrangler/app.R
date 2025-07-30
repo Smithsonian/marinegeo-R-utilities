@@ -108,7 +108,8 @@ server <- function(input, output, session) {
     script_filepath = NULL, # File path to the script associated with the data table that is currently loaded
     input_table_id = NULL, # ID of table that data is drawn from
     output_table_id = NULL, # ID of table that data will be written to
-
+    project_directory = NULL, # Some data files are nested within project directories in the L1 folder
+    
     code_chain = list(),
     load_code_chain_flag = 0,
     flush_code_chain_ids = NULL, # Name of code chain IDs to be replaced by a new code chain when loading an R script
