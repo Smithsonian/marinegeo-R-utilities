@@ -31,13 +31,13 @@ db_marinegeo_L2 <- function(table_id, return_type = "arrow"){
 
     arrow_type <- switch(data_type,
                          "STRING" = arrow::string(),
-                         "INT" = int32(),
-                         "INT64" = int64(),
-                         "TIMESTAMP" = timestamp(),
-                         "TIMESTAMP UTC" = timestamp(timezone = "UTC"),
+                         "INT" = arrow::int32(),
+                         "INT64" = arrow::int64(),
+                         "TIMESTAMP" = arrow::timestamp(),
+                         "TIMESTAMP UTC" = arrow::timestamp(timezone = "UTC"),
                          "DOUBLE" = double(),
-                         "DATE" = date32(),
-                         "TINYINT" = uint8()
+                         "DATE" = arrow::date32(),
+                         "TINYINT" = arrow::uint8()
     )
 
     arrow::field(column_name, arrow_type)
