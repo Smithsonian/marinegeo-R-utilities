@@ -51,7 +51,8 @@ suggest_code_server <- function(id, input_list) {
         if(input_list$input_table_id == "reef-life-survey-data-marinegeo-input"){
           
           div(
-            actionButton(session$ns("add_rls_metadata"), "Add RLS metadata columns")
+            actionButton(session$ns("add_rls_metadata"), "Add sample event ID column"),
+            actionButton(session$ns("fill_metadata"), "Fill missing RLS metadata")
           )
           
         }
@@ -171,7 +172,24 @@ suggest_code_server <- function(id, input_list) {
       ###### Reef Life Survey ####
       observeEvent(input$add_rls_metadata, {
         
-        mutate_template_text <- build_reef_life_survey_metadata_template(input_list$data_filename)
+        mutate_template_text <- paste("df %>%",
+                                      paste0("\tmutate(sample_event_id = paste(site_code, \"RLS\", date, depth, sep = \"_\"))"),
+                                      sep = "\n")
+        
+        # Don't want users to modify these templates
+        # shinyjs::enable(session$ns("code_suggestion"), asis = TRUE)
+        
+        shiny::updateTextAreaInput(session,
+                                   inputId = "code_suggestion",
+                                   value = mutate_template_text)
+        
+      })
+      
+      observeEvent(input$fill_metadata, {
+        
+        mutate_template_text <- paste("df %>%",
+                                      paste0("\tmarinegeo.utils::utl_rls_fill_missing_metadata()"),
+                                      sep = "\n")
         
         # Don't want users to modify these templates
         # shinyjs::enable(session$ns("code_suggestion"), asis = TRUE)

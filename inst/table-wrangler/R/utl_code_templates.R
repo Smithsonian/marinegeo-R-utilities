@@ -1,14 +1,4 @@
 
-build_reef_life_survey_metadata_template <- function(filename){
-  
-  mutate_template_text <- paste("df %>%",
-                                paste0("\tmutate(sample_event_id = paste(site_code, \"RLS\", date, depth, sep = \"_\"))"),
-                                sep = "\n")
-  
-  return(mutate_template_text)
-  
-}
-
 build_select_columns_template <- function(){
   
   select_template_text <- paste("df %>%",

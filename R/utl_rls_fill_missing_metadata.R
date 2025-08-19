@@ -71,7 +71,7 @@ utl_rls_fill_missing_metadata <- function(df){
       mutate(vis = as.character(vis))
   }
 
-  if(!is.character(time)){
+  if(!is.character(df_in$time)){
     df_in <- df_in %>%
       mutate(time = as.character(time))
   }

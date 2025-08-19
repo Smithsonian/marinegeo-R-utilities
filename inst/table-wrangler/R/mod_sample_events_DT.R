@@ -75,7 +75,9 @@ sample_event_server <- function(id, input_list) {
                  diver = Diver) %>%
           dplyr::mutate(sample_event_id = paste(site_code, "RLS", date, depth, sep = "_")) %>%
           select(sample_event_id, site_code, site_name, diver) %>%
-          distinct()
+          distinct() %>% 
+          group_by(sample_event_id, site_code, site_name) %>% 
+          summarize(diver = paste(diver, collapse=","))
         
         rls_roster <- list(
           "EPA-South-Florida" = epa_roster,
@@ -87,12 +89,12 @@ sample_event_server <- function(id, input_list) {
       
       load_rls_l2_data <- function(){
         
-        req_cols <- c("sample_event_id", "site_code", "date", "depth", "method", "block", "input_filename")
+        req_cols <- c("sample_event_id", "site_name", "site_code", "date", "depth", "method", "block", "vis", "direction", "time", "photoquadrats","input_filename")
         
-        rls_l2_files <- list.files(paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L2-data/reef-life-survey-data-marinegeo-v1"),
-                                   recursive = T, full.names = T)
+        # rls_l2_files <- list.files(paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L2-data/reef-life-survey-data-marinegeo-v1"),
+        #                            recursive = T, full.names = T)
         
-        rls_l2_data <- read_csv(rls_l2_files) %>%
+        rls_l2_data <- marinegeo.utils::db_marinegeo_L2("reef-life-survey-data-marinegeo-v1") %>%
           select(all_of(req_cols)) %>%
           distinct()
         
@@ -126,7 +128,8 @@ sample_event_server <- function(id, input_list) {
             proj_roster <- "PAFF-2025"
           }
           
-          df <- left_join(rls_sample_events, load_rls_roster()[[proj_roster]], 
+          df <- left_join(rls_sample_events, 
+                          load_rls_roster()[[proj_roster]], 
                           by = c("sample_event_id", "site_code"))
           
         }
@@ -143,7 +146,7 @@ sample_event_server <- function(id, input_list) {
         
         req(input_list$selected_flag)
         
-        req_cols <- c("sample_event_id", "site_code", "date", "depth", "method", "block", "input_filename")
+        req_cols <- c("sample_event_id", "site_code", "site_name", "date", "depth", "method", "block", "vis", "direction", "time", "photoquadrats","input_filename")
         
         if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
@@ -153,32 +156,56 @@ sample_event_server <- function(id, input_list) {
           
         } else {
           
-          site_codes <- unique(input_list$out_df$site_code)
+          site_names <- unique(input_list$out_df$site_name)
+          
+          df_in <- input_list$out_df
+          
+          if(is.numeric(df_in$vis)){
+            df_in <- df_in %>%
+              mutate(vis = as.character(vis))
+          }
+          
+          if(!is.character(df_in$time)){
+            df_in <- df_in %>%
+              mutate(time = as.character(time))
+          }
           
           rls_data <- bind_rows(
-            input_list$out_df %>%
+            df_in %>%
               select(any_of(req_cols)) %>%
               distinct(), 
             
             load_rls_l2_data() %>%
               filter(input_filename != input_list$data_filename) %>%
-              filter(site_code %in% site_codes)
+              filter(site_name %in% site_names) %>%
+              collect()
           )
           
           rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data)
           
-          if(str_starts(input_list$project_directory, "EPA-project/")){
-            proj_roster <- "EPA-South-Florida"
-          } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
-            proj_roster <- "PAFF-2025"
-          }
+          rls_dive_metadata <- rls_data %>%
+            group_by(sample_event_id, site_name) %>% 
+            summarize(vis = paste(unique(vis), collapse = ","),
+                      direction = paste(unique(direction), collapse = ","),
+                      time = paste(unique(time), collapse = ","),
+                      photoquadrats = paste(unique(photoquadrats), collapse = ",")
+            )
           
-          df <- left_join(rls_sample_events, 
-                          load_rls_roster()[[proj_roster]],
-                          by = c("sample_event_id", "site_code"))
+          rls_summary <- left_join(rls_sample_events, rls_dive_metadata) %>%
+            select(site_name, site_code, everything())
+          
+          # if(str_starts(input_list$project_directory, "EPA-project/")){
+          #   proj_roster <- "EPA-South-Florida"
+          # } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
+          #   proj_roster <- "PAFF-2025"
+          # }
+          # 
+          # df <- left_join(rls_sample_events, 
+          #                 load_rls_roster()[[proj_roster]],
+          #                 by = c("sample_event_id", "site_code"))
         }
         
-        df %>%
+        rls_summary %>%
           select(-any_of("sample_event_id")) %>%
           DT::datatable(
             style = "default"
