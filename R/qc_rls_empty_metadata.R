@@ -36,7 +36,7 @@ qc_rls_empty_metadata <- function(df){
     row_numbers <- df |>
       tibble::rowid_to_column() |>
       dplyr::mutate(across(everything(), as.character)) |>
-      dplyr::select(rowid, diver,buddy, site_code, site_name, latitude, longitude, date, depth, vis, direction, time, photoquadrats) |>
+      dplyr::select(rowid, diver, site_code, site_name, latitude, longitude, date, depth, vis, direction, time, photoquadrats) |>
       dplyr::filter(if_any(everything(), ~ is.na(.x) | .x == "BLANK")) |>
       dplyr::mutate(rowid = as.numeric(rowid)) |>
       dplyr::pull(rowid)

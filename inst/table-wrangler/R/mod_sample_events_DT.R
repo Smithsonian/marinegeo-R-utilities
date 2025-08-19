@@ -19,11 +19,11 @@ sample_event_server <- function(id, input_list) {
         if(input_list$output_table_id == "reef-life-survey-data-marinegeo-v1"){
           
           div(
-            card("Check that sample events (dives) in this file are defined in the roster.",
+            card("Check that sample events (dives) in this file are defined in the roster. If one or more divers are listed in the Initials or Diver column (depending on project), then the dive in the data matches the roster",
                  DTOutput(ns("file_sample_events")),
                  full_screen = TRUE),
             
-            card("Check Method - Block combination for all processed data",
+            card("Check that all Method - Block combinations are represented. This table pulls in L2 data derived from other input files, if it exists. You can also review all metadata values for visibility, direction, time, and photoquadrat status across all files.",
                  DTOutput(ns("all_sample_events")),
                  full_screen = TRUE)
           )
