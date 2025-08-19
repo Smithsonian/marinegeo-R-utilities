@@ -37,6 +37,7 @@ suggest_code_server <- function(id, input_list) {
           
           div(
             actionButton(session$ns("mutate_selected_values"), "Mutate selected values"),
+            actionButton(session$ns("mutate_x_for_all_y"), "Mutate X by all unique Y values"),
             actionButton(session$ns("filter"), "Filter based on selected values")
           )
         }
@@ -131,6 +132,42 @@ suggest_code_server <- function(id, input_list) {
                                    value = mutate_template_text)
         
       })
+      
+      shiny::observeEvent(input$mutate_x_for_all_y, {
+        
+        shinyjs::enable(session$ns("code_suggestion"), asis = TRUE)
+        
+        req(input_list$selected_flag)
+        
+        if(input_list$selected_flag %in% c("all", "no_flags")){
+          
+          df <- input_list$out_df %>%
+            rownames_to_column("row_num") %>%
+            mutate(row_num = as.numeric(row_num)) %>%
+            left_join(input_list$flag_df, by = "row_num") %>%
+            select(-row_num, -flag)
+          
+        } else {
+          
+          df <- input_list$out_df %>%
+            rownames_to_column("row_num") %>%
+            mutate(row_num = as.numeric(row_num)) %>%
+            left_join(input_list$flag_df, by = "row_num") %>%
+            filter(!is.na(flag)) %>%
+            select(-row_num, -flag)
+          
+        }
+        
+        mutate_template_text <- mutate_x_for_all_y_case_when_template(input_list$table_selections$selected_cells, 
+                                                                      input_list$table_selections$selected_columns,
+                                                                      df)
+        
+        shiny::updateTextAreaInput(session,
+                                   inputId = "code_suggestion",
+                                   value = mutate_template_text)
+        
+      })
+      
       
       #### Filter ####
       shiny::observeEvent(input$filter, {

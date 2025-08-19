@@ -14,6 +14,8 @@ build_mutate_case_when_template <- function(selected_points_matrix,
                                             expand_selected_values = FALSE,
                                             df){
   
+  browser()
+  
   selected_column_index <- selected_points_matrix[1,2]
   selected_column <- colnames(df[selected_column_index])
   
@@ -108,6 +110,85 @@ build_mutate_case_when_template <- function(selected_points_matrix,
                             paste0("\t\tT ~ ", selected_column, "\n\t))")) 
   
   mutate_template_text <- paste(mutate_template_text, collapse = "\n")
+  
+  return(mutate_template_text)
+  
+}
+
+# Update X in column A contingent on all values Y in column B
+# For instance, if column "direction" has NA values, update those based on
+# all "site_name" values that are associated with NA direction
+
+# If multiple X values selected, then a single row per X and Y combination will be created
+mutate_x_for_all_y_case_when_template <- function(selected_points_matrix, 
+                                                  selected_columns,
+                                                  df){
+  
+  selected_column_index <- selected_points_matrix[1,2]
+  selected_column <- colnames(df[selected_column_index])
+  
+  mutate_template_text <- paste("df %>%",
+                                paste0("\tmutate(", selected_column, " = case_when("),
+                                sep = "\n")
+  
+  # Get unique values associated with the selected column
+  unique_value_indices <- as_tibble(selected_points_matrix) %>%
+    filter(V2 == selected_column_index) %>%
+    count(V1) %>%
+    pull(V1)
+  
+  unique_values <- unique(df[[selected_column]][unique_value_indices])
+  
+  additional_column_indices <- setdiff(selected_points_matrix[,2], selected_column_index)
+  additional_columns <- colnames(df)[additional_column_indices]
+  
+  # Subset df to the selected value and extract all unique combinations of data based on all columns
+  df_subset <- df %>%
+    filter(.data[[selected_column]] %in% unique_values) %>%
+    select(all_of(c(selected_column, additional_columns))) %>%
+    distinct()
+  
+  all_columns <- c(selected_column, additional_columns)
+  
+  all_conditions <- c()
+  # For each row, create a case_when conditional based on that combination of values
+  for(i in 1:nrow(df_subset)){
+    
+    row_conditions <- c()
+    
+    for (j in 1:ncol(df_subset)) {
+      col_name <- names(df_subset)[j]
+      value <- unname(unlist(df_subset[i, j]))
+      
+      if (is.na(value)) {
+        row_conditions <- c(row_conditions, paste0("is.na(", col_name, ")"))
+      } else {
+        # Handle different data types appropriately
+        if (is.character(value) || is.factor(value)) {
+          row_conditions <- c(row_conditions, paste0(col_name, " == '", value, "'"))
+        } else {
+          row_conditions <- c(row_conditions, paste0(col_name, " == ", value))
+        }
+      }
+      
+    }
+    
+    all_conditions <- c(all_conditions, 
+                        paste0(
+                          "\t\t",
+                          paste(row_conditions, collapse = " & "),
+                          " ~ \"\","
+                        ))
+    
+  }
+  
+  mutate_template_text <- paste(
+    c(
+      mutate_template_text,
+      all_conditions,
+      paste0("\t\tT ~ ", selected_column, "\n\t))")
+    ), 
+    collapse = "\n")
   
   return(mutate_template_text)
   
