@@ -14,8 +14,6 @@ build_mutate_case_when_template <- function(selected_points_matrix,
                                             expand_selected_values = FALSE,
                                             df){
   
-  browser()
-  
   selected_column_index <- selected_points_matrix[1,2]
   selected_column <- colnames(df[selected_column_index])
   
