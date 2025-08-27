@@ -60,10 +60,10 @@ utl_rls_fill_missing_metadata <- function(df){
     )) %>%
     collect() %>%
     group_by(sample_event_id) %>%
-    summarize(vis = first(vis),
-              direction = first(direction),
-              photoquadrats = first(photoquadrats),
-              time = first(time))
+    summarize(vis = first(vis, na_rm = T),
+              direction = first(direction, na_rm = T),
+              photoquadrats = first(photoquadrats, na_rm = T),
+              time = first(time, na_rm = T))
 
 
   if(is.numeric(df_in$vis)){

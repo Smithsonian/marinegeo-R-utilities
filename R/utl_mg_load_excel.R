@@ -160,7 +160,17 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
         # Input filename is metadata used to track file curation
         dplyr::mutate(input_filename = basename(filepath)) |>
         dplyr::mutate(Method = as.numeric(Method),
-                      Block = as.numeric(Block)) |>
+                      Block = as.numeric(Block),
+                      Time = as.character(Time)) |>
+        dplyr::mutate(Time = dplyr::case_when(
+          stringr::str_starts(Time, "1899-12-31") ~ trimws(
+            gsub("T", "",
+              gsub("Z", "",
+                gsub("1899-12-31", "", Time)
+            ))
+          ),
+          T ~ Time
+        )) |>
         marinegeo.utils::utl_join_taxonomy_by_scientific_name(identification_column_name = "Species",
                                                               taxonomic_levels = "phylum") |>
         dplyr::relocate(taxonomic_id, .after = "Species")

@@ -35,15 +35,15 @@ sample_event_server <- function(id, input_list) {
       load_rls_roster <- function(){
         
         # South Florida roster
-        rls_roster_filepath <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/EPA_project_dive_roster.xlsx")
+        rls_roster_filepath <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/EPA-2024/EPA_project_dive_roster.xlsx")
         
         epa_roster <- readxl::read_excel(rls_roster_filepath) %>%
           filter(!is.na(`T1 Year`) | !is.na(`T2 Year`)) %>%
-          select(`Site Code`, 
+          select(`Site Code`, `Site Name`,
                  `T1 Initials`, `T1 Depth`, `T1 Year`, `T1 Month`, `T1 Day`,
                  `T2 Initials`, `T2 Depth`, `T2 Year`, `T2 Month`, `T2 Day`) %>%
           mutate(across(everything(), as.character)) %>% 
-          pivot_longer(-`Site Code`, names_to = "column_name", values_to = "value") %>%
+          pivot_longer(-all_of(c("Site Code", "Site Name")), names_to = "column_name", values_to = "value") %>%
           mutate(transect = substr(column_name, 1,2),
                  column_name = gsub("T1 ", "", 
                                     gsub("T2 ", "", column_name))) %>%
@@ -51,11 +51,13 @@ sample_event_server <- function(id, input_list) {
           mutate(Date = ymd(paste(Year, Month, Day, sep ="-")),
                  Depth = as.numeric(Depth)) %>%
           rename(site_code = `Site Code`,
+                 site_name = `Site Name`,
                  depth = Depth,
                  date = Date,
                  initials = Initials) %>%
-          dplyr::mutate(sample_event_id = paste(site_code, "RLS", date, depth, sep = "_")) %>%
-          select(sample_event_id, site_code, initials)
+          dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name), 
+                                                "RLS", date, depth, sep = "_")) %>%
+          select(sample_event_id, site_name, initials)
         
         # PAFF 2025 rosters
         roster_dr <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/DR 2025 Transect Metadata.xlsx")
@@ -73,10 +75,11 @@ sample_event_server <- function(id, input_list) {
                  depth = Depth,
                  date = Date,
                  diver = Diver) %>%
-          dplyr::mutate(sample_event_id = paste(site_code, "RLS", date, depth, sep = "_")) %>%
-          select(sample_event_id, site_code, site_name, diver) %>%
+          dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name), 
+                                                "RLS", date, depth, sep = "_")) %>%
+          select(sample_event_id, site_name, diver) %>%
           distinct() %>% 
-          group_by(sample_event_id, site_code, site_name) %>% 
+          group_by(sample_event_id, site_name) %>% 
           summarize(diver = paste(diver, collapse=","))
         
         rls_roster <- list(
@@ -105,7 +108,7 @@ sample_event_server <- function(id, input_list) {
         
         req(input_list$selected_flag)
         
-        req_cols <- c("sample_event_id", "site_code", "date", "depth", "method", "block", "input_filename")
+        req_cols <- c("sample_event_id", "site_name", "date", "depth", "method", "block", "input_filename")
         
         if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
           df <- tibble(status = "add sample event ID column!")
@@ -120,7 +123,7 @@ sample_event_server <- function(id, input_list) {
             distinct()
           
           rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data) %>%
-            select(sample_event_id, site_code, date, depth)
+            select(sample_event_id, site_name, date, depth)
           
           if(str_starts(input_list$project_directory, "EPA-project/")){
             proj_roster <- "EPA-South-Florida"
@@ -130,7 +133,7 @@ sample_event_server <- function(id, input_list) {
           
           df <- left_join(rls_sample_events, 
                           load_rls_roster()[[proj_roster]], 
-                          by = c("sample_event_id", "site_code"))
+                          by = c("sample_event_id", "site_name"))
           
         }
         
@@ -192,17 +195,8 @@ sample_event_server <- function(id, input_list) {
             )
           
           rls_summary <- left_join(rls_sample_events, rls_dive_metadata) %>%
-            select(site_name, site_code, everything())
+            select(site_name, everything())
           
-          # if(str_starts(input_list$project_directory, "EPA-project/")){
-          #   proj_roster <- "EPA-South-Florida"
-          # } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
-          #   proj_roster <- "PAFF-2025"
-          # }
-          # 
-          # df <- left_join(rls_sample_events, 
-          #                 load_rls_roster()[[proj_roster]],
-          #                 by = c("sample_event_id", "site_code"))
         }
         
         rls_summary %>%

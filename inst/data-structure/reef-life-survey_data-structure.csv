@@ -1,6 +1,5 @@
 ﻿protocol,table_id,level,column_name,data_type
 Reef Life Survey,reef-life-survey-data-marinegeo-v1,2,sample_event_id,STRING
-Reef Life Survey,reef-life-survey-data-marinegeo-v1,2,id,INT
 Reef Life Survey,reef-life-survey-data-marinegeo-v1,2,diver,STRING
 Reef Life Survey,reef-life-survey-data-marinegeo-v1,2,buddy,STRING
 Reef Life Survey,reef-life-survey-data-marinegeo-v1,2,site_code,STRING

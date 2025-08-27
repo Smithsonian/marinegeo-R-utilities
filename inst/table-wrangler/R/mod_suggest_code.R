@@ -210,7 +210,7 @@ suggest_code_server <- function(id, input_list) {
       observeEvent(input$add_rls_metadata, {
         
         mutate_template_text <- paste("df %>%",
-                                      paste0("\tmutate(sample_event_id = paste(site_code, \"RLS\", date, depth, sep = \"_\"))"),
+                                      paste0("\tmutate(sample_event_id = paste(gsub(\" \", \"_\", site_name), \"RLS\", date, depth, sep = \"_\"))"),
                                       sep = "\n")
         
         # Don't want users to modify these templates
