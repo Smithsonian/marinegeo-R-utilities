@@ -125,7 +125,7 @@ sample_event_server <- function(id, input_list) {
           rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data) %>%
             select(sample_event_id, site_name, date, depth)
           
-          if(str_starts(input_list$project_directory, "EPA-project/")){
+          if(str_starts(input_list$project_directory, "EPA-2024/")){
             proj_roster <- "EPA-South-Florida"
           } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
             proj_roster <- "PAFF-2025"
