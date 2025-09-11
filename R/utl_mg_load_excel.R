@@ -64,31 +64,21 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
 
     ## Oyster Network Project 2025 ####
 
-    #### Deployment Reef Metadata ####
-    } else if(output_table == "oyster-2025-reef-metadata-deployment") {
+    } else if(stringr::str_starts(output_table, "oyster-2025")){
 
-      # target_sheet <- "REEF METADATA"
       df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
 
-      # Rename some columns to match MarineGEO column standards
       df <- df_raw  |>
         rename(
           water_present = any_of("Water Present Y N"),
           logger_deployed = any_of("Logger Deployed Y N"),
           spat_stick = any_of("Spat Stick PVC or biobox"),
           personnel = any_of("Sampling Personnel"),
-          notes = any_of("Site Notes (including recent perturbations and weather conditions)")
+          notes = any_of("Site Notes (including recent perturbations and weather conditions)"),
+          empty_bucket_kg = any_of("Empty Bucket Weight (kg)"),
+          bivalves_and_bucket_kg = any_of("Weight of Bivalves and Bucket (kg)"),
+          bivalve_kg = any_of("Weight of Bivalves in Biobox (kg)")
         ) |>
-        mutate(input_filename = basename(filepath))
-
-      #### Deployment Rugosity and Cluster Height ####
-    } else if(output_table == "oyster-2025-rugosity") {
-
-      target_sheet <- "RUGOSITY & CLUSTER HEIGHT"
-      df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
-
-      # Rename some columns to match MarineGEO column standards
-      df <- df_raw |>
         mutate(input_filename = basename(filepath))
 
       ## Reef Life Survey ####
