@@ -27,6 +27,12 @@ sample_event_server <- function(id, input_list) {
                  DTOutput(ns("all_sample_events")),
                  full_screen = TRUE)
           )
+        } else if(str_starts(input_list$output_table_id, "oyster-2025")){
+          div(
+            card("Check that sample events in this file are defined in the roster. If the partner code, site name and reef code match the roster, then values for the status columns will be present",
+                 DTOutput(ns("oyster_2025_roster")),
+                 full_screen = TRUE),
+          )
         }
       })
       
@@ -204,6 +210,41 @@ sample_event_server <- function(id, input_list) {
           DT::datatable(
             style = "default"
           )
+      })
+      
+      ## Oyster Network Project 2025 ####
+      output$oyster_2025_roster <- renderDT({
+        
+        req(input_list$selected_flag)
+        
+        if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
+          df_out <- tibble(status = "add sample event ID column!")
+          
+        } else {
+          
+          roster_filepath <- paste0(Sys.getenv("repository_filepath"), "oyster-network-project-2025/L1-data/oyster-2025-roster/oyster_network_project_2025_roster.xlsx")
+          
+          roster <- readxl::read_excel(roster_filepath)
+          
+          df <- input_list$out_df %>%
+            select(partner_code, site_name, reef_code) %>%
+            distinct()
+
+          roster_columns <- roster %>%
+            select(partner, partner_code, site_name, reef_code, deployment_status, retrieval_status, logger_status) %>%
+            distinct()
+          
+          df_out <- left_join(
+            df, roster_columns, by = c("partner_code", "site_name", "reef_code")
+          )
+          
+        }
+        
+        df_out %>%
+          DT::datatable(
+            style = "default"
+          )
+        
       })
       
     }

@@ -79,6 +79,13 @@ load_marinegeo_data_server <- function(id, input_list) {
           filter(protocol == input$select_data_type) %>%
           filter(!is.na(table_id)) %>%
           count(table_id, table_name) %>%
+          mutate(priority = case_when(
+            stringr::str_ends(table_name, "\\(L1\\)") ~ 1,
+            stringr::str_ends(table_name, "\\(L2\\)") ~ 2,
+            stringr::str_ends(table_name, "\\(L3\\)") ~ 3,
+            T ~ 4
+          )) %>%
+          arrange(priority) %>%
           pull(table_id, name = "table_name")
         
         pickerInput(session$ns("select_input_data_table"),

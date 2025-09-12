@@ -1,3 +1,11 @@
+# Steps to add new visualizations
+# 
+# 1. If adding visualizations to a table that doesn't have any pre-existing visualizations:
+#   - Add the table name under the "Table plot list" header
+#   - Add a new function to orchestrate table functions
+#     - Some tables may share a function (see Oyster 2025 experiment)
+#     - Arguments passed to the function can vary across table types
+
 visualizations_UI <- function(id) {
   ns <- NS(id)
   tagList(
@@ -63,10 +71,13 @@ visualizations_server <- function(id, input_list) {
         }
       })
       
+      # Table plot list #### 
       get_plot_list <- reactive({
         
         if(input_list$output_table_id == "reef-life-survey-data-marinegeo-v1"){
           plot_list <- viz_rls_plots(input_list$out_df)
+        } else if(str_starts(input_list$output_table_id, "oyster-2025")){
+          plot_list <- viz_oyster_2025_plots(input_list$out_df, input_list$output_table_id)
         } else {
           plot_list <- NULL
         }
@@ -87,6 +98,7 @@ visualizations_server <- function(id, input_list) {
   )
 }
 
+## Table Visualization Functions ####
 viz_rls_plots <- function(df){
   
   abundance_richness_df <- df %>%
@@ -117,4 +129,18 @@ viz_rls_plots <- function(df){
   
   return(plot_list)
 
+}
+
+viz_oyster_2025_plots <- function(df, table_id){
+  
+  plot_list <- list(
+    "Biobox Coordinates" = df %>%
+      leaflet() %>%
+      addTiles() %>%
+      addMarkers(lng = ~biobox_longitude, 
+                 lat = ~biobox_latitude,
+                 label = ~reef_code)
+  )
+  
+  return(plot_list)
 }

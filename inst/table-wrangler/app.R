@@ -13,6 +13,7 @@ library(bslib)
 library(shinyjs)
 library(shinyWidgets)
 library(marinegeo.utils)
+library(leaflet)
 
 ui <- page_navbar(
   title = "MarineGEO Table Wrangler",
@@ -30,7 +31,7 @@ ui <- page_navbar(
           var start = this.selectionStart;
           var end = this.selectionEnd;
           
-          // Insert tab character
+          // Insert tab character 
           this.value = this.value.substring(0, start) + '\\t' + 
                       this.value.substring(end);
           
@@ -48,8 +49,7 @@ ui <- page_navbar(
   ),
   
   nav_panel(title = "Load Data",
-  
-              load_marinegeo_data_UI("load_data")
+    load_marinegeo_data_UI("load_data")
   ),
   
   nav_panel(title = "QA/QC Data",
