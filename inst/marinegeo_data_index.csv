@@ -40,7 +40,7 @@ Seagrass Monitoring,2,Seagrass Metadata,seagrass-metadata-monitoring-v1,marinege
 Seagrass Monitoring,2,Seagrass Macrophyte Mass,seagrass-macrophyte-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-macrophyte-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-macrophyte-monitoring-v1,github
 Seagrass Monitoring,2,Seagrass Epifauna,seagrass-epifauna-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-epifauna-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-epifauna-monitoring-v1,github
 Seagrass Monitoring,2,Seagrass Macroalgae,seagrass-macroalgae-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-macroalgae-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-macroalgae-monitoring-v1,github
-Seagrass Monitoring,2,Seagrass Blade Measurements,seagrass-blades-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-blades-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-blades-monitoring-v1,github
+Seagrass Monitoring,2,Seagrass Leaf Measurements,seagrass-leaf-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-leaf-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-leaf-monitoring-v1,github
 Seagrass Monitoring,2,Seagrass Sheath and Epibiont Measurements,sheath-and-epibiont-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/sheath-and-epibiont-monitoring-v1,marinegeo-seagrass-monitoring/scripts/sheath-and-epibiont-monitoring-v1,github
 Temperature Loggers,2,data,envlogger-data-L2-v1,temperature-loggers/2_data/envlogger-data-L2-v1/,,
 Temperature Loggers,2,header-metadata,envlogger-header-v1,temperature-loggers/2_deployment/envlogger-header-v1/,,

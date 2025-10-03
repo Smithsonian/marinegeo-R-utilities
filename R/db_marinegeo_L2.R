@@ -18,6 +18,11 @@ db_marinegeo_L2 <- function(table_id, return_type = "arrow"){
   table_data_structure <- utl_mg_data_structure() |>
     dplyr::filter(table_id == !!table_id)
 
+  if(nrow(table_data_structure) == 0){
+    message("TABLE NOT DEFINED IN DATA STRUCTURE")
+    return(NULL)
+  }
+
   schema_list <- lapply(1:nrow(table_data_structure), function(row){
 
     column_name <- table_data_structure$column_name[row]
