@@ -1,0 +1,43 @@
+partner_code,site_name,habitat,latitude,longitude
+USA-VAS,UVACRC Dock,artificial,NA,NA
+USA-SBC,Santa Barbara Dock,artificial,NA,NA
+USA-MWH,Woods Hole Dock,artificial,NA,NA
+USA-CBB,Bodega Harbor Dock,artificial,NA,NA
+USA-HIK,HIMB Dock,artificial,NA,NA
+AUS-COR,Coronet Bay Seagrass,seagrass,-38.467,145.423658
+AUS-FNQ,Green Island Seagrass,seagrass,-16.75656,145.97125
+AUS-PRB,Prosser Bay Seagrass,seagrass,-42.547936,147.905695
+AUS-SEQ,Dunwich Seagrass,seagrass,-27.49422,153.39868
+AUS-USC,Baffle Creek Seagrass,seagrass,-24.5287,152.0348
+AUS-USC,Nerang River Seagrass,seagrass,-27.99067,153.4158
+AUS-USC,Noosa River Seagrass,seagrass,-26.40376,153.07454
+CHL-CQB,Puerto Aldea Seagrass,seagrass,-30.293064,-71.608214
+FIN-GOF,Klobbarn Seagrass,seagrass,59.82907,23.17997
+FRA-SUD,Plage de Fourmis 1 Seagrass,seagrass,43.7026580976611,7.3328220000201
+FRA-SUD,Plage de Fourmis 2 Seagrass,seagrass,43.7012265280976,7.33217389268129
+FRA-SUD,Plage de Fourmis 3 Seagrass,seagrass,43.7003390975102,7.3336580000556
+HRV-ZAD,Zdrelac 1 Seagrass,seagrass,44.01414,15.25872
+HRV-ZAD,Zdrelac 2 Seagrass,seagrass,44.01555,15.2621
+IDN-SIR,Bongaiya Seagrass,seagrass,-5.83256,120.4562
+IDN-SIR,Maharaya Seagrass,seagrass,-5.94973,120.44561
+IRL-DUB,Merrion Gates Seagrass,seagrass,53.317265,-6.204265
+KOR-DDB,Dongdae Bay Seagrass,seagrass,34.89492,128.0207
+MDG-RGN,Ranobe Bay Seagrass,seagrass,-23.14526,43.591
+MDV-OIL,Olhuveli Island Seagrass,seagrass,1.820044,73.404772
+MEX-ENS,Punta Banda Seagrass,seagrass,31.75285,-116.62589
+MEX-PUM,Puerto Morelos Seagrass,seagrass,20.8768333333333,-86.86169444444444
+NOR-ROV,Rovika Seagrass,seagrass,67.26845,15.258867
+PHL-PBT,Pahut Bongao Seagrass,seagrass,5.03107,119.73708
+PHL-PBT,Tongmageng Seagrass,seagrass,4.697317,119.39085
+PHL-PBT,Tumindao Seagrass,seagrass,4.69355,119.4158
+SWE-KAT,Katthammarsvik Seagrass,seagrass,57.43708,18.852721
+USA-AKA,Echo Cove Seagrass,seagrass,58.6632,-134.9174
+USA-HAT,Hatteras Seagrass,seagrass,35.23035,-75.66448
+USA-LJC,La Jolla Shores Seagrass,seagrass,32.85419,-117.26685
+USA-NCC,Core Banks Seagrass,seagrass,34.6615,-76.51032
+USA-NCT,Topsail Seagrass,seagrass,34.358329,-77.677871
+USA-ORC,Clam Island Seagrass,seagrass,43.3697945,-124.3141857
+USA-VAS,South Bay Seagrass,seagrass,37.277827,-75.813703
+USA-WAR,Redondo Seagrass,seagrass,47.350336,-122.324123
+VEN-LCO,La Cienaga de Ocumare 1 Seagrass,seagrass,10.473895,-67.804941
+VEN-LCO,La Cienaga de Ocumare 2 Seagrass,seagrass,10.47506,-67.810362
