@@ -10,7 +10,7 @@ qc_mg_partner_codes <- function(df){
 
   stopifnot("`df` is not a data frame" = is.data.frame(df))
 
-  if(!partner_code %in% colnames(df)){
+  if(!"partner_code" %in% colnames(df)){
     message("Partner Code is not in the input data frame")
     return(NULL)
   } else {
@@ -50,7 +50,7 @@ qc_mg_site_names <- function(df){
 
   stopifnot("`df` is not a data frame" = is.data.frame(df))
 
-  if(!site_name %in% colnames(df)){
+  if(!"site_name" %in% colnames(df)){
     message("Site name is not in the input data frame")
     return(NULL)
   } else {
