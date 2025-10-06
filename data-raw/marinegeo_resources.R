@@ -32,6 +32,11 @@ marinegeo_resources <- list(
   site_names = readr::read_csv(
     list.files("inst/marinegeo-metadata/site-names/",
                full.names = T)
+  ),
+
+  categorical_values = readr::read_csv(
+    list.files("inst/marinegeo-metadata/categorical-values/",
+               full.names = T)
   )
 
 )

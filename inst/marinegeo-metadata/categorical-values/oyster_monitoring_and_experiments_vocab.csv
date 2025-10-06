@@ -1,0 +1,17 @@
+﻿table_id,column_name,value
+oyster-2025-reef-metadata-deployment,tidal_zone,intertidal
+oyster-2025-reef-metadata-deployment,tidal_zone,subtidal
+oyster-2025-reef-metadata-deployment,water_present,TRUE
+oyster-2025-reef-metadata-deployment,water_present,FALSE
+oyster-2025-reef-metadata-deployment,water_depth_unit,cm
+oyster-2025-reef-metadata-deployment,logger_deployed,TRUE
+oyster-2025-reef-metadata-deployment,logger_deployed,FALSE
+oyster-2025-reef-metadata-deployment,spat_stick,biobox
+oyster-2025-reef-metadata-deployment,spat_stick,PVC
+oyster-2025-reef-metadata-retrieval,tidal_zone,intertidal
+oyster-2025-reef-metadata-retrieval,tidal_zone,subtidal
+oyster-2025-reef-metadata-retrieval,water_present,TRUE
+oyster-2025-reef-metadata-retrieval,water_present,FALSE
+oyster-2025-reef-metadata-retrieval,water_depth_unit,cm
+oyster-2025-oyster-height,inside_or_outside_biobox,inside
+oyster-2025-oyster-height,inside_or_outside_biobox,outside
