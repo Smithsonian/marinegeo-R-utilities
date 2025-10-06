@@ -22,6 +22,16 @@ marinegeo_resources <- list(
   database_structure = readr::read_csv(
     list.files("inst/data-structure/",
                full.names = T)
+  ),
+
+  partner_codes = readr::read_csv(
+    list.files("inst/marinegeo-metadata/partner-codes/",
+               full.names = T)
+  ),
+
+  site_names = readr::read_csv(
+    list.files("inst/marinegeo-metadata/site-names/",
+               full.names = T)
   )
 
 )

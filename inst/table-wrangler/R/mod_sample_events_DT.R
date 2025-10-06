@@ -222,9 +222,9 @@ sample_event_server <- function(id, input_list) {
           
         } else {
           
-          roster_filepath <- paste0(Sys.getenv("repository_filepath"), "oyster-network-project-2025/L1-data/oyster-2025-roster/oyster_network_project_2025_roster.xlsx")
+          roster_filepath <- paste0(Sys.getenv("repository_filepath"), "oyster-network-project-2025/L1-data/oyster-2025-roster/oyster_network_project_2025_roster.csv")
           
-          roster <- readxl::read_excel(roster_filepath)
+          roster <- readr::read_csv(roster_filepath)
           
           df <- input_list$out_df %>%
             select(partner_code, site_name, reef_code) %>%
