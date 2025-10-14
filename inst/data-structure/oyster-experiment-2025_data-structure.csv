@@ -69,7 +69,7 @@ Oyster Experiment 2025,oyster-2025-bivalve-height,2,biobox_latitude,DOUBLE
 Oyster Experiment 2025,oyster-2025-bivalve-height,2,biobox_longitude,DOUBLE
 Oyster Experiment 2025,oyster-2025-bivalve-height,2,retrieval_date,DATE
 Oyster Experiment 2025,oyster-2025-bivalve-height,2,scientific_name,STRING
-Oyster Experiment 2025,oyster-2025-bivalve-height,2,height_mm,DOUBLE
+Oyster Experiment 2025,oyster-2025-bivalve-height,2,height_mm,STRING
 Oyster Experiment 2025,oyster-2025-bivalve-height,2,sample_height_notes,STRING
 Oyster Experiment 2025,oyster-2025-bivalve-height,2,input_filename,STRING
 Oyster Experiment 2025,oyster-2025-weight,2,sample_event_id,STRING
