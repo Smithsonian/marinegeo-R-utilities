@@ -1,5 +1,5 @@
-
-utl_rls_run_all_qc <- function(df, output_table){
+# Row based QC
+utl_run_all_qc <- function(df, output_table){
   
   if(output_table == "reef-life-survey-data-marinegeo-v1"){
 
@@ -49,7 +49,28 @@ utl_rls_run_all_qc <- function(df, output_table){
    
     )   
   } else {
-    results_list <- list()
+    
+    results_list <- list(
+      
+      "invalid_partner_code" = list(
+        results = marinegeo.utils::qc_mg_partner_codes(df),
+        description = "Return rows with invalid partner code",
+        id = 1
+      ),
+      
+      "invalid_site_name" = list(
+        results = marinegeo.utils::qc_mg_site_names(df),
+        description = "Return rows with invalid site code",
+        id = 2
+      ),
+      
+      "invalid_categorical_values" = list(
+        results = marinegeo.utils::qc_mg_categorical_values(df, output_table),
+        description = "Return any rows with invalid categorical variable values",
+        id = 3
+      )
+    )
+    
   }
   
   return(results_list)
