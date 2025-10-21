@@ -105,14 +105,22 @@ qc_flag_server <- function(id, input_list) {
           # Drop any tests that have no flags
           full_flag_table <- result_list_to_table(results_list)
           
+          # if there are no flags, then remove existing flag dataframe
+          # Necessary when you load a second table with no flags, but the 
+          # first had flags
+          if(nrow(full_flag_table) == 0){          
+            input_list$selected_flag <- "no_flags"
+            
           # If a single test is selected, only those flagged rows
           # need to be passed to the DT module
-          if(input$select_flag != "all"){
+          } else if(input$select_flag != "all"){
             
             input_list$flag_df <- full_flag_table %>%
               filter(test_name == input$select_flag) %>%
               select(test_id, row_num) %>%
               rename(flag = test_id)
+            
+            input_list$selected_flag <- input$select_flag
             
             # If all tests are selected, then the test ID number is used to set
             # priority, in case a row has > 1 flag.
@@ -124,10 +132,10 @@ qc_flag_server <- function(id, input_list) {
               ungroup() %>%
               select(test_id, row_num) %>%
               rename(flag = test_id)
+            
+            input_list$selected_flag <- input$select_flag
           }
         }
-        
-        input_list$selected_flag <- input$select_flag
         
       })
       
