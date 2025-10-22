@@ -37,7 +37,7 @@ Seagrass Monitoring,shoot-count-monitoring-v1,2,sample_collection_date,DATE
 Seagrass Monitoring,shoot-count-monitoring-v1,2,scientific_name,STRING
 Seagrass Monitoring,shoot-count-monitoring-v1,2,taxonomic_id,INT
 Seagrass Monitoring,shoot-count-monitoring-v1,2,shoot_count,INT
-Seagrass Monitoring,shoot-count-monitoring-v1,2,flowers_p_a,STRING
+Seagrass Monitoring,shoot-count-monitoring-v1,2,flowers_present,STRING
 Seagrass Monitoring,shoot-count-monitoring-v1,2,density_quadrat_dimensions,STRING
 Seagrass Monitoring,shoot-count-monitoring-v1,2,shoot_density_m2,DOUBLE
 Seagrass Monitoring,shoot-count-monitoring-v1,2,shoot_count_sample_notes,STRING

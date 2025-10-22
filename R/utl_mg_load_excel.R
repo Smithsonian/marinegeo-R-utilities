@@ -62,6 +62,17 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
 
       colnames(df) <- gsub(" ", "_", tolower(colnames(df)))
 
+      if("scientific_name" %in% colnames(df) & !"taxonomic_id" %in% colnames(df)){
+
+        taxonomic_ids <- db_get_taxonomy_by_scientific_name(unique(df$scientific_name)) |>
+          select(taxonomic_id, scientific_name)
+
+        df <- df |>
+          left_join(taxonomic_ids) |>
+          relocate(taxonomic_id, .after = "scientific_name")
+
+      }
+
     ## Oyster Network Project 2025 ####
 
     } else if(stringr::str_starts(output_table, "oyster-2025")){
