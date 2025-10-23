@@ -19,7 +19,7 @@ qc_mg_missing_taxonomic_id <- function(df) {
 
   # expect_error()
   if (length(missing_columns) > 0) {
-    stop(paste("Missing required column(s):", paste(missing_columns, collapse = ", ")))
+    message(paste("Missing required column(s):", paste(missing_columns, collapse = ", ")))
     return(NULL)
   }
 
