@@ -28,7 +28,7 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
                            "seagrass-macrophyte-monitoring-v1",
                            "seagrass-epifauna-monitoring-v1",
                            "seagrass-macroalgae-monitoring-v1",
-                           "seagrass-blades-monitoring-v1",
+                           "seagrass-leaf-monitoring-v1",
                            "sheath-and-epibiont-monitoring-v1")){
 
       df_raw <- readxl::read_excel(filepath, sheet = sheet_name)
@@ -54,7 +54,8 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
           flowers_p_a = any_of("Flowers Count"),
           grazing_scars_p_a = any_of("Grazing Scars Y N"),
           tin_mass_g_epibionts = any_of("Tin Mass g (Epibionts)"),
-          tin_mass_g_blades = any_of("Tin Mass g (Blades)")
+          tin_mass_g_blades = any_of("Tin Mass g (Blades)"),
+          leaf_measurement_notes = any_of("Leaf Measurement Data Notes"),
           #x = any_of(""),
           #x = any_of(""),
         ) |>
