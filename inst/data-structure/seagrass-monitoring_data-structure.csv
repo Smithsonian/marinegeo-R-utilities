@@ -66,10 +66,10 @@ Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,taxonomic_id,INT
 Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,sheath_length_mm,DOUBLE
 Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,median_leaf_length_mm,DOUBLE
 Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,shoot_length_mm,DOUBLE
-Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,grazing_scars_p_a,STRING
+Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,grazing_scars_present,STRING
 Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,epibiont_dry_mass_g,DOUBLE
 Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,blades_dry_mass_g,DOUBLE
-Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,sheath_and_epibiont_data_notes,STRING
+Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,sheath_and_epibiont_notes,STRING
 Seagrass Monitoring,sheath-and-epibiont-monitoring-v1,2,input_filename,STRING
 Seagrass Monitoring,seagrass-macroalgae-monitoring-v1,2,sample_event_id,STRING
 Seagrass Monitoring,seagrass-macroalgae-monitoring-v1,2,partner_code,STRING

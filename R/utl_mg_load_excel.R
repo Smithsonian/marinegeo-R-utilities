@@ -52,10 +52,11 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
           sample_metadata_notes = any_of("Transect Notes"),
           shoot_count = any_of("Shoots Count"),
           flowers_p_a = any_of("Flowers Count"),
-          grazing_scars_p_a = any_of("Grazing Scars Y N"),
+          grazing_scars_present = any_of("Grazing Scars Y N"),
           tin_mass_g_epibionts = any_of("Tin Mass g (Epibionts)"),
           tin_mass_g_blades = any_of("Tin Mass g (Blades)"),
           leaf_measurement_notes = any_of("Leaf Measurement Data Notes"),
+          sheath_and_epibiont_notes = any_of("Sheath and Epibiont Data Notes")
           #x = any_of(""),
           #x = any_of(""),
         ) |>
