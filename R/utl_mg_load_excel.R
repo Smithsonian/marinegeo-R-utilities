@@ -43,6 +43,7 @@ utl_mg_load_excel <- function(filepath, output_table, sheet_name){
         rename(
           transect = any_of("Transect ID"),
           site_name = any_of("Location Name"),
+          transect_length_m = any_of("Transect Length"),
           transect_begin_decimal_latitude = any_of("Start Latitude"),
           transect_begin_decimal_longitude = any_of("Start Longitude"),
           transect_end_decimal_latitude = any_of("End Latitude"),

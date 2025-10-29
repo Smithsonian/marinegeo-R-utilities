@@ -132,7 +132,7 @@ Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,transect_begin_decimal_lon
 Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,transect_end_decimal_latitude,DOUBLE
 Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,transect_end_decimal_longitude,DOUBLE
 Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,transect_length_m,INT
-Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,transect_bearing,DOUBLE
+Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,compass_bearing,DOUBLE
 Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,depth_min_m,DOUBLE
 Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,depth_max_m,DOUBLE
 Seagrass Monitoring,seagrass-metadata-monitoring-v1,2,sample_metadata_notes,STRING
