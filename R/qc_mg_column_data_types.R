@@ -91,10 +91,21 @@ qc_mg_column_data_types <- function(df, table_id){
         error_message <- "Column type is not Date"
 
       }
+
+    # Boolean columns should be logical
+    } else if (arrow_type %in% c("BOOL", "BOOLEAN")){
+
+      if(r_type == "logical"){
+        result <- TRUE
+
+      } else {
+        result <- FALSE
+        error_message <- "Column type is logical"
+
+      }
     }
 
     if(!result){
-
       stop(paste0(column_name, " : ", error_message))
 
     }

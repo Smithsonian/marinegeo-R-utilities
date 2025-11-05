@@ -42,7 +42,8 @@ db_marinegeo_L2 <- function(table_id, return_type = "arrow"){
                          "TIMESTAMP UTC" = arrow::timestamp(timezone = "UTC"),
                          "DOUBLE" = double(),
                          "DATE" = arrow::date32(),
-                         "TINYINT" = arrow::uint8()
+                         "TINYINT" = arrow::uint8(),
+                         "BOOL" = arrow::bool()
     )
 
     arrow::field(column_name, arrow_type)
