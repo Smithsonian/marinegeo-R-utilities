@@ -3,6 +3,7 @@
 export(api_worms_get_aphia_id)
 export(api_worms_get_classification)
 export(db_get_taxonomy_by_scientific_name)
+export(db_get_taxonomy_by_taxonomic_id)
 export(db_marinegeo_L2)
 export(qc_mg_categorical_values)
 export(qc_mg_column_data_types)

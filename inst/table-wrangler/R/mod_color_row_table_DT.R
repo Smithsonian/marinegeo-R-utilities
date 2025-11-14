@@ -2,7 +2,16 @@ DT_table_UI <- function(id) {
   ns <- NS(id)
   tagList(
     
-    actionButton(ns("clear_cells"), "Clear Selected Cells"),
+    div(
+      splitLayout(
+        div(
+          checkboxInput(ns("reorder_columns"), "Reorder columns", value = FALSE),
+          "Disables \"generate code\" when selected"
+        ),
+        actionButton(ns("clear_cells"), "Clear Selected Cells")
+      )
+    ),
+    
     DTOutput(ns("table")),
     
   )
@@ -33,6 +42,15 @@ DT_table_server <- function(id, input_list) {
             left_join(input_list$flag_df, by = "row_num") %>%
             filter(!is.na(flag)) %>%
             select(-row_num, flag, everything())
+        }
+        
+        # If TRUE, then reorder columns
+        if(input$reorder_columns){
+          req_cols <- marinegeo.utils::utl_mg_column_order(input_list$output_table_id)
+          
+          plot_df <- plot_df %>%
+            select(any_of(req_cols), everything())
+          
         }
         
         plot_df %>%

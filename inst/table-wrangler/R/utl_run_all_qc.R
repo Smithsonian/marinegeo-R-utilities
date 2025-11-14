@@ -64,11 +64,18 @@ utl_run_all_qc <- function(df, output_table){
         id = 2
       ),
       
+      "missing_aphia_id" = list(
+        results = marinegeo.utils::qc_mg_missing_taxonomic_id(df),
+        description = "Return any rows with a missing Aphia ID",
+        id = 3
+      ),
+      
       "invalid_categorical_values" = list(
         results = marinegeo.utils::qc_mg_categorical_values(df, output_table),
         description = "Return any rows with invalid categorical variable values",
-        id = 3
+        id = 4
       )
+      
     )
     
   }

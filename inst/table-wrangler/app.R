@@ -14,6 +14,7 @@ library(shinyjs)
 library(shinyWidgets)
 library(marinegeo.utils)
 library(leaflet)
+library(sf)
 
 ui <- page_navbar(
   title = "MarineGEO Table Wrangler",

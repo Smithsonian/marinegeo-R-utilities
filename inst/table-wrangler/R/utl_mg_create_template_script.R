@@ -91,6 +91,124 @@ create_template_script <- function(script_filepath, target_table, input_filepath
       default_output_to_directory
     ) 
     
+    ## Seagrass Monitoring ####
+  } else if(target_table %in% c("seagrass-cover-monitoring-v1", "seagrass-macroinvertebrates-monitoring-v1", 
+                                "shoot-count-monitoring-v1", "seagrass-metadata-monitoring-v1",
+                                "seagrass-leaf-monitoring-v1", "sheath-and-epibiont-monitoring-v1")){
+    
+    sheet_name <- switch(target_table,
+                         "seagrass-cover-monitoring-v1" = "COVER",
+                         "seagrass-macroinvertebrates-monitoring-v1" = "MACROINVERTS",
+                         "shoot-count-monitoring-v1" = "DENSITY",
+                         "seagrass-metadata-monitoring-v1" = "TRANSECTS",
+                         "seagrass-leaf-monitoring-v1" = "LEAF MEASUREMENTS",
+                         "sheath-and-epibiont-monitoring-v1" = "SHEATH AND EPIBIONTS")
+    
+    if(sheet_name == "COVER"){
+      processing_string <- c(
+        "df_out <- df %>%",
+        "  mutate(partner_code = \"\",",
+        "         sample_event_id = gsub(\" \", \"-\", paste(partner_code, site_name, year, sep = \"_\")),",
+        "         sample_collection_date = ymd(paste(year, month, day, sep = \"-\"))) %>%",
+        "  rename(cover_quadrat_dimensions = quadrat_dimensions)",
+        "  #marinegeo.utils::utl_sav_backfill_cover()"
+      )
+    } else if(sheet_name == "DENSITY"){
+      processing_string <- c(
+        "df_out <- df %>%",
+        "  mutate(partner_code = \"\",",
+        "         sample_event_id = gsub(\" \", \"-\", paste(partner_code, site_name, year, sep = \"_\")),",
+        "         sample_collection_date = ymd(paste(year, month, day, sep = \"-\"))) %>%",
+        "  rename(density_quadrat_dimensions = quadrat_dimensions) %>%",
+        "  mutate(shoot_density_m2 = case_when(",
+        "            density_quadrat_dimensions == \"10x10cm\" ~ as.numeric(shoot_count) * 100,",
+        "            density_quadrat_dimensions == \"25x25cm\" ~ as.numeric(shoot_count) * 16,",
+        "            density_quadrat_dimensions == \"50x50cm\" ~ as.numeric(shoot_count) * 4,",
+        "            density_quadrat_dimensions == \"75x75cm\" ~ as.numeric(shoot_count) * 1.78,",
+        "            T ~ F)) %>%",
+        "  mutate(flowers_present = case_when(",
+        "            flowers_p_a == \"A\" ~ F,",
+        "            flowers_p_a == \"P\" ~ T,",
+        "            T ~ NA))"
+      )
+    } else if(sheet_name == "SHEATH AND EPIBIONTS"){
+      processing_string <- c(
+        "df_1 <- df %>%",
+        "  mutate(partner_code = \"\",",
+        "         sample_event_id = gsub(\" \", \"-\", paste(partner_code, site_name, year, sep = \"_\")),",
+        "         sample_collection_date = ymd(paste(year, month, day, sep = \"-\"))) %>%",
+        "  mutate(grazing_scars_present = case_when(",
+        "            grazing_scars_present == \"A\" ~ F,",
+        "            grazing_scars_present == \"P\" ~ T,",
+        "            T ~ NA))",
+        "",
+        "sample_events <- unique(df_1$sample_event_id)",
+        "",
+        "leaves_df <- marinegeo.utils::db_marinegeo_L2(\"seagrass-leaf-monitoring-v1\") %>%",
+        "  filter(sample_event_id  %in% sample_events) %>%",
+        "  group_by(site_name, transect, quadrat, scientific_name, taxonomic_id) %>%",
+        "  collect() %>%",
+        "  summarize(median_leaf_length_mm = median(leaf_length_mm, na.rm = T))",
+        "",
+        "df_out <- df_1 %>%",
+        "  left_join(leaves_df) %>%",
+        "  mutate(shoot_length_mm = sheath_length_mm + median_leaf_length_mm)"
+        
+      )
+    } else if(sheet_name == "TRANSECTS") {
+      
+      processing_string <- c(
+        "df_1 <- df %>%",
+        "  mutate(partner_code = \"\")",
+        "",
+        "sites <- unique(df_1$site_name)",
+        "",
+        "sample_events_df <- marinegeo.utils::db_marinegeo_L2(\"seagrass-cover-monitoring-v1\") %>%",
+        "  filter(site_name %in% sites) %>%",
+        "  select(sample_event_id, site_name, sample_collection_date) %>%",
+        "  distinct() %>%",
+        "  collect() # %>%",
+        "#  filter(year(sample_collection_date) %in% c())",
+        "",
+        "df_out <- df_1 #%>%",
+        "  #left_join(sample_events_df)"
+      ) 
+      
+    } else {
+      processing_string <- c(
+        "df_out <- df %>%",
+        "  mutate(partner_code = \"\",",
+        "         sample_event_id = gsub(\" \", \"-\", paste(partner_code, site_name, year, sep = \"_\")),",
+        "         sample_collection_date = ymd(paste(year, month, day, sep = \"-\")))"
+      )
+    }
+    
+    script_template <- c(
+      
+      "# Process Seagrass Monitoring Excel data",
+      "",
+      
+      default_introduction,
+      
+      "",
+      "## Destination table metadata",
+      paste0("table_out <- '", target_table, "'"),
+      "req_cols <- marinegeo.utils::utl_mg_column_order(table_out)",
+      "",
+      "# Load data",
+      paste0("df <- marinegeo.utils::utl_mg_load_excel(input_file_path, table_out, '", sheet_name,"')"),
+      "",
+      
+      "## MarineGEO Table Wrangler Start ####",
+      processing_string,
+      "",
+      
+      "## MarineGEO Table Wrangler End ##",
+      "",
+      default_output_to_directory      
+    ) 
+    
+    
     ## Oyster Network Project 2025 ####
   } else if(str_starts(target_table, "oyster-2025")){
     

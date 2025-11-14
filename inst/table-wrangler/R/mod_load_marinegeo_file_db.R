@@ -327,42 +327,48 @@ load_marinegeo_data_server <- function(id, input_list) {
         
         req(input$select_output_data_table)
         
-        target_repository_directory <- marinegeo.utils::utl_mg_data_index() %>%
-          filter(protocol == input$select_data_type,
-                 table_id== input$select_output_data_table) %>%
-          pull(script_directory)
+        if(str_ends(input$select_file, ".xlsx") | str_ends(input$select_file, ".csv")){
         
-        filepath_directory <- list.files(
-          paste0(Sys.getenv("repository_filepath"), target_repository_directory),
-          full.names = T,
-          recursive = T
-        )
-        
-        file_directory <- list.files(
-          paste0(Sys.getenv("repository_filepath"), target_repository_directory),
-          recursive = T
-        )
-        
-        script_dir <- tibble(filepath = filepath_directory,
-                             filename = basename(filepath_directory),
-                             local_filepath = file_directory) %>%
-          mutate(local_filepath = str_remove(local_filepath, filename))
-        
-        
-        if(str_ends(input$select_file, ".xlsx")){
-          script_filename <- gsub(".xlsx", ".R", input$select_file)
+          target_repository_directory <- marinegeo.utils::utl_mg_data_index() %>%
+            filter(protocol == input$select_data_type,
+                   table_id== input$select_output_data_table) %>%
+            pull(script_directory)
           
-        } else if(str_ends(input$select_file, ".csv")){
-          script_filename <- gsub(".csv", ".R", input$select_file)
+          filepath_directory <- list.files(
+            paste0(Sys.getenv("repository_filepath"), target_repository_directory),
+            full.names = T,
+            recursive = T
+          )
           
+          file_directory <- list.files(
+            paste0(Sys.getenv("repository_filepath"), target_repository_directory),
+            recursive = T
+          )
+          
+          script_dir <- tibble(filepath = filepath_directory,
+                               filename = basename(filepath_directory),
+                               local_filepath = file_directory) %>%
+            mutate(local_filepath = str_remove(local_filepath, filename))
+          
+          
+          if(str_ends(input$select_file, ".xlsx")){
+            script_filename <- gsub(".xlsx", ".R", input$select_file)
+            
+          } else if(str_ends(input$select_file, ".csv")){
+            script_filename <- gsub(".csv", ".R", input$select_file)
+            
+          }
+          
+          script_filepath <- script_dir %>%
+            filter(filename == script_filename) %>%
+            pull(filepath)
+          
+          return(script_filepath)
+          
+        } else{
+          
+          return(NULL)
         }
-        
-        script_filepath <- script_dir %>%
-          filter(filename == script_filename) %>%
-          pull(filepath)
-        
-        return(script_filepath)
-        
       })
       
 

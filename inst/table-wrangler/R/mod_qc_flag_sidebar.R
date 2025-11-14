@@ -135,6 +135,8 @@ qc_flag_server <- function(id, input_list) {
             
             input_list$selected_flag <- input$select_flag
           }
+        } else {
+          input_list$selected_flag <- "no_flags"
         }
         
       })

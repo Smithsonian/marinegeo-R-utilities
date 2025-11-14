@@ -1,3 +1,8 @@
+# To add table-specific custom code, create UI elements in the 
+# `data_type_specific_options` output, then add relevant observers
+
+# Use the index to find the correct code sections
+
 suggest_code_UI <- function(id) {
   ns <- NS(id)
   tagList(
@@ -48,12 +53,20 @@ suggest_code_server <- function(id, input_list) {
       output$data_type_specific_options <- renderUI({
         
         req(input_list$input_table_id)
+        req(input_list$output_table_id)
         
         if(input_list$input_table_id == "reef-life-survey-data-marinegeo-input"){
           
           div(
             actionButton(session$ns("add_rls_metadata"), "Add sample event ID column"),
             actionButton(session$ns("fill_metadata"), "Fill missing RLS metadata")
+          )
+          
+        } else if(input_list$output_table_id == "seagrass-cover-monitoring-v1"){
+          
+          div(
+            actionButton(session$ns("bb_conversion"), "Convert Braun-Blanquet to percent"),
+            actionButton(session$ns("pc_conversion"), "Convert percent to Braun-Blanquet")
           )
           
         }
@@ -205,6 +218,51 @@ suggest_code_server <- function(id, input_list) {
       })
       
       #### Data Type Specific Observers ####
+      
+      ###### Seagrass Monitoring ####
+      observeEvent(input$bb_conversion, {
+        
+        mutate_template_text <- paste("df %>%",
+                                      "\tmutate(percent_cover = case_when(",
+                                      "\t\tcover_code == 0 ~ 0,",
+                                      "\t\tcover_code == .1 ~ 2.5,",
+                                      "\t\tcover_code == .5 ~ 4,",
+                                      "\t\tcover_code == 1 ~ 15,",
+                                      "\t\tcover_code == 2 ~ 37.5,",
+                                      "\t\tcover_code == 3 ~ 62.5,",
+                                      "\t\tcover_code == 4 ~ 87.5,",
+                                      "\t\tT ~ NA))", sep = "\n")
+        
+        # Don't want users to modify these templates
+        # shinyjs::enable(session$ns("code_suggestion"), asis = TRUE)
+        
+        shiny::updateTextAreaInput(session,
+                                   inputId = "code_suggestion",
+                                   value = mutate_template_text)
+        
+      })
+      
+      observeEvent(input$pc_conversion, {
+        
+        mutate_template_text <- paste("df %>%",
+                                      "\tmutate(cover_code = case_when(",
+                                      "\t\tpercent_cover > 74 ~ 4,",
+                                      "\t\tpercent_cover > 49 ~ 3,",
+                                      "\t\tpercent_cover > 24 ~ 2,",
+                                      "\t\tpercent_cover > 4 ~ 1,",
+                                      "\t\tpercent_cover > 2 ~ .5,",
+                                      "\t\tpercent_cover > 0 ~ .1,",
+                                      "\t\tpercent_cover == 0 ~ 0,",
+                                      "\t\tT ~ NA))", sep = "\n")
+        
+        # Don't want users to modify these templates
+        # shinyjs::enable(session$ns("code_suggestion"), asis = TRUE)
+        
+        shiny::updateTextAreaInput(session,
+                                   inputId = "code_suggestion",
+                                   value = mutate_template_text)
+        
+      })
       
       ###### Reef Life Survey ####
       observeEvent(input$add_rls_metadata, {

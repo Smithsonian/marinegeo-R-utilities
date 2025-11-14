@@ -33,7 +33,121 @@ sample_event_server <- function(id, input_list) {
                  DTOutput(ns("oyster_2025_roster")),
                  full_screen = TRUE),
           )
+        } else if(input_list$output_table_id %in%  c("seagrass-biomass-monitoring-v1",
+                                                     "seagrass-cover-monitoring-v1",
+                                                     "seagrass-macroinvertebrates-monitoring-v1",
+                                                     "shoot-count-monitoring-v1",
+                                                     # "seagrass-metadata-monitoring-v1",
+                                                     "seagrass-macrophyte-monitoring-v1",
+                                                     "seagrass-epifauna-monitoring-v1",
+                                                     "seagrass-macroalgae-monitoring-v1",
+                                                     "seagrass-leaf-monitoring-v1",
+                                                     "sheath-and-epibiont-monitoring-v1")){
+          
+          layout_column_wrap(
+            width = "500px",
+            card("Check that sample events in this file are defined in the roster. If the partner code, site name and sample collection date match the roster, then other column values will be present",
+                 DTOutput(ns("seagrass_monitoring_roster")),
+                 full_screen = TRUE),
+            
+            card("Check that number of unique quadrats per transect",
+                 DTOutput(ns("num_uniq_quadrats")),
+                 full_screen = TRUE), 
+            
+            card("Check quadrat - transect relationships between tables",
+                 DTOutput(ns("quadrat_relationships")),
+                 full_screen = TRUE)
+            
+          )
         }
+      })
+      
+      ## Cross-Habitats ####
+      output$num_uniq_quadrats <- renderDT({
+        
+        if(!("quadrat" %in% colnames(input_list$out_df))){
+          df <- tibble(status = "Quadrat column not in table")
+          
+        } else {
+          
+          df <- input_list$out_df |>
+            dplyr::group_by(site_name, transect) |>
+            dplyr::summarize(number_quadrats_per_transect = dplyr::n_distinct(quadrat)) 
+          
+        }
+        
+        df %>%
+          DT::datatable(
+            style = "default"
+          )
+      })
+      
+      output$quadrat_relationships <- renderDT({
+        
+        if(!("quadrat" %in% colnames(input_list$out_df))){
+          df <- tibble(status = "Quadrat column not in table")
+          
+        } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
+          df <- tibble(status = "add sample event ID column!")
+          
+        } else {
+          
+          quadrat_tables <- c(
+            "seagrass-cover-monitoring-v1",
+            "shoot-count-monitoring-v1",
+            "seagrass-macroinvertebrates-monitoring-v1",
+            "seagrass-macrophyte-monitoring-v1",
+            "seagrass-epifauna-monitoring-v1",
+            "seagrass-leaf-monitoring-v1",
+            "sheath-and-epibiont-monitoring-v1",
+            "seagrass-biomass-monitoring-v1",
+            "seagrass-macroalgae-monitoring-v1"
+          )
+          
+          sample_events <- unique(input_list$out_df$sample_event_id)
+          
+          df <- compact(
+            lapply(quadrat_tables, function(x){
+              
+              tryCatch({
+                # Don't load L2 table for the current target table, 
+                # use the loaded table instead
+                if(x == input_list$output_table_id){
+                  input_list$out_df %>%
+                    select(site_name, transect, quadrat) %>%
+                    distinct() %>%
+                    mutate(table = x,
+                           status = T)
+                  
+                } else {
+                  marinegeo.utils::db_marinegeo_L2(x) %>%
+                    filter(sample_event_id %in% sample_events) %>%
+                    select(site_name, transect, quadrat) %>%
+                    distinct() %>%
+                    collect() %>%
+                    mutate(table = x,
+                           status = T)
+                  
+                }
+              }, error = function(e){
+                NULL
+                
+              })
+            })
+          ) %>%
+            bind_rows() %>%
+            pivot_wider(names_from = table, 
+                        values_from = status) %>%
+            arrange(site_name, transect, quadrat)
+          
+        }
+        
+        df %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
+          )
+        
       })
       
       ## Reef Life Survey ####
@@ -210,6 +324,45 @@ sample_event_server <- function(id, input_list) {
           DT::datatable(
             style = "default"
           )
+      })
+      
+      ## Seagrass Monitoring ####
+      output$seagrass_monitoring_roster <- renderDT({
+        
+        req(input_list$selected_flag)
+        
+        if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
+          df_out <- tibble(status = "add sample event ID column!")
+          
+        } else {
+          
+          roster_files <- list.files(
+            paste0(Sys.getenv("repository_filepath"), "marinegeo-seagrass-monitoring/L1-data/seagrass-roster"), 
+            full.names = T
+          )
+          
+          roster <- readr::read_csv(roster_files)
+          
+          df <- input_list$out_df %>%
+            select(partner_code, site_name, sample_collection_date) %>%
+            distinct()
+          
+          roster_columns <- roster %>%
+            mutate(sample_collection_date = ymd(paste(Year, Month, Day, sep = "-"))) %>%
+            select(-`GitHub Tracker`, -Year, -Month, -Day, -method_id) %>%
+            distinct()
+          
+          df_out <- left_join(
+            df, roster_columns, by = c("partner_code", "site_name", "sample_collection_date")
+          )
+          
+        }
+        
+        df_out %>%
+          DT::datatable(
+            style = "default"
+          )
+        
       })
       
       ## Oyster Network Project 2025 ####
