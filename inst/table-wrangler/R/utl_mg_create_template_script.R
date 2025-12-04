@@ -83,6 +83,9 @@ create_template_script <- function(script_filepath, target_table, input_filepath
       "df_out <- df # %>%",
       "",
       "",
+      "  # Make necessary curations to depth and date before creating the sample event ID column, ",
+      "  # mutate(sample_event_id = paste(gsub(\" \", \"_\", site_name), \"RLS\", date, depth, sep = \"_\"))",
+      "",
       "",
       
       "## MarineGEO Table Wrangler End ##",

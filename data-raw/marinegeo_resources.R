@@ -12,7 +12,8 @@ marinegeo_resources <- list(
   taxonomic_classifications = readr::read_csv(
     list.files(paste0(Sys.getenv("repository_filepath"),
                       "marinegeo-taxonomy-lookup/taxonomic-classifications/"),
-               full.names = T)
+               full.names = T),
+    guess_max = Inf
   ),
 
   data_index = readr::read_csv("inst/marinegeo_data_index.csv"),

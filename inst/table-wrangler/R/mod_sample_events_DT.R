@@ -151,71 +151,92 @@ sample_event_server <- function(id, input_list) {
       })
       
       ## Reef Life Survey ####
+      get_rls_project <- reactive({
+        
+        if(str_starts(input_list$project_directory, "EPA-2024/")){
+          proj_roster <- "EPA-2024"
+        } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
+          proj_roster <- "PAFF-2025"
+        } else if(str_starts(input_list$project_directory, "EPA-2025/")){
+          proj_roster <- "EPA-2025"
+        } else {
+          proj_roster <- NULL
+        }
+        
+        return(proj_roster)
+      })
       
-      load_rls_roster <- function(){
+      load_rls_roster <- function(project){
         
-        # South Florida roster
-        rls_roster_filepath <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/EPA-2024/EPA_project_dive_roster.xlsx")
+        if(str_starts(project, "EPA")){
+          
+          if(project == "EPA-2024"){
+            filepath <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/EPA-2024/EPA_project_dive_roster.xlsx")
+            roster_in <- readxl::read_excel(filepath)
+            
+          } else if(project == "EPA-2025"){
+            filepath <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/EPA-2025/Site Metadata and Checklist.xlsx")
+            roster_in <- readxl::read_excel(filepath, sheet = "2025")
+          }
+
+          roster <- roster_in %>%
+            filter(!is.na(`T1 Year`) | !is.na(`T2 Year`)) %>%
+            select(`Site Code`, `Site Name`,
+                   `T1 Initials`, `T1 Depth`, `T1 Year`, `T1 Month`, `T1 Day`,
+                   `T2 Initials`, `T2 Depth`, `T2 Year`, `T2 Month`, `T2 Day`) %>%
+            mutate(across(everything(), as.character)) %>% 
+            pivot_longer(-all_of(c("Site Code", "Site Name")), names_to = "column_name", values_to = "value") %>%
+            mutate(transect = substr(column_name, 1,2),
+                   column_name = gsub("T1 ", "", 
+                                      gsub("T2 ", "", column_name))) %>%
+            pivot_wider(names_from = column_name, values_from = value) %>%
+            mutate(Date = ymd(paste(Year, Month, Day, sep ="-")),
+                   Depth = as.numeric(Depth)) %>%
+            rename(site_code = `Site Code`,
+                   site_name = `Site Name`,
+                   depth = Depth,
+                   date = Date,
+                   initials = Initials) %>%
+            dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name), 
+                                                  "RLS", date, depth, sep = "_")) %>%
+            select(sample_event_id, site_name, initials)
+          
+        } else if(project == "PAFF-2025"){
+          
+          # PAFF 2025 rosters
+          roster_dr <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/DR 2025 Transect Metadata.xlsx")
+          roster_usvi <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/USVI Metadata.xlsx")
+          roster_bra <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/Metadata Table_Brazil.xlsx")
+          
+          roster <- readxl::read_excel(roster_bra) %>%
+            mutate(Date = ymd(paste(Year, Month, Day, sep = "-"))) %>%
+            bind_rows(
+              readxl::read_excel(roster_dr),
+              readxl::read_excel(roster_usvi)
+            ) %>%
+            rename(site_code = Code,
+                   site_name = `SiteName`,
+                   depth = Depth,
+                   date = Date,
+                   diver = Diver) %>%
+            dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name), 
+                                                  "RLS", date, depth, sep = "_")) %>%
+            select(sample_event_id, site_name, diver) %>%
+            distinct() %>% 
+            group_by(sample_event_id, site_name) %>% 
+            summarize(diver = paste(diver, collapse=","))
+          
+        } else {
+          roster <- NULL
+        }
         
-        epa_roster <- readxl::read_excel(rls_roster_filepath) %>%
-          filter(!is.na(`T1 Year`) | !is.na(`T2 Year`)) %>%
-          select(`Site Code`, `Site Name`,
-                 `T1 Initials`, `T1 Depth`, `T1 Year`, `T1 Month`, `T1 Day`,
-                 `T2 Initials`, `T2 Depth`, `T2 Year`, `T2 Month`, `T2 Day`) %>%
-          mutate(across(everything(), as.character)) %>% 
-          pivot_longer(-all_of(c("Site Code", "Site Name")), names_to = "column_name", values_to = "value") %>%
-          mutate(transect = substr(column_name, 1,2),
-                 column_name = gsub("T1 ", "", 
-                                    gsub("T2 ", "", column_name))) %>%
-          pivot_wider(names_from = column_name, values_from = value) %>%
-          mutate(Date = ymd(paste(Year, Month, Day, sep ="-")),
-                 Depth = as.numeric(Depth)) %>%
-          rename(site_code = `Site Code`,
-                 site_name = `Site Name`,
-                 depth = Depth,
-                 date = Date,
-                 initials = Initials) %>%
-          dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name), 
-                                                "RLS", date, depth, sep = "_")) %>%
-          select(sample_event_id, site_name, initials)
-        
-        # PAFF 2025 rosters
-        roster_dr <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/DR 2025 Transect Metadata.xlsx")
-        roster_usvi <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/USVI Metadata.xlsx")
-        roster_bra <- paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L1-data/dive-roster/PAFF-2025/Metadata Table_Brazil.xlsx")
-        
-        paff_roster <- readxl::read_excel(roster_bra) %>%
-          mutate(Date = ymd(paste(Year, Month, Day, sep = "-"))) %>%
-          bind_rows(
-            readxl::read_excel(roster_dr),
-            readxl::read_excel(roster_usvi)
-          ) %>%
-          rename(site_code = Code,
-                 site_name = `SiteName`,
-                 depth = Depth,
-                 date = Date,
-                 diver = Diver) %>%
-          dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name), 
-                                                "RLS", date, depth, sep = "_")) %>%
-          select(sample_event_id, site_name, diver) %>%
-          distinct() %>% 
-          group_by(sample_event_id, site_name) %>% 
-          summarize(diver = paste(diver, collapse=","))
-        
-        rls_roster <- list(
-          "EPA-South-Florida" = epa_roster,
-          "PAFF-2025" = paff_roster
-        )
-        
-        return(rls_roster)
+        return(roster)
+
       }
       
       load_rls_l2_data <- function(){
         
         req_cols <- c("sample_event_id", "site_name", "site_code", "date", "depth", "method", "block", "vis", "direction", "time", "photoquadrats","input_filename")
-        
-        # rls_l2_files <- list.files(paste0(Sys.getenv("repository_filepath"), "marinegeo-reef-life-survey/L2-data/reef-life-survey-data-marinegeo-v1"),
-        #                            recursive = T, full.names = T)
         
         rls_l2_data <- marinegeo.utils::db_marinegeo_L2("reef-life-survey-data-marinegeo-v1") %>%
           select(all_of(req_cols)) %>%
@@ -230,11 +251,14 @@ sample_event_server <- function(id, input_list) {
         
         req_cols <- c("sample_event_id", "site_name", "date", "depth", "method", "block", "input_filename")
         
-        if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
-          df <- tibble(status = "add sample event ID column!")
+        if(is.character(input_list$out_df$depth)){
+          df <- tibble(status = "convert depth column to numeric!")
           
-          # } else if(!is.Date(input_list$out_df$date) | !is.numeric(input_list$out_df$method) | !is.numeric(input_list$out_df$block)){
-          #   df <- tibble(status = "check data type of date, method, or block to evaluate sample events")
+        } else if(!is.Date(input_list$out_df$date)){
+          df <- tibble(status = "convert date column to a Date data type!")
+          
+        } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
+          df <- tibble(status = "add sample event ID column!")
           
         } else {
           
@@ -245,14 +269,7 @@ sample_event_server <- function(id, input_list) {
           rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data) %>%
             select(sample_event_id, site_name, date, depth)
           
-          if(str_starts(input_list$project_directory, "EPA-2024/")){
-            proj_roster <- "EPA-South-Florida"
-          } else if(str_starts(input_list$project_directory, "PAFF-2025/")){
-            proj_roster <- "PAFF-2025"
-          }
-          
-          df <- left_join(rls_sample_events, 
-                          load_rls_roster()[[proj_roster]], 
+          df <- left_join(rls_sample_events, load_rls_roster(get_rls_project()), 
                           by = c("sample_event_id", "site_name"))
           
         }
@@ -271,11 +288,14 @@ sample_event_server <- function(id, input_list) {
         
         req_cols <- c("sample_event_id", "site_code", "site_name", "date", "depth", "method", "block", "vis", "direction", "time", "photoquadrats","input_filename")
         
-        if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
-          df <- tibble(status = "add sample event ID column!")
+        if(is.character(input_list$out_df$depth)){
+          df <- tibble(status = "convert depth column to numeric!")
           
-          # } else if(!is.Date(input_list$out_df$date) | !is.numeric(input_list$out_df$method) | !is.numeric(input_list$out_df$block)){
-          #   df <- tibble(status = "check data type of date, method, or block to evaluate sample events")
+        } else if(!is.Date(input_list$out_df$date)){
+          df <- tibble(status = "convert date column to a Date data type!")
+          
+        } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
+          df <- tibble(status = "add sample event ID column!")
           
         } else {
           
@@ -288,10 +308,19 @@ sample_event_server <- function(id, input_list) {
               mutate(vis = as.character(vis))
           }
           
+          if(is.numeric(df_in$direction)){
+            df_in <- df_in %>%
+              mutate(direction = as.character(direction))
+          }
+          
           if(!is.character(df_in$time)){
             df_in <- df_in %>%
               mutate(time = as.character(time))
           }
+          
+          project_sample_events <- load_rls_roster(get_rls_project()) %>%
+            count(sample_event_id) %>%
+            pull(sample_event_id)
           
           rls_data <- bind_rows(
             df_in %>%
@@ -300,7 +329,8 @@ sample_event_server <- function(id, input_list) {
             
             load_rls_l2_data() %>%
               filter(input_filename != input_list$data_filename) %>%
-              filter(site_name %in% site_names) %>%
+              filter(site_name %in% site_names,
+                     sample_event_id %in% project_sample_events) %>%
               collect()
           )
           
@@ -314,12 +344,12 @@ sample_event_server <- function(id, input_list) {
                       photoquadrats = paste(unique(photoquadrats), collapse = ",")
             )
           
-          rls_summary <- left_join(rls_sample_events, rls_dive_metadata) %>%
+          df <- left_join(rls_sample_events, rls_dive_metadata) %>%
             select(site_name, everything())
           
         }
         
-        rls_summary %>%
+        df %>%
           select(-any_of("sample_event_id")) %>%
           DT::datatable(
             style = "default"
