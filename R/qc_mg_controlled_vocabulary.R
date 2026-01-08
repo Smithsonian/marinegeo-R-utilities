@@ -120,6 +120,7 @@ qc_mg_categorical_values <- function(df, table_id){
       if(column_name %in% colnames(df_evaluate)){
 
         result <- df_evaluate %>%
+          filter(!is.na(.data[[column_name]])) %>%
           filter(!.data[[column_name]] %in% allowed_values)
 
         if(nrow(result) > 1){
