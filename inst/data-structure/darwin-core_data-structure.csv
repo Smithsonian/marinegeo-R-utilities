@@ -45,6 +45,7 @@ Darwin Core,emof_darwin_core_obis,3,measurementID,STRING
 Darwin Core,emof_darwin_core_obis,3,measurementType,STRING
 Darwin Core,emof_darwin_core_obis,3,measurementUnit,STRING
 Darwin Core,emof_darwin_core_obis,3,measurementValue,STRING
+Darwin Core,emof_darwin_core_obis,3,measurementAccuracy,STRING
 Darwin Core,emof_darwin_core_obis,3,measurementDeterminedBy,STRING
 Darwin Core,emof_darwin_core_obis,3,measurementDeterminedDate,STRING
 Darwin Core,emof_darwin_core_obis,3,measurementMethod,STRING
