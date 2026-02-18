@@ -147,3 +147,78 @@ qc_mg_categorical_values <- function(df, table_id){
   })
 
 }
+
+#' Evaluate categorical values for column details
+#' Evaluate based on lookup table stored with R package
+#'
+#' @param df
+#' @param table_id
+#'
+#' @returns table with details about which columns are being flagged on each row for the invalid categorical values.
+#' @export
+#'
+#' @examples
+qc_mg_categorical_values_details <- function(df, table_id){
+
+  stopifnot("`df` is not a data frame" = is.data.frame(df))
+
+  if(!table_id %in% unique(marinegeo_resources$categorical_values$table_id)){
+    message("This table does not have controlled categorical variables")
+    return(NULL)
+  }
+
+  tryCatch({
+
+    df_allowed_values <- marinegeo_resources$categorical_values |>
+      dplyr::filter(table_id == !!table_id)
+
+    cols_to_test <- df_allowed_values |>
+      dplyr::count(column_name) |>
+      dplyr::pull(column_name)
+
+    df_evaluate <- df |>
+      tibble::rowid_to_column("rowid") |>
+      dplyr::select("rowid", dplyr::any_of(cols_to_test))
+
+    #Get the detailed output for the flag details module
+    column_flag_table <- purrr::map_dfr(cols_to_test, function(col){
+      allowed_values <- df_allowed_values %>%
+        dplyr::filter(column_name == col) %>%
+        dplyr::pull(value)
+
+      invalid_rows_col <- df_evaluate %>%
+        dplyr::filter(!.data[[col]] %in% allowed_values) %>%
+        dplyr::pull(rowid)
+
+      if(length(invalid_rows_col) > 0){
+        tibble::tibble(
+          column = col,
+          rows   = paste(invalid_rows_col, collapse = ", "),  # collapse into one string
+          allowed_values = paste(allowed_values, collapse = ", ")
+        )
+      } else {
+        tibble::tibble(
+          column = col,
+          rows   = "",   # empty string if no violations
+          allowed_values = paste(allowed_values, collapse = ", ")
+        )
+      }
+    })%>%
+      dplyr::filter(rows != "")
+
+    if(nrow(column_flag_table) == 1){
+      column_flag_table <- column_flag_table%>%
+        mutate(rows = "All Flagged Rows")
+    }
+
+    if(nrow(column_flag_table) == 0){
+      return(NULL)
+    } else{
+      return(column_flag_table)
+    }
+
+  }, error = function(e) {
+    message(paste("Error checking categorical values:", e$message))
+  })
+
+}
