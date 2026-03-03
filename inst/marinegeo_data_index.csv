@@ -1,4 +1,14 @@
 protocol,level,table_name,table_id,directory,script_directory,location
+Oyster Reef Monitoring,2,Oyster Transect Metadata,oyster-transect-metadata-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-transect-metadata-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Composition,oyster-composition-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-composition-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Sessile Invertebrates,oyster-sessile-inverts-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-sessile-inverts-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Size Frequency,oyster-size-frequency-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-size-frequency-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Density,oyster-density-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-density-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Habitat Complexity,oyster-complexity-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-complexity-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Biobox Data,oyster-biobox-annual-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-biobox-annual-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Biobox Deployment Metadata,oyster-biobox-deployment-v1,marinegeo-oyster-monitoring/L2-data/oyster-biobox-deployment-v1,,github
+Oyster Reef Monitoring,2,Oyster Reef Area,oyster-reef-area-annual-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-reef-area-annual-monitoring-v1,,github
+Oyster Reef Monitoring,2,Oyster Reef Height,oyster-reef-height-annual-monitoring-v1,marinegeo-oyster-monitoring/L2-data/oyster-reef-height-annual-monitoring-v1,,github
 Reef Life Survey,1,Reef Life Survey Data (L1),reef-life-survey-data-marinegeo-input,marinegeo-reef-life-survey/L1-data/rls-data,,github
 Reef Life Survey,1,Reef Life Survey Dive Roster (L1),,marinegeo-reef-life-survey/L1-data/rls-data,,github
 Reef Life Survey,2,Reef Life Survey Data (L2),reef-life-survey-data-marinegeo-v1,marinegeo-reef-life-survey/L2-data/reef-life-survey-data-marinegeo-v1,marinegeo-reef-life-survey/scripts/reef-life-survey-data-marinegeo-v1,github
@@ -22,15 +32,6 @@ Predation Assay,2,predation,predation-monitoring-v1,annual-monitoring/predation-
 Sediment Organic Matter,2,data,sediment-organic-matter-v1,annual-monitoring/sediment-organic-matter/sediment-organic-matter-v1,,
 Sampling Event Protocol,2,site-metadata,sampling_event_protocol_l2_standardized_site_metadata,annual-monitoring/sampling-event-protocol/L2-standardized/site-metadata,,
 Sampling Event Protocol,2,transect-metadata,sampling_event_protocol_l2_standardized_transect_metadata,annual-monitoring/sampling-event-protocol/L2-standardized/transect-metadata,,
-Oyster Reef Monitoring,2,sample-metadata,oyster-metadata-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-metadata-annual-monitoring-v1,,
-Oyster Reef Monitoring,2,reef-height-data,oyster-reef-height-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-reef-height-annual-monitoring-v1,,
-Oyster Reef Monitoring,2,primary-substrate-composition,oyster-substrate-comp-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-substrate-comp-annual-monitoring-v1,,
-Oyster Reef Monitoring,2,reef-area-data,,,,
-Oyster Reef Monitoring,2,composition-canopy-taxa,oyster-canopy-taxa-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-canopy-taxa-annual-monitoring-v1,,
-Oyster Reef Monitoring,2,excavation-length,excavation-length-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/excavation-length-annual-monitoring-v1,,
-Oyster Reef Monitoring,2,excavation-count,excavation-count-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/excavation-count-annual-monitoring-v1,,
-Oyster Reef Monitoring,2,rugosity,oyster-rugosity-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-rugosity-annual-monitoring-v1,,
-Oyster Reef Monitoring,2,biobox-data,oyster-biobox-annual-monitoring-v1,annual-monitoring/oyster-reef-monitoring/oyster-biobox-annual-monitoring-v1,,
 Seagrass Monitoring,1,Seagrass Monitoring (L1),seagrass-monitoring-marinegeo,marinegeo-seagrass-monitoring/L1-data/seagrass-monitoring-marinegeo/marinegeo-excel-v1/seagrass-required,,github
 Seagrass Monitoring,2,Seagrass Biomass (core),seagrass-biomass-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-biomass-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-biomass-monitoring-v1,github
 Seagrass Monitoring,2,Seagrass Cover,seagrass-cover-monitoring-v1,marinegeo-seagrass-monitoring/L2-data/seagrass-cover-monitoring-v1,marinegeo-seagrass-monitoring/scripts/seagrass-cover-monitoring-v1,github
