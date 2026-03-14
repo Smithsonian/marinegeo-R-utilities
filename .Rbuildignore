@@ -1,3 +1,5 @@
 ^reef-life-survey-marinegeo\.Rproj$
 ^\.Rproj\.user$
 ^data-raw$
+^\.vscode$
+^[.]?air[.]toml$
