@@ -58,16 +58,11 @@ test_that(".get_parent_rank returns empty list when node_id is not found", {
 })
 
 # ---------------------------------------------------------------------------
-# utl_mg_get_taxonomic_classifications() tests
+# .get_taxonomic_classifications() tests
 # ---------------------------------------------------------------------------
 
 test_that("happy path: returns correct columns and values for a single ID", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(taxonomic_lookup = mock_taxonomic_lookup),
-    .package = "marinegeo.utils"
-  )
-
-  result <- utl_mg_get_taxonomic_classifications("APHIA:125476")
+  result <- .get_taxonomic_classifications("APHIA:125476", mock_taxonomic_lookup)
 
   expect_s3_class(result, "data.frame")
   expect_true(all(c("scientific_id", "rank") %in% colnames(result)))
@@ -80,25 +75,16 @@ test_that("happy path: returns correct columns and values for a single ID", {
 })
 
 test_that("scientific_id and rank are the first two columns", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(taxonomic_lookup = mock_taxonomic_lookup),
-    .package = "marinegeo.utils"
-  )
-
-  result <- utl_mg_get_taxonomic_classifications("APHIA:125476")
+  result <- .get_taxonomic_classifications("APHIA:125476", mock_taxonomic_lookup)
 
   expect_equal(colnames(result)[1], "scientific_id")
   expect_equal(colnames(result)[2], "rank")
 })
 
 test_that("multiple IDs return one row each", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(taxonomic_lookup = mock_taxonomic_lookup),
-    .package = "marinegeo.utils"
-  )
-
-  result <- utl_mg_get_taxonomic_classifications(
-    c("APHIA:125476", "APHIA:125477", "APHIA:374534")
+  result <- .get_taxonomic_classifications(
+    c("APHIA:125476", "APHIA:125477", "APHIA:374534"),
+    mock_taxonomic_lookup
   )
 
   expect_equal(nrow(result), 3)
@@ -106,13 +92,9 @@ test_that("multiple IDs return one row each", {
 })
 
 test_that("Phylum (Division) is mapped to Phylum", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(taxonomic_lookup = mock_taxonomic_lookup),
-    .package = "marinegeo.utils"
-  )
-
-  result <- utl_mg_get_taxonomic_classifications(
-    c("APHIA:125476", "APHIA:374534")
+  result <- .get_taxonomic_classifications(
+    c("APHIA:125476", "APHIA:374534"),
+    mock_taxonomic_lookup
   )
 
   seagrass_row <- result[result$scientific_id == "APHIA:374534", ]
@@ -122,13 +104,9 @@ test_that("Phylum (Division) is mapped to Phylum", {
 })
 
 test_that("ID not present in taxonomic_lookup is absent from output", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(taxonomic_lookup = mock_taxonomic_lookup),
-    .package = "marinegeo.utils"
-  )
-
-  result <- utl_mg_get_taxonomic_classifications(
-    c("APHIA:125476", "APHIA:UNKNOWN")
+  result <- .get_taxonomic_classifications(
+    c("APHIA:125476", "APHIA:UNKNOWN"),
+    mock_taxonomic_lookup
   )
 
   expect_equal(nrow(result), 1)
@@ -136,7 +114,7 @@ test_that("ID not present in taxonomic_lookup is absent from output", {
 })
 
 test_that("empty character vector returns zero-row data frame with expected columns", {
-  result <- utl_mg_get_taxonomic_classifications(character(0))
+  result <- .get_taxonomic_classifications(character(0), mock_taxonomic_lookup)
 
   expect_equal(nrow(result), 0)
   expect_true(all(
@@ -147,21 +125,20 @@ test_that("empty character vector returns zero-row data frame with expected colu
 
 test_that("all-NA input returns zero-row data frame with a message", {
   expect_message(
-    result <- utl_mg_get_taxonomic_classifications(c(NA_character_, NA_character_)),
+    result <- .get_taxonomic_classifications(
+      c(NA_character_, NA_character_),
+      mock_taxonomic_lookup
+    ),
     "2 NA value\\(s\\) removed"
   )
   expect_equal(nrow(result), 0)
 })
 
 test_that("NAs mixed with valid IDs are removed with a message and rest are processed", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(taxonomic_lookup = mock_taxonomic_lookup),
-    .package = "marinegeo.utils"
-  )
-
   expect_message(
-    result <- utl_mg_get_taxonomic_classifications(
-      c(NA_character_, "APHIA:125476", "APHIA:125477")
+    result <- .get_taxonomic_classifications(
+      c(NA_character_, "APHIA:125476", "APHIA:125477"),
+      mock_taxonomic_lookup
     ),
     "1 NA value\\(s\\) removed"
   )
@@ -172,7 +149,7 @@ test_that("NAs mixed with valid IDs are removed with a message and rest are proc
 
 test_that("non-character input stops with an error", {
   expect_error(
-    utl_mg_get_taxonomic_classifications(123),
+    .get_taxonomic_classifications(123, mock_taxonomic_lookup),
     "`scientific_ids` must be a character vector"
   )
 })
