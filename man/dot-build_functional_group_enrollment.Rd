@@ -2,44 +2,61 @@
 % Please edit documentation in R/utl_mg_traverse_adjacency_tables.R
 \name{.build_functional_group_enrollment}
 \alias{.build_functional_group_enrollment}
-\title{Build functional group enrollment table}
+\title{Build functional group enrollment nested tree}
 \usage{
-.build_functional_group_enrollment(tl, fg)
+.build_functional_group_enrollment(tl, fg, ol)
 }
 \arguments{
 \item{tl}{Data frame. \code{taxonomic_lookup} as read from CSV. Must have columns
-\code{scientific_id} (character \code{"APHIA:X"}), \code{parent_id} (numeric Aphia ID of
+\code{scientific_id} (character \code{"APHIA:X"}), \code{parent_id} (character ID of
 parent), \code{name}, and \code{rank}.}
 
 \item{fg}{Data frame. \code{functional_group_lookup} as read from CSV. Must have
 columns \code{scientific_id} (character \code{"APHIA:X"} or \code{"FUNCTIONAL:X"}),
 \code{parent_id} (character \code{"APHIA:X"}, \code{"FUNCTIONAL:X"}, or \code{NA}),
 \code{functional_group_name}, and \code{enroll_all_lower_ranks} (logical).}
+
+\item{ol}{Data frame. \code{observation_lookup} as read from CSV. Must have
+column \code{scientific_id} (character \code{"APHIA:X"}). Used to restrict
+BFS-enrolled descendants to species known to MarineGEO.}
 }
 \value{
-A data frame with columns: \code{scientific_id}, \code{functional_group_id},
-\code{functional_group_name}, \code{lineage}, \code{enrolled_via}, \code{anchor_id}. Returns
-a zero-row data frame with those columns if \code{fg} produces no enrollment
-rows.
+A named nested list representing the functional group hierarchy.
+Each element is named by \code{scientific_id} (e.g. \code{"FUNCTIONAL:1"},
+\code{"APHIA:143770"}) and contains:
+\describe{
+\item{name}{Display name of the node (e.g. \code{"Biota"}, \code{"Zosteraceae"}).}
+\item{members}{Character vector of APHIA: IDs enrolled directly at this
+node. FUNCTIONAL: nodes always have \code{character(0)}. Each APHIA: ID
+appears at exactly one node — the deepest enrollment point in the
+tree. Filtered to IDs present in \code{fg$scientific_id} or
+\code{ol$scientific_id}.}
+\item{children}{Named list of child nodes, each with the same structure.
+Empty list for leaf nodes.}
+}
+Returns an empty list if \code{fg} has no rows.
 }
 \description{
-Precomputes a flat enrollment table linking each \code{scientific_id} to its
-functional group(s). Called at sysdata build time (from
+Precomputes a nested tree structure representing functional group
+memberships. Called at sysdata build time (from
 \code{data-raw/assemble_marinegeo_metadata_sysdata.R}) — never at package
 runtime.
 
-Walks the taxonomic adjacency table downward (BFS from each
-\code{enroll_all_lower_ranks} anchor) and the functional group hierarchy upward
-(to build lineage strings), and returns one row per
-(\code{scientific_id}, functional group) pair.
+Walks the taxonomic adjacency table downward (BFS from each APHIA: anchor
+node with \code{enroll_all_lower_ranks = TRUE}), filters enrolled species to
+those present in either \code{functional_group_lookup} or \code{observation_lookup},
+and assembles a nested list where each FUNCTIONAL: and APHIA: node contains
+its display name, the set of all enrolled APHIA: IDs at or below it, and
+its child nodes.
 }
 \details{
-Two enrollment mechanisms are supported:
-\describe{
-\item{direct}{Every node in \code{fg} is enrolled in itself.}
-\item{enroll_all_lower_ranks}{For \verb{APHIA:}-prefixed anchor nodes with
-\code{enroll_all_lower_ranks = TRUE}, all taxonomic descendants (via BFS on
-\code{tl}) are also enrolled and marked \code{enrolled_via = "enroll_all_lower_ranks"}.}
-}
+Each APHIA: ID is stored only at the deepest node where it is enrolled —
+members are not propagated upward. To determine which FUNCTIONAL: groups
+contain a species, callers must search the full subtree (as
+\code{.find_functional_groups()} does).
+
+Filtering: only APHIA: IDs present in \code{fg$scientific_id} or
+\code{ol$scientific_id} are included in \code{members}. BFS descendants outside this
+set are excluded.
 }
 \keyword{internal}

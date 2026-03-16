@@ -4,19 +4,34 @@
 \alias{utl_mg_join_scientific_id}
 \title{Join scientific ID to a data frame by scientific name}
 \usage{
-utl_mg_join_scientific_id(df, scientific_name_col = "scientific_name")
+utl_mg_join_scientific_id(
+  df,
+  scientific_name_col = "scientific_name",
+  include_classifications = FALSE
+)
 }
 \arguments{
 \item{df}{A data frame containing a column of scientific names.}
 
 \item{scientific_name_col}{Character. Name of the column in \code{df} that
 contains scientific names. Defaults to \code{"scientific_name"}.}
+
+\item{include_classifications}{Logical. If \code{TRUE}, taxonomic classification
+columns (\code{rank}, \code{Kingdom}, \code{Phylum}, \code{Class}, \code{Order}, \code{Family}, \code{Genus},
+\code{Species}) are appended by calling
+\code{\link[=utl_mg_get_taxonomic_classifications]{utl_mg_get_taxonomic_classifications()}} on the matched \code{scientific_id}
+values. Defaults to \code{FALSE}.}
 }
 \value{
 \code{df} with a \code{scientific_id} column appended. Rows whose
 \code{scientific_name} could not be matched in \code{observation_lookup} will have
 \code{NA} for \code{scientific_id}. A warning is issued when any names are
 unmatched.
+
+When \code{include_classifications = TRUE}, classification columns are also
+appended for rows with a matched \code{scientific_id}. Classification columns
+that would conflict with existing columns in \code{df} are skipped with a
+warning listing the affected column names.
 }
 \description{
 Looks up the \code{scientific_id} for each row in \code{df} by matching the
@@ -41,6 +56,9 @@ a warning.
 \examples{
 # seagrass_cover_example ships with the package and has a scientific_name column
 utl_mg_join_scientific_id(seagrass_cover_example)
+
+# Also append taxonomic rank columns
+utl_mg_join_scientific_id(seagrass_cover_example, include_classifications = TRUE)
 
 # Use a different column name
 df <- seagrass_cover_example

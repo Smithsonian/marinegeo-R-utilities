@@ -1,62 +1,62 @@
 #' Get functional group memberships for a set of scientific IDs
 #'
 #' @description
-#' Returns all functional group enrollments for the supplied `scientific_ids`
-#' by filtering the precomputed `functional_group_enrollment` table stored in
-#' `marinegeo_metadata`. Each row in the result represents one
-#' (species, functional group) membership.
+#' Returns all functional group memberships for the supplied `scientific_ids`
+#' by walking the precomputed `functional_group_enrollment` nested tree stored
+#' in `marinegeo_metadata`. Each row in the result represents one ancestor
+#' node from the functional group lookup that the queried ID belongs to.
 #'
-#' IDs that do not appear in the enrollment table are silently excluded from
-#' output (they have no functional group assignment). Unknown IDs produce zero
-#' rows, not an error.
-#'
-#' Both `"APHIA:X"` and `"FUNCTIONAL:X"` identifiers are accepted.
+#' Both `"APHIA:X"` species IDs and `"FUNCTIONAL:X"` group IDs are accepted as
+#' input. IDs that do not appear in the tree produce zero rows, not an error.
 #'
 #' @param scientific_ids Character vector of `scientific_id` values to look up
 #'   (e.g. `c("APHIA:495077", "FUNCTIONAL:9")`). `NA` values are removed with
 #'   a message.
 #'
-#' @return A data frame (long format) with one row per (scientific_id,
-#'   functional group) pair. Columns:
+#' @return A data frame with one row per (`scientific_id`, ancestor node) pair.
+#'   Columns:
 #'   \describe{
 #'     \item{scientific_id}{The supplied identifier.}
-#'     \item{functional_group_id}{`"FUNCTIONAL:X"` of the functional group
-#'       this ID belongs to (the deepest FUNCTIONAL: node in the enrollment
-#'       lineage).}
-#'     \item{functional_group_name}{Display name of `functional_group_id`
-#'       (e.g. `"Seagrass"`).}
-#'     \item{lineage}{Arrow-delimited path from the root functional group
-#'       down to the anchor node that caused enrollment, e.g.
-#'       `"Biota > Macrophytes > Submerged Aquatic Vegetation > Seagrass >
-#'       Zosteraceae"`. The species name itself is not appended.}
-#'     \item{enrolled_via}{`"direct"` if the ID is explicitly listed in the
-#'       functional group lookup, or `"enroll_all_lower_ranks"` if enrollment
-#'       was inherited from a taxonomic ancestor node that carries the
-#'       `enroll_all_lower_ranks` flag.}
-#'     \item{anchor_id}{The `scientific_id` of the node in
-#'       `functional_group_lookup` that caused this enrollment (may differ
-#'       from `scientific_id` when `enrolled_via = "enroll_all_lower_ranks"`).}
+#'     \item{parent_scientific_id}{`scientific_id` of the ancestor node from the
+#'       functional group lookup. May be `"FUNCTIONAL:X"` (a named functional
+#'       group) or `"APHIA:X"` (a taxonomic anchor node, e.g. a family used as
+#'       an enrollment boundary).}
+#'     \item{parent_name}{Display name of the ancestor node (e.g. `"Seagrass"`,
+#'       `"Zosteraceae"`).}
+#'     \item{depth}{Integer. Position of the ancestor node in the functional
+#'       group hierarchy, counting all fg-lookup nodes from the root. The root
+#'       node is depth 1; each child level increments by 1. Rows are ordered
+#'       root-first (ascending depth) within each `scientific_id`.}
 #'   }
 #'   Returns a zero-row data frame with the above columns if no IDs are matched
 #'   or if `scientific_ids` is empty after NA removal.
 #'
 #' @details
 #' Functional group memberships are precomputed at package build time and
-#' stored in `marinegeo_metadata$functional_group_enrollment`. This function
-#' performs a single `dplyr::filter()` — no tree traversal occurs at runtime.
+#' stored in `marinegeo_metadata$functional_group_enrollment` as a nested tree.
+#' This function walks that tree — no on-the-fly enrollment computation occurs
+#' at runtime.
 #'
-#' A species may belong to more than one functional group (e.g. a taxon
-#' enrolled at the family level AND at a higher class level). In that case,
-#' multiple rows are returned for the same `scientific_id`.
+#' A species enrolled under a leaf node (e.g. an APHIA: family anchor) will
+#' also appear as a member of all ancestor nodes up to the root. One row is
+#' returned per ancestor, with `depth` indicating each node's position in the
+#' hierarchy. The queried ID itself is never included as a result row —
+#' only its ancestors are returned.
+#'
+#' When a `"FUNCTIONAL:X"` ID is supplied, the function returns all functional
+#' group nodes that group is a child of (i.e. its ancestors in the tree).
 #'
 #' @export
 #'
 #' @examples
-#' # Single species lookup
+#' # Species lookup — returns all ancestor nodes from the functional group tree
 #' utl_mg_get_functional_groups("APHIA:495077")
 #'
+#' # Functional group lookup — returns the groups it belongs to
+#' utl_mg_get_functional_groups("FUNCTIONAL:9")
+#'
 #' # Batch lookup
-#' utl_mg_get_functional_groups(c("APHIA:495077", "FUNCTIONAL:9"))
+#' utl_mg_get_functional_groups(c("APHIA:495077", "APHIA:111111"))
 #'
 #' # Unknown IDs produce zero rows (no error)
 #' utl_mg_get_functional_groups("APHIA:99999999")
@@ -71,19 +71,97 @@ utl_mg_get_functional_groups <- function(scientific_ids) {
     scientific_ids <- scientific_ids[!is.na(scientific_ids)]
   }
 
+  empty_result <- data.frame(
+    scientific_id = character(0),
+    parent_scientific_id = character(0),
+    parent_name = character(0),
+    depth = integer(0),
+    stringsAsFactors = FALSE
+  )
+
   if (length(scientific_ids) == 0) {
-    return(
-      data.frame(
-        scientific_id       = character(0),
-        functional_group_id = character(0),
-        functional_group_name = character(0),
-        lineage             = character(0),
-        enrolled_via        = character(0),
-        anchor_id           = character(0)
-      )
-    )
+    return(empty_result)
   }
 
-  marinegeo_metadata$functional_group_enrollment |>
-    dplyr::filter(.data$scientific_id %in% scientific_ids)
+  tree <- marinegeo_metadata$functional_group_enrollment
+
+  rows <- lapply(scientific_ids, function(id) {
+    matches <- .find_functional_groups(id, tree)
+    if (length(matches) == 0) {
+      return(empty_result)
+    }
+    data.frame(
+      scientific_id = id,
+      parent_scientific_id = vapply(matches, `[[`, character(1), "id"),
+      parent_name = vapply(matches, `[[`, character(1), "name"),
+      depth = vapply(matches, `[[`, integer(1), "depth"),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  do.call(rbind, rows)
+}
+
+
+#' Walk the functional group tree to find all ancestor nodes for an ID
+#'
+#' @description
+#' Recursively walks the `functional_group_enrollment` nested tree, collecting
+#' every node that is an ancestor of `scientific_id`. The queried ID may be an
+#' APHIA: species (found in a node's `members`), or any node ID present in the
+#' tree itself (FUNCTIONAL: or APHIA: anchor node).
+#'
+#' The queried node is never included in its own results — only ancestors are
+#' returned.
+#'
+#' @param scientific_id Character scalar. The identifier to search for.
+#' @param tree Named list. The `functional_group_enrollment` nested tree as
+#'   produced by `.build_functional_group_enrollment()`.
+#'
+#' @return An unnamed list of named lists, each with elements `id` (character),
+#'   `name` (character), and `depth` (integer, 1 = root). Results are ordered
+#'   root-first (ascending depth). Returns an empty list if `scientific_id` is
+#'   not found anywhere in the tree.
+#'
+#' @keywords internal
+.find_functional_groups <- function(scientific_id, tree) {
+  results <- list()
+
+  # Returns TRUE if scientific_id is in node$members OR matches any descendant
+  # node_id anywhere in the subtree. Does not match the node itself.
+  .subtree_contains <- function(node) {
+    if (scientific_id %in% node$members) {
+      return(TRUE)
+    }
+    for (child_id in names(node$children)) {
+      if (scientific_id == child_id) {
+        return(TRUE)
+      }
+      if (.subtree_contains(node$children[[child_id]])) return(TRUE)
+    }
+    FALSE
+  }
+
+  # depth counts all fg-lookup nodes traversed from the root.
+  .walk <- function(node_id, node, depth) {
+    current_depth <- depth + 1L
+    # Collect this node if scientific_id is in its subtree, but never collect
+    # the queried node itself.
+    if (node_id != scientific_id && .subtree_contains(node)) {
+      results[[length(results) + 1]] <<- list(
+        id = node_id,
+        name = node$name,
+        depth = current_depth
+      )
+    }
+    for (child_id in names(node$children)) {
+      .walk(child_id, node$children[[child_id]], current_depth)
+    }
+  }
+
+  for (root_id in names(tree)) {
+    .walk(root_id, tree[[root_id]], 0L)
+  }
+
+  results
 }

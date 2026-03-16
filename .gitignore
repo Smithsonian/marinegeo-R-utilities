@@ -56,3 +56,5 @@ rsconnect/
 *.vscode
 
 air.toml
+/doc/
+/Meta/

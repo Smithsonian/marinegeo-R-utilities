@@ -7,10 +7,11 @@
 .get_parent_rank(node_id, df)
 }
 \arguments{
-\item{node_id}{Character. The \code{id} of the starting node in \code{df}.}
+\item{node_id}{The \code{id} value of the starting node in \code{df}. May be numeric
+or character depending on how the adjacency table was loaded.}
 
 \item{df}{Data frame. The adjacency table (e.g. \code{taxonomic_lookup}) with
-columns \code{id}, \code{parent_id}, \code{rank}, and \code{name}.}
+columns \code{id}, \code{scientific_id}, \code{parent_id}, \code{rank}, and \code{name}.}
 }
 \value{
 A named list where each name is a rank label and each value is the
@@ -20,5 +21,12 @@ taxon name at that rank.
 Collects the taxon name at each rank by walking from \code{node_id} up to the
 root of the \code{taxonomic_lookup} adjacency table. Used by
 \code{.get_taxonomic_classifications()}.
+}
+\details{
+The initial row is looked up by \code{id} (the raw adjacency-table key). All
+subsequent steps navigate via \code{parent_id} → \code{scientific_id}, because
+\code{parent_id} stores the \code{scientific_id} of the parent node (e.g.
+\code{"APHIA:51"}), not the raw \code{id} value. This handles the case where \code{id} is
+numeric and \code{parent_id} is character.
 }
 \keyword{internal}

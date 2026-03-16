@@ -107,10 +107,11 @@ marinegeo_metadata$taxonomic_classifications <- .get_taxonomic_classifications(
   taxonomic_lookup = marinegeo_metadata$taxonomic_lookup
 )
 
-# Precompute functional group enrollment (build-time adjacency table traversal)
+# Precompute functional group enrollment nested tree (build-time adjacency table traversal)
 marinegeo_metadata$functional_group_enrollment <- .build_functional_group_enrollment(
   tl = marinegeo_metadata$taxonomic_lookup,
-  fg = marinegeo_metadata$functional_group_lookup
+  fg = marinegeo_metadata$functional_group_lookup,
+  ol = marinegeo_metadata$observation_lookup
 )
 
 usethis::use_data(marinegeo_metadata, internal = TRUE, overwrite = TRUE)

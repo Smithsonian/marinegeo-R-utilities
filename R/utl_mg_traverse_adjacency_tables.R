@@ -16,25 +16,34 @@
 #' root of the `taxonomic_lookup` adjacency table. Used by
 #' `.get_taxonomic_classifications()`.
 #'
-#' @param node_id Character. The `id` of the starting node in `df`.
+#' @param node_id The `id` value of the starting node in `df`. May be numeric
+#'   or character depending on how the adjacency table was loaded.
 #' @param df Data frame. The adjacency table (e.g. `taxonomic_lookup`) with
-#'   columns `id`, `parent_id`, `rank`, and `name`.
+#'   columns `id`, `scientific_id`, `parent_id`, `rank`, and `name`.
 #'
 #' @return A named list where each name is a rank label and each value is the
 #'   taxon name at that rank.
 #'
+#' @details
+#' The initial row is looked up by `id` (the raw adjacency-table key). All
+#' subsequent steps navigate via `parent_id` → `scientific_id`, because
+#' `parent_id` stores the `scientific_id` of the parent node (e.g.
+#' `"APHIA:51"`), not the raw `id` value. This handles the case where `id` is
+#' numeric and `parent_id` is character.
+#'
 #' @keywords internal
 .get_parent_rank <- function(node_id, df) {
   parent_ranks <- list()
-  current_id <- node_id
 
-  while (length(current_id) > 0 && !is.na(current_id)) {
-    row <- dplyr::filter(df, .data$id == current_id)
-    if (nrow(row) == 0) {
-      break
-    }
+  # First lookup: by raw id column (may be numeric or character)
+  row <- dplyr::filter(df, .data$id == node_id)
+
+  while (nrow(row) > 0) {
     parent_ranks[[row$rank]] <- row$name
-    current_id <- row$parent_id
+    parent_val <- row$parent_id
+    if (is.na(parent_val)) break
+    # parent_id holds the scientific_id of the parent — navigate by scientific_id
+    row <- dplyr::filter(df, .data$scientific_id == parent_val)
   }
 
   parent_ranks
@@ -154,171 +163,155 @@
 # Functional group adjacency table traversal
 # ---------------------------------------------------------------------------
 
-#' Build functional group enrollment table
+#' Build functional group enrollment nested tree
 #'
 #' @description
-#' Precomputes a flat enrollment table linking each `scientific_id` to its
-#' functional group(s). Called at sysdata build time (from
+#' Precomputes a nested tree structure representing functional group
+#' memberships. Called at sysdata build time (from
 #' `data-raw/assemble_marinegeo_metadata_sysdata.R`) — never at package
 #' runtime.
 #'
-#' Walks the taxonomic adjacency table downward (BFS from each
-#' `enroll_all_lower_ranks` anchor) and the functional group hierarchy upward
-#' (to build lineage strings), and returns one row per
-#' (`scientific_id`, functional group) pair.
+#' Walks the taxonomic adjacency table downward (BFS from each APHIA: anchor
+#' node with `enroll_all_lower_ranks = TRUE`), filters enrolled species to
+#' those present in either `functional_group_lookup` or `observation_lookup`,
+#' and assembles a nested list where each FUNCTIONAL: and APHIA: node contains
+#' its display name, the set of all enrolled APHIA: IDs at or below it, and
+#' its child nodes.
 #'
 #' @param tl Data frame. `taxonomic_lookup` as read from CSV. Must have columns
-#'   `scientific_id` (character `"APHIA:X"`), `parent_id` (numeric Aphia ID of
+#'   `scientific_id` (character `"APHIA:X"`), `parent_id` (character ID of
 #'   parent), `name`, and `rank`.
 #' @param fg Data frame. `functional_group_lookup` as read from CSV. Must have
 #'   columns `scientific_id` (character `"APHIA:X"` or `"FUNCTIONAL:X"`),
 #'   `parent_id` (character `"APHIA:X"`, `"FUNCTIONAL:X"`, or `NA`),
 #'   `functional_group_name`, and `enroll_all_lower_ranks` (logical).
+#' @param ol Data frame. `observation_lookup` as read from CSV. Must have
+#'   column `scientific_id` (character `"APHIA:X"`). Used to restrict
+#'   BFS-enrolled descendants to species known to MarineGEO.
 #'
-#' @return A data frame with columns: `scientific_id`, `functional_group_id`,
-#'   `functional_group_name`, `lineage`, `enrolled_via`, `anchor_id`. Returns
-#'   a zero-row data frame with those columns if `fg` produces no enrollment
-#'   rows.
+#' @return A named nested list representing the functional group hierarchy.
+#'   Each element is named by `scientific_id` (e.g. `"FUNCTIONAL:1"`,
+#'   `"APHIA:143770"`) and contains:
+#'   \describe{
+#'     \item{name}{Display name of the node (e.g. `"Biota"`, `"Zosteraceae"`).}
+#'     \item{members}{Character vector of APHIA: IDs enrolled directly at this
+#'       node. FUNCTIONAL: nodes always have `character(0)`. Each APHIA: ID
+#'       appears at exactly one node — the deepest enrollment point in the
+#'       tree. Filtered to IDs present in `fg$scientific_id` or
+#'       `ol$scientific_id`.}
+#'     \item{children}{Named list of child nodes, each with the same structure.
+#'       Empty list for leaf nodes.}
+#'   }
+#'   Returns an empty list if `fg` has no rows.
 #'
 #' @details
-#' Two enrollment mechanisms are supported:
-#' \describe{
-#'   \item{direct}{Every node in `fg` is enrolled in itself.}
-#'   \item{enroll_all_lower_ranks}{For `APHIA:`-prefixed anchor nodes with
-#'     `enroll_all_lower_ranks = TRUE`, all taxonomic descendants (via BFS on
-#'     `tl`) are also enrolled and marked `enrolled_via = "enroll_all_lower_ranks"`.}
-#' }
+#' Each APHIA: ID is stored only at the deepest node where it is enrolled —
+#' members are not propagated upward. To determine which FUNCTIONAL: groups
+#' contain a species, callers must search the full subtree (as
+#' `.find_functional_groups()` does).
+#'
+#' Filtering: only APHIA: IDs present in `fg$scientific_id` or
+#' `ol$scientific_id` are included in `members`. BFS descendants outside this
+#' set are excluded.
 #'
 #' @keywords internal
-.build_functional_group_enrollment <- function(tl, fg) {
-  # --- Children index ---------------------------------------------------------
-  # Maps each scientific_id in taxonomic_lookup to its children's scientific_ids.
+.build_functional_group_enrollment <- function(tl, fg, ol) {
+  if (nrow(fg) == 0) return(list())
+
+  # --- Build allowed_aphia set -----------------------------------------------
+  # Only species present in fg or ol are valid enrollment targets.
+  aphia_from_fg <- fg$scientific_id[grepl("^APHIA:", fg$scientific_id)]
+  aphia_from_ol <- ol$scientific_id[grepl("^APHIA:", ol$scientific_id)]
+  allowed_aphia <- union(aphia_from_fg, aphia_from_ol)
+
+  # --- Taxonomic children index (for BFS) ------------------------------------
   tl_valid <- tl[!is.na(tl$parent_id) & !is.na(tl$scientific_id), ]
-  parent_sci_ids <- tl_valid$parent_id
-  children_index <- split(tl_valid$scientific_id, parent_sci_ids)
+  children_index <- split(tl_valid$scientific_id, tl_valid$parent_id)
 
   # Returns all taxonomic descendants of root_id (including root_id itself).
-  .get_all_descendants <- function(root_id, children_idx) {
+  .get_all_descendants <- function(root_id) {
     visited <- character(0)
     queue <- root_id
     while (length(queue) > 0) {
       current <- queue[1]
       queue <- queue[-1]
-      if (current %in% visited) {
-        next
-      }
+      if (current %in% visited) next
       visited <- c(visited, current)
-      children <- children_idx[[current]]
-      if (!is.null(children)) {
-        queue <- c(queue, children)
-      }
+      kids <- children_index[[current]]
+      if (!is.null(kids)) queue <- c(queue, kids)
     }
     visited
   }
 
-  # --- Functional group lookup maps -------------------------------------------
-  # Assumes scientific_id is unique per row within functional_group_lookup
-  # (duplicates are resolved by keeping the first occurrence via match()).
-  fg_idx <- match(unique(fg$scientific_id), fg$scientific_id)
-  fg_unique <- fg[fg_idx, ]
-  fg_parent_map <- stats::setNames(fg_unique$parent_id, fg_unique$scientific_id)
-  fg_name_map <- stats::setNames(
-    fg_unique$functional_group_name,
-    fg_unique$scientific_id
-  )
+  # --- Build flat node map from fg -------------------------------------------
+  fg_unique <- fg[!duplicated(fg$scientific_id), ]
+  node_map <- list()
 
-  # Walk up functional_group_lookup from node_id to root; return lineage string
-  # root > ... > node_id (root-to-leaf order).
-  .get_fg_lineage_str <- function(node_id) {
-    path <- character(0)
-    current <- node_id
-    repeat {
-      name_val <- fg_name_map[current]
-      if (is.na(name_val)) {
-        break
-      }
-      path <- c(path, unname(name_val))
-      parent_val <- fg_parent_map[current]
-      if (is.na(parent_val)) {
-        break
-      }
-      current <- unname(parent_val)
-    }
-    paste(rev(path), collapse = " > ")
-  }
-
-  # Walk up from node_id in fg to find the nearest FUNCTIONAL: ID (self or ancestor).
-  .find_nearest_functional_id <- function(node_id) {
-    current <- node_id
-    repeat {
-      if (grepl("^FUNCTIONAL:", current)) {
-        return(current)
-      }
-      parent_val <- fg_parent_map[current]
-      if (is.na(parent_val)) {
-        return(NA_character_)
-      }
-      current <- unname(parent_val)
-    }
-  }
-
-  # --- Build enrollment rows --------------------------------------------------
-  rows <- list()
-
-  for (i in seq_len(nrow(fg))) {
-    row <- fg[i, ]
-    anchor_id <- row$scientific_id
+  for (i in seq_len(nrow(fg_unique))) {
+    row <- fg_unique[i, ]
+    node_id <- row$scientific_id
+    is_aphia <- grepl("^APHIA:", node_id)
     enroll_all <- isTRUE(row$enroll_all_lower_ranks)
 
-    lineage_str <- .get_fg_lineage_str(anchor_id)
-    func_id <- .find_nearest_functional_id(anchor_id)
-    func_name <- if (!is.na(func_id)) {
-      unname(fg_name_map[func_id])
-    } else {
-      NA_character_
-    }
-
-    # Every fg node is a direct enrollment of itself
-    rows[[length(rows) + 1]] <- data.frame(
-      scientific_id = anchor_id,
-      functional_group_id = func_id,
-      functional_group_name = func_name,
-      lineage = lineage_str,
-      enrolled_via = "direct",
-      anchor_id = anchor_id,
-      stringsAsFactors = FALSE
-    )
-
-    # enroll_all_lower_ranks: BFS all taxonomic descendants (APHIA: anchors only)
-    if (enroll_all && grepl("^APHIA:", anchor_id)) {
-      desc_ids <- .get_all_descendants(anchor_id, children_index)
-      desc_ids <- desc_ids[desc_ids != anchor_id] # anchor already added above
-
-      if (length(desc_ids) > 0) {
-        rows[[length(rows) + 1]] <- data.frame(
-          scientific_id = desc_ids,
-          functional_group_id = func_id,
-          functional_group_name = func_name,
-          lineage = lineage_str,
-          enrolled_via = "enroll_all_lower_ranks",
-          anchor_id = anchor_id,
-          stringsAsFactors = FALSE
-        )
+    # Assign leaf members for APHIA: nodes; FUNCTIONAL: nodes start empty.
+    members <- character(0)
+    if (is_aphia) {
+      if (enroll_all) {
+        desc_ids <- .get_all_descendants(node_id)
+        members <- intersect(desc_ids, allowed_aphia)
+      } else if (node_id %in% allowed_aphia) {
+        members <- node_id
       }
     }
+
+    node_map[[node_id]] <- list(
+      name      = row$functional_group_name,
+      parent_id = row$parent_id,
+      members   = members
+    )
   }
 
-  if (length(rows) == 0) {
-    return(data.frame(
-      scientific_id = character(0),
-      functional_group_id = character(0),
-      functional_group_name = character(0),
-      lineage = character(0),
-      enrolled_via = character(0),
-      anchor_id = character(0),
-      stringsAsFactors = FALSE
-    ))
+  # --- Build parent -> children index for fg hierarchy ----------------------
+  valid_ids <- names(node_map)
+  children_by_parent <- list()
+  for (node_id in valid_ids) {
+    parent <- node_map[[node_id]]$parent_id
+    if (!is.na(parent) && parent %in% valid_ids) {
+      children_by_parent[[parent]] <- c(children_by_parent[[parent]], node_id)
+    }
   }
 
-  dplyr::bind_rows(rows) |> dplyr::distinct()
+  # --- Recursively assemble tree; members stay at the node they are assigned -
+  .assemble_tree_node <- function(id) {
+    node <- node_map[[id]]
+    child_ids <- children_by_parent[[id]]
+    child_nodes <- list()
+
+    if (!is.null(child_ids)) {
+      for (child_id in child_ids) {
+        child_nodes[[child_id]] <- .assemble_tree_node(child_id)
+      }
+    }
+
+    list(
+      name     = node$name,
+      members  = node$members,
+      children = child_nodes
+    )
+  }
+
+  # --- Find root nodes and assemble the full tree ----------------------------
+  root_ids <- valid_ids[vapply(valid_ids, function(id) {
+    parent <- node_map[[id]]$parent_id
+    is.na(parent) || !(parent %in% valid_ids)
+  }, logical(1))]
+
+  if (length(root_ids) == 0) return(list())
+
+  tree <- list()
+  for (root_id in root_ids) {
+    tree[[root_id]] <- .assemble_tree_node(root_id)
+  }
+
+  tree
 }

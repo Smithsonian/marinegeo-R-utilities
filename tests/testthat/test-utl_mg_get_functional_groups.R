@@ -1,172 +1,237 @@
-# Mock enrollment table covering several scenarios:
+# Mock functional group enrollment nested tree.
+# Members are stored only at the deepest enrollment node — not propagated up.
 #
-#   Functional hierarchy (functional_group_lookup):
-#     FUNCTIONAL:1 (Biota)
-#       FUNCTIONAL:2 (Macrophytes)
-#         APHIA:143770 (Zosteraceae, enroll_all_lower_ranks = TRUE)
-#     FUNCTIONAL:3 (Fish)
-#       APHIA:111111  (Labridae, direct — enroll_all_lower_ranks = FALSE)
+#   FUNCTIONAL:1 (Biota)           depth=1 — members: (empty)
+#     FUNCTIONAL:2 (Macrophytes)   depth=2 — members: (empty)
+#       APHIA:143770 (Zosteraceae) depth=3 — members: APHIA:143770, APHIA:495077
+#     FUNCTIONAL:3 (Fish)          depth=2 — members: (empty)
+#       APHIA:111111 (Labridae)    depth=3 — members: APHIA:111111
 #
-#   Taxonomic descendants (from taxonomic_lookup BFS at build time):
-#     APHIA:143770 (Zosteraceae) -> APHIA:495077 (Zostera marina)
-#
-# Resulting enrollment table rows:
-#   FUNCTIONAL:1   direct               FUNCTIONAL:1  "Biota"
-#   FUNCTIONAL:2   direct               FUNCTIONAL:2  "Biota > Macrophytes"
-#   APHIA:143770   direct               FUNCTIONAL:2  "Biota > Macrophytes > Zosteraceae"
-#   APHIA:495077   enroll_all_lower_ranks FUNCTIONAL:2 "Biota > Macrophytes > Zosteraceae"
-#   FUNCTIONAL:3   direct               FUNCTIONAL:3  "Biota > Fish"  <- NOTE: fish is under biota in mock
-#   APHIA:111111   direct               FUNCTIONAL:3  "Biota > Fish > Labridae"
+# Expected results (ancestor nodes, queried ID excluded):
+#   "APHIA:495077"  -> FUNCTIONAL:1(d=1), FUNCTIONAL:2(d=2), APHIA:143770(d=3)
+#   "APHIA:143770"  -> FUNCTIONAL:1(d=1), FUNCTIONAL:2(d=2)
+#   "APHIA:111111"  -> FUNCTIONAL:1(d=1), FUNCTIONAL:3(d=2)
+#   "FUNCTIONAL:2"  -> FUNCTIONAL:1(d=1)
+#   "FUNCTIONAL:1"  -> (empty — root has no ancestors)
 
-mock_enrollment <- tibble::tribble(
-  ~scientific_id,   ~functional_group_id, ~functional_group_name, ~lineage,                                    ~enrolled_via,              ~anchor_id,
-  "FUNCTIONAL:1",   "FUNCTIONAL:1",       "Biota",                "Biota",                                     "direct",                   "FUNCTIONAL:1",
-  "FUNCTIONAL:2",   "FUNCTIONAL:2",       "Macrophytes",          "Biota > Macrophytes",                       "direct",                   "FUNCTIONAL:2",
-  "APHIA:143770",   "FUNCTIONAL:2",       "Macrophytes",          "Biota > Macrophytes > Zosteraceae",         "direct",                   "APHIA:143770",
-  "APHIA:495077",   "FUNCTIONAL:2",       "Macrophytes",          "Biota > Macrophytes > Zosteraceae",         "enroll_all_lower_ranks",   "APHIA:143770",
-  "FUNCTIONAL:3",   "FUNCTIONAL:3",       "Fish",                 "Biota > Fish",                              "direct",                   "FUNCTIONAL:3",
-  "APHIA:111111",   "FUNCTIONAL:3",       "Fish",                 "Biota > Fish > Labridae",                   "direct",                   "APHIA:111111"
+mock_tree <- list(
+  "FUNCTIONAL:1" = list(
+    name = "Biota",
+    members = character(0),
+    children = list(
+      "FUNCTIONAL:2" = list(
+        name = "Macrophytes",
+        members = character(0),
+        children = list(
+          "APHIA:143770" = list(
+            name = "Zosteraceae",
+            members = c("APHIA:143770", "APHIA:495077"),
+            children = list()
+          )
+        )
+      ),
+      "FUNCTIONAL:3" = list(
+        name = "Fish",
+        members = character(0),
+        children = list(
+          "APHIA:111111" = list(
+            name = "Labridae",
+            members = c("APHIA:111111"),
+            children = list()
+          )
+        )
+      )
+    )
+  )
 )
 
 # ---------------------------------------------------------------------------
-# Happy-path tests
+# Return type and column structure
 # ---------------------------------------------------------------------------
 
-test_that("single APHIA ID enrolled via enroll_all returns correct row", {
+test_that("result is a data frame with expected columns", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
   result <- utl_mg_get_functional_groups("APHIA:495077")
 
   expect_s3_class(result, "data.frame")
-  expect_equal(nrow(result), 1)
-  expect_equal(result$scientific_id,         "APHIA:495077")
-  expect_equal(result$functional_group_id,   "FUNCTIONAL:2")
-  expect_equal(result$functional_group_name, "Macrophytes")
-  expect_equal(result$enrolled_via,          "enroll_all_lower_ranks")
-  expect_equal(result$anchor_id,             "APHIA:143770")
-  expect_true(grepl("Zosteraceae", result$lineage))
+  expect_true(all(
+    c("scientific_id", "parent_scientific_id", "parent_name", "depth") %in%
+      colnames(result)
+  ))
 })
 
-test_that("FUNCTIONAL ID returns its own direct enrollment row", {
+test_that("depth column is integer", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("FUNCTIONAL:2")
-
-  expect_equal(nrow(result), 1)
-  expect_equal(result$scientific_id,       "FUNCTIONAL:2")
-  expect_equal(result$enrolled_via,        "direct")
-  expect_equal(result$anchor_id,           "FUNCTIONAL:2")
-  expect_equal(result$lineage,             "Biota > Macrophytes")
+  result <- utl_mg_get_functional_groups("APHIA:495077")
+  expect_type(result$depth, "integer")
 })
 
-test_that("anchor APHIA node returns direct enrollment row", {
+# ---------------------------------------------------------------------------
+# APHIA: species input
+# ---------------------------------------------------------------------------
+
+test_that("APHIA: species returns all ancestor nodes including APHIA: anchor", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("APHIA:495077")
+
+  expect_setequal(
+    result$parent_scientific_id,
+    c("FUNCTIONAL:1", "FUNCTIONAL:2", "APHIA:143770")
+  )
+  expect_true(all(result$scientific_id == "APHIA:495077"))
+})
+
+test_that("queried APHIA: species does not appear in its own parent_scientific_id column", {
+  local_mocked_bindings(
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("APHIA:495077")
+  expect_false("APHIA:495077" %in% result$parent_scientific_id)
+})
+
+test_that("depth reflects position in fg hierarchy counting all fg nodes (root = 1)", {
+  local_mocked_bindings(
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("APHIA:495077")
+  result <- result[order(result$depth), ]
+
+  expect_equal(result$parent_scientific_id[1], "FUNCTIONAL:1")
+  expect_equal(result$depth[1], 1L)
+  expect_equal(result$parent_scientific_id[2], "FUNCTIONAL:2")
+  expect_equal(result$depth[2], 2L)
+  expect_equal(result$parent_scientific_id[3], "APHIA:143770")
+  expect_equal(result$depth[3], 3L)
+})
+
+test_that("APHIA: anchor node returns its ancestor FUNCTIONAL: nodes only", {
+  local_mocked_bindings(
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
   result <- utl_mg_get_functional_groups("APHIA:143770")
 
-  expect_equal(nrow(result), 1)
-  expect_equal(result$enrolled_via, "direct")
-  expect_equal(result$anchor_id,    "APHIA:143770")
-})
-
-test_that("batch lookup returns one row per matched ID", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
-    .package = "marinegeo.utils"
-  )
-
-  result <- utl_mg_get_functional_groups(
-    c("APHIA:495077", "APHIA:111111", "FUNCTIONAL:1")
-  )
-
-  expect_equal(nrow(result), 3)
   expect_setequal(
-    result$scientific_id,
-    c("APHIA:495077", "APHIA:111111", "FUNCTIONAL:1")
+    result$parent_scientific_id,
+    c("FUNCTIONAL:1", "FUNCTIONAL:2")
   )
+  expect_false("APHIA:143770" %in% result$parent_scientific_id)
 })
 
-test_that("result has all expected columns in any order", {
+test_that("sibling functional groups at the same level get the same depth", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:495077")
-  expected_cols <- c(
-    "scientific_id", "functional_group_id", "functional_group_name",
-    "lineage", "enrolled_via", "anchor_id"
-  )
+  macro <- utl_mg_get_functional_groups("APHIA:495077")
+  fish <- utl_mg_get_functional_groups("APHIA:111111")
 
-  expect_true(all(expected_cols %in% colnames(result)))
+  macro_depth <- macro$depth[macro$parent_scientific_id == "FUNCTIONAL:2"]
+  fish_depth <- fish$depth[fish$parent_scientific_id == "FUNCTIONAL:3"]
+  expect_equal(macro_depth, fish_depth)
 })
 
 # ---------------------------------------------------------------------------
-# Multi-group membership
+# FUNCTIONAL: group input
 # ---------------------------------------------------------------------------
 
-test_that("species with multiple functional group memberships returns multiple rows", {
-  # Add a second enrollment for APHIA:495077 under FUNCTIONAL:3 as well
-  multi_enrollment <- dplyr::bind_rows(
-    mock_enrollment,
-    tibble::tibble(
-      scientific_id         = "APHIA:495077",
-      functional_group_id   = "FUNCTIONAL:3",
-      functional_group_name = "Fish",
-      lineage               = "Biota > Fish > Labridae",
-      enrolled_via          = "enroll_all_lower_ranks",
-      anchor_id             = "APHIA:111111"
-    )
-  )
-
+test_that("FUNCTIONAL: input returns ancestor FUNCTIONAL: nodes", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = multi_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:495077")
+  result <- utl_mg_get_functional_groups("FUNCTIONAL:2")
 
-  expect_equal(nrow(result), 2)
-  expect_setequal(result$functional_group_id, c("FUNCTIONAL:2", "FUNCTIONAL:3"))
+  expect_setequal(result$parent_scientific_id, "FUNCTIONAL:1")
+  expect_equal(result$parent_name, "Biota")
+})
+
+test_that("queried FUNCTIONAL: node does not appear in its own parent_scientific_id column", {
+  local_mocked_bindings(
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("FUNCTIONAL:2")
+  expect_false("FUNCTIONAL:2" %in% result$parent_scientific_id)
+})
+
+test_that("root FUNCTIONAL: node returns zero rows (no ancestors)", {
+  local_mocked_bindings(
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("FUNCTIONAL:1")
+  expect_equal(nrow(result), 0)
+})
+
+# ---------------------------------------------------------------------------
+# Multiple IDs
+# ---------------------------------------------------------------------------
+
+test_that("multiple IDs return one row per (scientific_id, ancestor) pair", {
+  local_mocked_bindings(
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups(c("APHIA:495077", "APHIA:111111"))
+
+  expect_s3_class(result, "data.frame")
+  # APHIA:495077 -> 3 rows, APHIA:111111 -> 2 rows (FUNCTIONAL:1 + FUNCTIONAL:3 only,
+  # APHIA:111111 is not in its own results)
+  expect_equal(nrow(result[result$scientific_id == "APHIA:495077", ]), 3)
+  expect_equal(nrow(result[result$scientific_id == "APHIA:111111", ]), 2)
 })
 
 # ---------------------------------------------------------------------------
 # Unknown / unmatched IDs
 # ---------------------------------------------------------------------------
 
-test_that("unknown ID returns zero rows without error", {
+test_that("unknown single ID returns zero-row data frame without error", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
   result <- utl_mg_get_functional_groups("APHIA:99999999")
 
+  expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 0)
-  expect_true("scientific_id" %in% colnames(result))
+  expect_true(all(
+    c("scientific_id", "parent_scientific_id", "parent_name", "depth") %in%
+      colnames(result)
+  ))
 })
 
-test_that("mix of known and unknown IDs: only known IDs appear in result", {
+test_that("mix of known and unknown IDs: only known ID produces rows", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups(
-    c("APHIA:495077", "APHIA:99999999")
-  )
-
-  expect_equal(nrow(result), 1)
-  expect_equal(result$scientific_id, "APHIA:495077")
+  result <- utl_mg_get_functional_groups(c("APHIA:495077", "APHIA:99999999"))
+  expect_true(all(result$scientific_id == "APHIA:495077"))
 })
 
 # ---------------------------------------------------------------------------
@@ -176,10 +241,11 @@ test_that("mix of known and unknown IDs: only known IDs appear in result", {
 test_that("empty character vector returns zero-row data frame with expected columns", {
   result <- utl_mg_get_functional_groups(character(0))
 
+  expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 0)
   expect_true(all(
-    c("scientific_id", "functional_group_id", "functional_group_name",
-      "lineage", "enrolled_via", "anchor_id") %in% colnames(result)
+    c("scientific_id", "parent_scientific_id", "parent_name", "depth") %in%
+      colnames(result)
   ))
 })
 
@@ -188,12 +254,13 @@ test_that("all-NA input removes NAs with message and returns zero-row data frame
     result <- utl_mg_get_functional_groups(c(NA_character_, NA_character_)),
     "2 NA value\\(s\\) removed"
   )
+  expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 0)
 })
 
-test_that("NAs mixed with valid IDs: NAs removed with message, valid IDs processed", {
+test_that("NAs mixed with valid ID: NAs removed with message, valid ID processed", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_enrollment),
+    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
     .package = "marinegeo.utils"
   )
 
@@ -202,8 +269,9 @@ test_that("NAs mixed with valid IDs: NAs removed with message, valid IDs process
     "1 NA value\\(s\\) removed"
   )
 
-  expect_equal(nrow(result), 1)
-  expect_equal(result$scientific_id, "APHIA:495077")
+  expect_s3_class(result, "data.frame")
+  expect_gt(nrow(result), 0)
+  expect_true(all(result$scientific_id == "APHIA:495077"))
 })
 
 # ---------------------------------------------------------------------------

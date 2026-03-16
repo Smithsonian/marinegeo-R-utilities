@@ -1,29 +1,37 @@
-# Minimal adjacency table covering two lineages:
-#   - Animal lineage (uses "Phylum"): Animalia > Chordata > Actinopterygii >
-#     Perciformes > Labridae > Thalassoma > Thalassoma bifasciatum / T. lunare
-#   - Plant lineage (uses "Phylum (Division)"): Plantae > Tracheophyta >
-#     Liliopsida > Alismatales > Zosteraceae > Zostera > Zostera marina
+# Minimal adjacency table covering two lineages, matching the real sysdata
+# structure:
+#   - id:            numeric (raw AphiaID)
+#   - scientific_id: "APHIA:X" for EVERY row (not just species)
+#   - parent_id:     "APHIA:X" of the parent row, or NA for roots
+#
+# Lineages:
+#   Animal: Animalia > Chordata > Actinopterygii > Perciformes > Labridae >
+#           Thalassoma > Thalassoma bifasciatum / T. lunare
+#   Plant:  Plantae > Tracheophyta (Phylum (Division)) > Liliopsida >
+#           Alismatales > Zosteraceae > Zostera > Zostera marina
 #
 # Having both lineages ensures the `Phylum (Division)` → `Phylum` case_when
 # produces both columns after unnesting.
 
 mock_taxonomic_lookup <- tibble::tribble(
-  ~id,   ~scientific_id,    ~parent_id, ~rank,               ~name,
-  "k1",  NA,                NA,         "Kingdom",           "Animalia",
-  "p1",  NA,                "k1",       "Phylum",            "Chordata",
-  "c1",  NA,                "p1",       "Class",             "Actinopterygii",
-  "o1",  NA,                "c1",       "Order",             "Perciformes",
-  "f1",  NA,                "o1",       "Family",            "Labridae",
-  "g1",  NA,                "f1",       "Genus",             "Thalassoma",
-  "s1",  "APHIA:125476",    "g1",       "Species",           "Thalassoma bifasciatum",
-  "s2",  "APHIA:125477",    "g1",       "Species",           "Thalassoma lunare",
-  "k2",  NA,                NA,         "Kingdom",           "Plantae",
-  "p2",  NA,                "k2",       "Phylum (Division)", "Tracheophyta",
-  "c2",  NA,                "p2",       "Class",             "Liliopsida",
-  "o2",  NA,                "c2",       "Order",             "Alismatales",
-  "f2",  NA,                "o2",       "Family",            "Zosteraceae",
-  "g2",  NA,                "f2",       "Genus",             "Zostera",
-  "s3",  "APHIA:374534",    "g2",       "Species",           "Zostera marina"
+  ~id,      ~scientific_id,     ~parent_id,          ~rank,               ~name,
+  # Animal lineage
+  1L,       "APHIA:1",          NA,                  "Kingdom",           "Animalia",
+  2L,       "APHIA:2",          "APHIA:1",           "Phylum",            "Chordata",
+  3L,       "APHIA:3",          "APHIA:2",           "Class",             "Actinopterygii",
+  4L,       "APHIA:4",          "APHIA:3",           "Order",             "Perciformes",
+  5L,       "APHIA:5",          "APHIA:4",           "Family",            "Labridae",
+  6L,       "APHIA:6",          "APHIA:5",           "Genus",             "Thalassoma",
+  125476L,  "APHIA:125476",     "APHIA:6",           "Species",           "Thalassoma bifasciatum",
+  125477L,  "APHIA:125477",     "APHIA:6",           "Species",           "Thalassoma lunare",
+  # Plant lineage
+  10L,      "APHIA:10",         NA,                  "Kingdom",           "Plantae",
+  11L,      "APHIA:11",         "APHIA:10",          "Phylum (Division)", "Tracheophyta",
+  12L,      "APHIA:12",         "APHIA:11",          "Class",             "Liliopsida",
+  13L,      "APHIA:13",         "APHIA:12",          "Order",             "Alismatales",
+  14L,      "APHIA:14",         "APHIA:13",          "Family",            "Zosteraceae",
+  15L,      "APHIA:15",         "APHIA:14",          "Genus",             "Zostera",
+  374534L,  "APHIA:374534",     "APHIA:15",          "Species",           "Zostera marina"
 )
 
 # ---------------------------------------------------------------------------
@@ -31,7 +39,8 @@ mock_taxonomic_lookup <- tibble::tribble(
 # ---------------------------------------------------------------------------
 
 test_that(".get_parent_rank returns all ancestor ranks up to root", {
-  result <- .get_parent_rank("s1", mock_taxonomic_lookup)
+  # node_id is the numeric id of Thalassoma bifasciatum
+  result <- .get_parent_rank(125476L, mock_taxonomic_lookup)
 
   expect_type(result, "list")
   expect_equal(result[["Kingdom"]], "Animalia")
@@ -44,14 +53,14 @@ test_that(".get_parent_rank returns all ancestor ranks up to root", {
 })
 
 test_that(".get_parent_rank returns single-element list for a root node", {
-  result <- .get_parent_rank("k1", mock_taxonomic_lookup)
+  result <- .get_parent_rank(1L, mock_taxonomic_lookup)
 
   expect_length(result, 1)
   expect_equal(result[["Kingdom"]], "Animalia")
 })
 
 test_that(".get_parent_rank returns empty list when node_id is not found", {
-  result <- .get_parent_rank("NONEXISTENT", mock_taxonomic_lookup)
+  result <- .get_parent_rank(99999L, mock_taxonomic_lookup)
 
   expect_type(result, "list")
   expect_length(result, 0)
@@ -152,4 +161,114 @@ test_that("non-character input stops with an error", {
     .get_taxonomic_classifications(123, mock_taxonomic_lookup),
     "`scientific_ids` must be a character vector"
   )
+})
+
+
+# ---------------------------------------------------------------------------
+# .build_functional_group_enrollment() tests
+# ---------------------------------------------------------------------------
+
+# Functional group hierarchy:
+#   FUNCTIONAL:1 (Biota, root)
+#     FUNCTIONAL:2 (Macrophytes)
+#       APHIA:143770 (Zosteraceae, enroll_all_lower_ranks = TRUE)
+#     FUNCTIONAL:3 (Fish)
+#       APHIA:111111 (Labridae, enroll_all_lower_ranks = FALSE)
+#
+# Taxonomic descendants of APHIA:143770:
+#   APHIA:495077 (Zostera marina)  — present in observation_lookup (allowed)
+#   APHIA:888888 (Unknown species) — NOT in observation_lookup (excluded)
+#
+# allowed_aphia = {APHIA:143770, APHIA:111111} (from fg)
+#               union {APHIA:495077, APHIA:111111} (from ol)
+#             = {APHIA:143770, APHIA:111111, APHIA:495077}
+#
+# Expected members after propagation:
+#   APHIA:143770  -> {APHIA:143770, APHIA:495077}   (BFS filtered)
+#   APHIA:111111  -> {APHIA:111111}                  (direct, in allowed)
+#   FUNCTIONAL:2  -> {APHIA:143770, APHIA:495077}
+#   FUNCTIONAL:3  -> {APHIA:111111}
+#   FUNCTIONAL:1  -> {APHIA:143770, APHIA:495077, APHIA:111111}
+
+mock_fg <- tibble::tribble(
+  ~scientific_id,   ~parent_id,      ~functional_group_name, ~enroll_all_lower_ranks,
+  "FUNCTIONAL:1",   NA,              "Biota",                FALSE,
+  "FUNCTIONAL:2",   "FUNCTIONAL:1",  "Macrophytes",          FALSE,
+  "APHIA:143770",   "FUNCTIONAL:2",  "Zosteraceae",          TRUE,
+  "FUNCTIONAL:3",   "FUNCTIONAL:1",  "Fish",                 FALSE,
+  "APHIA:111111",   "FUNCTIONAL:3",  "Labridae",             FALSE
+)
+
+mock_tl_fg <- tibble::tribble(
+  ~id,   ~scientific_id,   ~parent_id,      ~rank,     ~name,
+  "f2",  "APHIA:143770",   NA,              "Family",  "Zosteraceae",
+  "s1",  "APHIA:495077",   "APHIA:143770",  "Species", "Zostera marina",
+  "s2",  "APHIA:888888",   "APHIA:143770",  "Species", "Unknown species",
+  "f3",  "APHIA:111111",   NA,              "Family",  "Labridae"
+)
+
+mock_ol <- tibble::tibble(scientific_id = c("APHIA:495077", "APHIA:111111"))
+
+test_that("happy path: result is a named list with expected top-level keys", {
+  result <- .build_functional_group_enrollment(mock_tl_fg, mock_fg, mock_ol)
+
+  expect_type(result, "list")
+  expect_true("FUNCTIONAL:1" %in% names(result))
+})
+
+test_that("each node has name, members, and children fields", {
+  result <- .build_functional_group_enrollment(mock_tl_fg, mock_fg, mock_ol)
+  node <- result[["FUNCTIONAL:1"]]
+
+  expect_true(all(c("name", "members", "children") %in% names(node)))
+})
+
+test_that("FUNCTIONAL: nodes have empty members (IDs stored only at deepest node)", {
+  result <- .build_functional_group_enrollment(mock_tl_fg, mock_fg, mock_ol)
+
+  expect_length(result[["FUNCTIONAL:1"]]$members, 0)
+  expect_length(result[["FUNCTIONAL:1"]]$children[["FUNCTIONAL:2"]]$members, 0)
+  expect_length(result[["FUNCTIONAL:1"]]$children[["FUNCTIONAL:3"]]$members, 0)
+})
+
+test_that("each APHIA: ID appears only at its deepest enrollment node", {
+  result <- .build_functional_group_enrollment(mock_tl_fg, mock_fg, mock_ol)
+
+  # APHIA:495077 is only in APHIA:143770$members, not in any ancestor
+  zostera_node <- result[["FUNCTIONAL:1"]]$children[["FUNCTIONAL:2"]]$children[["APHIA:143770"]]
+  expect_true("APHIA:495077" %in% zostera_node$members)
+
+  # Not duplicated in parent nodes
+  expect_false("APHIA:495077" %in% result[["FUNCTIONAL:1"]]$members)
+  expect_false("APHIA:495077" %in% result[["FUNCTIONAL:1"]]$children[["FUNCTIONAL:2"]]$members)
+})
+
+test_that("BFS descendants not in obs_lookup or fg_lookup are excluded from members", {
+  result <- .build_functional_group_enrollment(mock_tl_fg, mock_fg, mock_ol)
+
+  # APHIA:888888 is a taxonomic child of APHIA:143770 but not in ol or fg
+  zostera_node <- result[["FUNCTIONAL:1"]]$children[["FUNCTIONAL:2"]]$children[["APHIA:143770"]]
+  expect_false("APHIA:888888" %in% zostera_node$members)
+})
+
+test_that("enroll_all_lower_ranks = FALSE: only the node itself is enrolled if in allowed", {
+  result <- .build_functional_group_enrollment(mock_tl_fg, mock_fg, mock_ol)
+
+  labridae_node <- result[["FUNCTIONAL:1"]]$children[["FUNCTIONAL:3"]]$children[["APHIA:111111"]]
+  expect_setequal(labridae_node$members, "APHIA:111111")
+})
+
+test_that("APHIA:143770 node members contain Zosteraceae and Zostera marina (BFS filtered)", {
+  result <- .build_functional_group_enrollment(mock_tl_fg, mock_fg, mock_ol)
+
+  zostera_node <- result[["FUNCTIONAL:1"]]$children[["FUNCTIONAL:2"]]$children[["APHIA:143770"]]
+  expect_setequal(zostera_node$members, c("APHIA:143770", "APHIA:495077"))
+})
+
+test_that("empty fg returns empty list", {
+  empty_fg <- mock_fg[0, ]
+  result <- .build_functional_group_enrollment(mock_tl_fg, empty_fg, mock_ol)
+
+  expect_type(result, "list")
+  expect_length(result, 0)
 })

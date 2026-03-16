@@ -21,7 +21,10 @@ Imports:
 Depends: 
     R (>= 3.5)
 LazyData: true
-Suggests: 
+Suggests:
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0),
     writexl
+VignetteBuilder: knitr
 Config/testthat/edition: 3

@@ -3,3 +3,5 @@
 ^data-raw$
 ^\.vscode$
 ^[.]?air[.]toml$
+^doc$
+^Meta$

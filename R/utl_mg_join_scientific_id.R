@@ -14,11 +14,21 @@
 #' @param df A data frame containing a column of scientific names.
 #' @param scientific_name_col Character. Name of the column in `df` that
 #'   contains scientific names. Defaults to `"scientific_name"`.
+#' @param include_classifications Logical. If `TRUE`, taxonomic classification
+#'   columns (`rank`, `Kingdom`, `Phylum`, `Class`, `Order`, `Family`, `Genus`,
+#'   `Species`) are appended by calling
+#'   [utl_mg_get_taxonomic_classifications()] on the matched `scientific_id`
+#'   values. Defaults to `FALSE`.
 #'
 #' @return `df` with a `scientific_id` column appended. Rows whose
 #'   `scientific_name` could not be matched in `observation_lookup` will have
 #'   `NA` for `scientific_id`. A warning is issued when any names are
 #'   unmatched.
+#'
+#'   When `include_classifications = TRUE`, classification columns are also
+#'   appended for rows with a matched `scientific_id`. Classification columns
+#'   that would conflict with existing columns in `df` are skipped with a
+#'   warning listing the affected column names.
 #'
 #' @details
 #' The join is performed against `marinegeo_metadata$observation_lookup`, which
@@ -35,13 +45,17 @@
 #' # seagrass_cover_example ships with the package and has a scientific_name column
 #' utl_mg_join_scientific_id(seagrass_cover_example)
 #'
+#' # Also append taxonomic rank columns
+#' utl_mg_join_scientific_id(seagrass_cover_example, include_classifications = TRUE)
+#'
 #' # Use a different column name
 #' df <- seagrass_cover_example
 #' names(df)[names(df) == "scientific_name"] <- "Species"
 #' utl_mg_join_scientific_id(df, scientific_name_col = "Species")
 utl_mg_join_scientific_id <- function(
   df,
-  scientific_name_col = "scientific_name"
+  scientific_name_col      = "scientific_name",
+  include_classifications  = FALSE
 ) {
   # --- Input validation -------------------------------------------------------
   if (!is.data.frame(df)) {
@@ -54,6 +68,10 @@ utl_mg_join_scientific_id <- function(
 
   if (!scientific_name_col %in% colnames(df)) {
     stop("Column '", scientific_name_col, "' not found in `df`.")
+  }
+
+  if (!is.logical(include_classifications) || length(include_classifications) != 1) {
+    stop("`include_classifications` must be a single logical value (TRUE or FALSE).")
   }
 
   if ("scientific_id" %in% colnames(df)) {
@@ -71,7 +89,7 @@ utl_mg_join_scientific_id <- function(
   # Temporarily rename the target column to "scientific_name" for the join,
   # then restore the original name afterwards.
   original_col <- scientific_name_col
-  using_alias <- original_col != "scientific_name"
+  using_alias  <- original_col != "scientific_name"
 
   if (using_alias) {
     df <- df |> dplyr::rename(scientific_name = dplyr::all_of(original_col))
@@ -102,6 +120,40 @@ utl_mg_join_scientific_id <- function(
         "scientific_name",
         original_col
       )))
+  }
+
+  # --- Optionally append taxonomic classifications ----------------------------
+  if (isTRUE(include_classifications)) {
+    matched_ids <- unique(result[["scientific_id"]])
+    matched_ids <- matched_ids[!is.na(matched_ids)]
+
+    if (length(matched_ids) > 0) {
+      classifications <- utl_mg_get_taxonomic_classifications(matched_ids)
+
+      # All classification columns except scientific_id (already in result)
+      classification_cols <- setdiff(colnames(classifications), "scientific_id")
+
+      # Skip any that would conflict with existing columns
+      conflicts <- intersect(classification_cols, colnames(result))
+      if (length(conflicts) > 0) {
+        warning(
+          length(conflicts),
+          " classification column(s) already present in `df` and will not be ",
+          "added: ",
+          paste(conflicts, collapse = ", ")
+        )
+        classification_cols <- setdiff(classification_cols, conflicts)
+      }
+
+      if (length(classification_cols) > 0) {
+        result <- result |>
+          dplyr::left_join(
+            classifications |>
+              dplyr::select(dplyr::all_of(c("scientific_id", classification_cols))),
+            by = "scientific_id"
+          )
+      }
+    }
   }
 
   result
