@@ -31,7 +31,8 @@ A named list with the following elements:
 \item{\code{tests}}{Named list of individual test result lists, one per test
 run. Each element has \code{test}, \code{status}, \code{message}, \code{summary}, and
 \code{failures} (see \code{\link[=qc_check_columns]{qc_check_columns()}}, \code{\link[=qc_check_data_types]{qc_check_data_types()}},
-\code{\link[=qc_check_categorical_values]{qc_check_categorical_values()}}).}
+\code{\link[=qc_check_categorical_values]{qc_check_categorical_values()}}, \code{\link[=qc_check_missing_values]{qc_check_missing_values()}},
+\code{\link[=qc_check_numeric_ranges]{qc_check_numeric_ranges()}}, \code{\link[=qc_check_lookup_values]{qc_check_lookup_values()}}).}
 }
 }
 \description{
@@ -54,6 +55,15 @@ for \code{table_id}.
 \code{data_type} values for \code{table_id}.
 \item Categorical values test: runs if \code{categorical_values} has rows for
 \code{table_id}.
+\item Missing values test: runs if \code{database_structure} has rows with
+\code{missing_values} equal to \code{"enforce"} or \code{"warn"} for \code{table_id}.
+\item Numeric ranges test: runs if \code{numeric_ranges} has rows with non-\code{NA}
+\code{range_type} for \code{table_id}.
+\item Lookup values test: runs if \code{data} contains any of the columns
+\code{partner_code}, \code{site_name}, or \code{scientific_name}, which are validated
+against the corresponding global entity registries in
+\code{marinegeo_metadata} (\code{partner_codes}, \code{site_names},
+\code{observation_lookup}).
 }
 Adding a new table type requires only updating the metadata CSVs and
 rebuilding sysdata — no R code changes required.

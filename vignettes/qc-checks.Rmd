@@ -25,8 +25,9 @@ There are two ways to run QC checks:
 1. **`qc_run()`** — single entry point that runs all applicable tests for a
    known `table_id`, dispatching based on metadata.
 2. **Individual check functions** — `qc_check_columns()`,
-   `qc_check_data_types()`, and `qc_check_categorical_values()` — for targeted
-   checks against a custom schema.
+   `qc_check_data_types()`, `qc_check_categorical_values()`,
+   `qc_check_missing_values()`, `qc_check_numeric_ranges()`, and
+   `qc_check_lookup_values()` — for targeted checks against a custom schema.
 
 ---
 
@@ -124,6 +125,84 @@ cat_result$failures |>
 controlled vocabulary (`0`, `0.1`, `0.5`, `1`, `2`, `3`, `4`). `NA` values
 are ignored by the categorical check.
 
+### Missing values check
+
+The missing values check evaluates whether columns contain `NA` where the
+schema prohibits or discourages it. Each column has one of three rules:
+
+- **`"enforce"`** — `NA` is a **fail**; the column must always be populated.
+- **`"warn"`** — `NA` is a **warn**; missing data is unusual but not always
+  wrong (e.g., optional or method-dependent fields).
+- **`"allow"`** (or no rule) — `NA` is acceptable; column is not checked.
+
+```{r miss-check}
+miss_result <- result$tests$qc_check_missing_values
+
+cat("Status:", miss_result$status, "\n")
+cat("Message:", miss_result$message, "\n")
+```
+
+```{r miss-summary}
+knitr::kable(miss_result$summary)
+```
+
+Row 167 has a missing `percent_cover` value. Because `percent_cover` is a
+`"warn"` column (cover is expected but `NA` is acceptable when a different
+cover method is used), this produces a `warn` rather than a `fail`. The eight
+`"enforce"` columns — including `site_name`, `scientific_name`, and
+`sample_collection_date` — are fully populated in this dataset.
+
+```{r miss-failures}
+miss_result$failures
+```
+
+### Numeric ranges check
+
+The numeric ranges check validates that numeric columns fall within bounds
+defined in `marinegeo_metadata$numeric_ranges`. Bounds can be set independently
+for **fail** (hard limit) and **warn** (soft limit), and each column uses either
+`"inclusive"` (`<`, `>`) or `"exclusive"` (`<=`, `>=`) comparisons.
+
+For `seagrass-cover-monitoring-v1`, three columns have range rules:
+
+| Column | `min_fail` | `max_fail` | `min_warn` | `max_warn` | `range_type` |
+|---|---|---|---|---|---|
+| `transect` | — | — | 1 | 3 | inclusive |
+| `quadrat` | 0 | — | 0 | 50 | inclusive |
+| `point_count` | 10 | — | — | 81 | inclusive |
+
+```{r range-check}
+range_result <- result$tests$qc_check_numeric_ranges
+
+cat("Status:", range_result$status, "\n")
+cat("Message:", range_result$message, "\n")
+knitr::kable(range_result$summary)
+```
+
+All values in this dataset are within range. `point_count` is all `NA` (the
+dataset uses Braun-Blanquet codes rather than point counts), so there are no
+values to evaluate — `NA` cells are silently skipped.
+
+### Lookup values check
+
+The lookup values check validates that `partner_code`, `site_name`, and
+`scientific_name` values are recognized in the MarineGEO global entity
+registries (`marinegeo_metadata$partner_codes`, `$site_names`,
+`$observation_lookup`). `NA` values are always ignored. This check runs
+automatically whenever any of these columns are present in `data` — it is not
+gated by `table_id`.
+
+```{r lookup-check}
+lookup_result <- result$tests$qc_check_lookup_values
+
+cat("Status:", lookup_result$status, "\n")
+cat("Message:", lookup_result$message, "\n")
+knitr::kable(lookup_result$summary)
+```
+
+All `partner_code`, `site_name`, and `scientific_name` values in
+`seagrass_cover_example` are recognized in the registries.
+
 ---
 
 ## Extracting `[row, col]` coordinates from categorical failures
@@ -219,6 +298,128 @@ cat("Status:", result_cat$status, "\n")
 cat("Message:", result_cat$message, "\n")
 knitr::kable(result_cat$summary)
 ```
+
+### `qc_check_missing_values()`
+
+Supply a `rules` data frame with `column_name` and `missing_values` columns.
+Only `"enforce"` and `"warn"` rows are evaluated; `"allow"` rows are ignored.
+
+```{r check-miss-standalone}
+df_survey <- data.frame(
+  site_name = c("Reef A", NA, "Reef C"),
+  scientific_name = c("Zostera marina", "Halodule wrightii", "Zostera marina"),
+  percent_cover = c(45, 20, NA),
+  notes = c(NA, NA, "Dense canopy"),
+  stringsAsFactors = FALSE
+)
+
+miss_rules <- data.frame(
+  column_name = c("site_name", "scientific_name", "percent_cover", "notes"),
+  missing_values = c("enforce", "enforce", "warn", "allow"),
+  stringsAsFactors = FALSE
+)
+
+result_miss <- qc_check_missing_values(df_survey, miss_rules)
+
+cat("Status:", result_miss$status, "\n")
+cat("Message:", result_miss$message, "\n")
+knitr::kable(result_miss$summary)
+```
+
+`site_name` is `"enforce"` and has an `NA` in row 2, so the check fails.
+`percent_cover` is `"warn"` and also has an `NA`, but because a fail-level
+violation was found first, the overall status is `"fail"`. The `notes` column
+is `"allow"` and is not evaluated at all.
+
+```{r check-miss-failures}
+knitr::kable(result_miss$failures)
+```
+
+### `qc_check_numeric_ranges()`
+
+Supply a `rules` data frame with one row per column and columns `column_name`,
+`min_fail`, `max_fail`, `min_warn`, `max_warn`, and `range_type`.
+
+```{r check-range-standalone}
+df_obs <- data.frame(
+  percent_cover = c(10, 55, 105, -3),
+  depth_m = c(1.0, 4.5, 28.0, 3.2)
+)
+
+range_rules <- data.frame(
+  column_name = c("percent_cover", "depth_m"),
+  min_fail = c(0, NA),
+  max_fail = c(100, NA),
+  min_warn = c(NA, 0),
+  max_warn = c(80, 20),
+  range_type = c("inclusive", "inclusive"),
+  stringsAsFactors = FALSE
+)
+
+result_range <- qc_check_numeric_ranges(df_obs, range_rules)
+
+cat("Status:", result_range$status, "\n")
+cat("Message:", result_range$message, "\n")
+knitr::kable(result_range$summary)
+```
+
+Two `percent_cover` values breach the fail threshold (`105 > 100`,
+`-3 < 0`). One value (`55`) exceeds the warn threshold (`> 80`) but is within
+the fail bounds, so it is recorded as `"warn"`. `depth_m` has no fail
+thresholds — only a warn upper bound of 20 m — and row 3 (28.0 m) triggers it.
+
+```{r check-range-failures}
+knitr::kable(result_range$failures)
+```
+
+`severity` distinguishes fail-level breaches from warn-level ones. Fail takes
+priority: a row that breaches a fail threshold is not additionally flagged as
+a warn, even if it also exceeds the warn bound.
+
+### `qc_check_lookup_values()`
+
+Pass a named list where each name is a column to validate and each value is
+the character vector of recognized entries. Columns in `lookups` that are
+absent from `data` are silently skipped.
+
+```{r check-lookup-standalone}
+df_lookup <- data.frame(
+  partner_code = c("USA-IRL", "UNKNOWN-XYZ", "AUS-GBR"),
+  scientific_name = c("Zostera marina", "Fake species", "Halodule wrightii"),
+  stringsAsFactors = FALSE
+)
+
+# In practice these vectors come from marinegeo_metadata; abbreviated here
+partner_codes_registry <- c("USA-IRL", "AUS-GBR", "CAN-BCI", "MEX-ALV")
+scientific_name_registry <- c(
+  "Zostera marina",
+  "Halodule wrightii",
+  "Thalassia testudinum",
+  "Cymodocea nodosa"
+)
+
+lookup_result_standalone <- qc_check_lookup_values(
+  data = df_lookup,
+  lookups = list(
+    partner_code = partner_codes_registry,
+    scientific_name = scientific_name_registry
+  )
+)
+
+cat("Status:", lookup_result_standalone$status, "\n")
+cat("Message:", lookup_result_standalone$message, "\n")
+knitr::kable(lookup_result_standalone$summary)
+```
+
+```{r check-lookup-failures}
+knitr::kable(lookup_result_standalone$failures)
+```
+
+`"UNKNOWN-XYZ"` is not in the partner codes registry and `"Fake species"` is
+not in the species registry, so both rows are flagged. `lookup_source`
+identifies which registry was checked for each column. When called via
+`qc_run()`, the full registries from `marinegeo_metadata` are used
+automatically.
 
 ---
 

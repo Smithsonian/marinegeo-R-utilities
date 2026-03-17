@@ -29,7 +29,8 @@
 #'     \item{`tests`}{Named list of individual test result lists, one per test
 #'       run. Each element has `test`, `status`, `message`, `summary`, and
 #'       `failures` (see [qc_check_columns()], [qc_check_data_types()],
-#'       [qc_check_categorical_values()]).}
+#'       [qc_check_categorical_values()], [qc_check_missing_values()],
+#'       [qc_check_numeric_ranges()], [qc_check_lookup_values()]).}
 #'   }
 #'
 #' @details
@@ -43,6 +44,15 @@
 #'     `data_type` values for `table_id`.
 #'   \item Categorical values test: runs if `categorical_values` has rows for
 #'     `table_id`.
+#'   \item Missing values test: runs if `database_structure` has rows with
+#'     `missing_values` equal to `"enforce"` or `"warn"` for `table_id`.
+#'   \item Numeric ranges test: runs if `numeric_ranges` has rows with non-`NA`
+#'     `range_type` for `table_id`.
+#'   \item Lookup values test: runs if `data` contains any of the columns
+#'     `partner_code`, `site_name`, or `scientific_name`, which are validated
+#'     against the corresponding global entity registries in
+#'     `marinegeo_metadata` (`partner_codes`, `site_names`,
+#'     `observation_lookup`).
 #' }
 #' Adding a new table type requires only updating the metadata CSVs and
 #' rebuilding sysdata — no R code changes required.
@@ -188,6 +198,51 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
       data   = data,
       rules  = tbl_cats[, c("column_name", "value")],
       detail = detail
+    )
+  }
+
+  # --- Test 4: missing values ------------------------------------------------
+  miss_rows <- tbl_struct[tbl_struct$missing_values %in% c("enforce", "warn"), ]
+  if (nrow(miss_rows) > 0) {
+    results$qc_check_missing_values <- qc_check_missing_values(
+      data   = data,
+      rules  = miss_rows[, c("column_name", "missing_values")],
+      detail = detail
+    )
+  }
+
+  # --- Test 5: numeric ranges ------------------------------------------------
+  num_ranges <- marinegeo_metadata$numeric_ranges
+  range_cols <- c("column_name", "max_fail", "min_fail", "max_warn",
+                  "min_warn", "range_type")
+  if (nrow(num_ranges) > 0 && "table_id" %in% colnames(num_ranges) &&
+      all(range_cols %in% colnames(num_ranges))) {
+    tbl_ranges <- num_ranges[num_ranges$table_id == table_id, ]
+    tbl_ranges <- tbl_ranges[!is.na(tbl_ranges$range_type), ]
+  } else {
+    tbl_ranges <- data.frame()
+  }
+  if (nrow(tbl_ranges) > 0) {
+    results$qc_check_numeric_ranges <- qc_check_numeric_ranges(
+      data   = data,
+      rules  = tbl_ranges[, c("column_name", "max_fail", "min_fail",
+                               "max_warn", "min_warn", "range_type")],
+      detail = detail
+    )
+  }
+
+  # --- Test 6: lookup values ---------------------------------------------------
+  lookup_map <- Filter(Negate(is.null), list(
+    partner_code    = marinegeo_metadata$partner_codes$partner_code,
+    site_name       = marinegeo_metadata$site_names$site_name,
+    scientific_name = marinegeo_metadata$observation_lookup$scientific_name
+  ))
+  present_lookup_cols <- intersect(names(lookup_map), colnames(data))
+  if (length(present_lookup_cols) > 0) {
+    results$qc_check_lookup_values <- qc_check_lookup_values(
+      data    = data,
+      lookups = lookup_map[present_lookup_cols],
+      detail  = detail
     )
   }
 

@@ -80,6 +80,16 @@ marinegeo_metadata <- list(
     )
   ),
 
+  numeric_ranges = readr::read_csv(
+    list.files(
+      paste0(
+        Sys.getenv("repository_filepath"),
+        "marinegeo-metadata/table-metadata/numeric-ranges/"
+      ),
+      full.names = T
+    )
+  ),
+
   partner_codes = readr::read_csv(
     list.files(
       paste0(
