@@ -1,0 +1,266 @@
+---
+title: "Running QC checks on MarineGEO data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Running QC checks on MarineGEO data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(marinegeo.utils)
+library(dplyr)
+```
+
+This vignette demonstrates the `marinegeo.utils` QC functions using
+`seagrass_cover_example`, a multi-year seagrass percent cover dataset from
+Indian River Lagoon, Florida (`partner_code = "USA-IRL"`).
+
+There are two ways to run QC checks:
+
+1. **`qc_run()`** — single entry point that runs all applicable tests for a
+   known `table_id`, dispatching based on metadata.
+2. **Individual check functions** — `qc_check_columns()`,
+   `qc_check_data_types()`, and `qc_check_categorical_values()` — for targeted
+   checks against a custom schema.
+
+---
+
+## Running all checks with `qc_run()`
+
+`qc_run()` accepts a data frame (or file path) and a `table_id`. It queries
+the internal `marinegeo_metadata` object to determine which columns are
+expected, what data types they should have, and which columns have controlled
+vocabularies — then runs all applicable tests.
+
+```{r load-data}
+data(seagrass_cover_example)
+```
+
+```{r qc-run}
+result <- qc_run(
+  seagrass_cover_example,
+  table_id = "seagrass-cover-monitoring-v1"
+)
+```
+
+The return value is a named list with four top-level elements:
+
+```{r result-structure}
+names(result)
+```
+
+`status` is the worst status across all tests (`"fail"` > `"warn"` > `"pass"`).
+`n_rows` is the number of rows validated. `tests` is a named list with one
+entry per test that was run.
+
+```{r top-level}
+cat("Overall status:", result$status, "\n")
+cat("Rows validated:", result$n_rows, "\n")
+cat("Tests run:", paste(names(result$tests), collapse = ", "), "\n")
+```
+
+---
+
+## Inspecting individual test results
+
+Each element of `result$tests` has the same structure: `test`, `status`,
+`message`, `summary`, and `failures`.
+
+### Column check
+
+```{r column-check}
+col_result <- result$tests$qc_check_columns
+
+cat("Status:", col_result$status, "\n")
+cat("Message:", col_result$message, "\n")
+```
+
+```{r column-failures}
+col_result$failures
+```
+
+The example dataset is missing the `taxonomic_id` column. This column is
+optional in practice (it is populated after a taxonomy join), but the schema
+defines it as expected, so the check flags it as a failure.
+
+### Data type check
+
+```{r type-check}
+type_result <- result$tests$qc_check_data_types
+
+cat("Status:", type_result$status, "\n")
+cat("Message:", type_result$message, "\n")
+knitr::kable(type_result$summary)
+```
+
+All 16 present columns have the expected data types.
+
+### Categorical values check
+
+```{r cat-check}
+cat_result <- result$tests$qc_check_categorical_values
+
+cat("Status:", cat_result$status, "\n")
+cat("Message:", cat_result$message, "\n")
+knitr::kable(cat_result$summary)
+```
+
+The `summary` shows how many invalid values were found per column. Use
+`failures` to see the specific rows:
+
+```{r cat-failures-cover-code}
+# Unique invalid values in cover_code
+cat_result$failures |>
+  filter(column_name == "cover_code") |>
+  distinct(value)
+```
+
+`cover_code` has a value of `5`, which is not in the Braun-Blanquet scale
+controlled vocabulary (`0`, `0.1`, `0.5`, `1`, `2`, `3`, `4`). `NA` values
+are ignored by the categorical check.
+
+---
+
+## Extracting `[row, col]` coordinates from categorical failures
+
+The `failures` data frame returned by `qc_check_categorical_values()` includes
+both `row_index` and `col_index` — the exact `[row, col]` position of each
+violating cell in the original data frame. Both are 1-based (R convention).
+
+```{r row-col-coords}
+df_bad <- data.frame(
+  site_name = c("Site A", "Site B", "INVALID", "Site A"),
+  cover_method = c("point count", "UNKNOWN", "point count", "Brawny-Blanquet"),
+  stringsAsFactors = FALSE
+)
+
+rules_demo <- data.frame(
+  column_name = c("site_name", "site_name", "cover_method", "cover_method"),
+  value = c("Site A", "Site B", "point count", "Braun-Blanquet"),
+  stringsAsFactors = FALSE
+)
+
+result_demo <- qc_check_categorical_values(df_bad, rules_demo)
+
+knitr::kable(result_demo$failures)
+```
+
+`col_index` is the column's position in the original data frame
+(`which(colnames(data) == column_name)`), so it remains correct when `data`
+contains columns that are not covered by any rules.
+
+To format these as compact `[row, col]` coordinate strings:
+
+```{r row-col-format}
+result_demo$failures |>
+  mutate(coordinate = paste0("[", row_index, ", ", col_index, "]")) |>
+  select(coordinate, column_name, value)
+```
+
+## Running individual checks
+
+The individual check functions can be called directly with a custom schema,
+without needing a registered `table_id`.
+
+### `qc_check_columns()`
+
+```{r check-columns-standalone}
+result_cols <- qc_check_columns(
+  data = seagrass_cover_example,
+  expected_columns = c(
+    "partner_code",
+    "site_name",
+    "sample_collection_date",
+    "scientific_name",
+    "percent_cover"
+  )
+)
+
+cat("Status:", result_cols$status, "\n")
+cat("Message:", result_cols$message, "\n")
+```
+
+### `qc_check_data_types()`
+
+```{r check-types-standalone}
+result_types <- qc_check_data_types(
+  data = seagrass_cover_example,
+  type_map = c(
+    partner_code = "STRING",
+    sample_collection_date = "DATE",
+    transect = "TINYINT",
+    percent_cover = "DOUBLE"
+  )
+)
+
+cat("Status:", result_types$status, "\n")
+cat("Message:", result_types$message, "\n")
+```
+
+### `qc_check_categorical_values()`
+
+```{r check-cat-standalone}
+rules <- data.frame(
+  column_name = c("cover_method", "cover_method", "cover_method"),
+  value = c("Braun-Blanquet", "point count", "percent bins")
+)
+
+result_cat <- qc_check_categorical_values(
+  data = seagrass_cover_example,
+  rules = rules
+)
+
+cat("Status:", result_cat$status, "\n")
+cat("Message:", result_cat$message, "\n")
+knitr::kable(result_cat$summary)
+```
+
+---
+
+## Using `detail = FALSE` in automated pipelines
+
+In automated pipelines where row-level detail is unnecessary (and memory use
+matters), pass `detail = FALSE`. All tests still run and statuses are still
+reported, but `failures` is `NULL` for every test.
+
+```{r detail-false}
+result_pipeline <- qc_run(
+  seagrass_cover_example,
+  table_id = "seagrass-cover-monitoring-v1",
+  detail = FALSE
+)
+
+cat("Overall status:", result_pipeline$status, "\n")
+
+# failures are suppressed
+lapply(result_pipeline$tests, function(t) {
+  cat(t$test, "-", t$status, "| failures:", is.null(t$failures), "\n")
+})
+```
+
+---
+
+## Reading from a file
+
+`qc_run()` can read directly from a CSV or XLSX file path, avoiding the need
+to pre-load data.
+
+```{r file-path, eval = FALSE}
+# CSV
+result_csv <- qc_run(
+  "path/to/seagrass_cover.csv",
+  table_id = "seagrass-cover-monitoring-v1"
+)
+
+# Excel (specify sheet if needed)
+result_xlsx <- qc_run(
+  "path/to/seagrass_cover.xlsx",
+  table_id = "seagrass-cover-monitoring-v1",
+  sheet = 1L
+)
+```

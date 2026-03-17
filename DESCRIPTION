@@ -17,11 +17,14 @@ Imports:
     stringr,
     tibble,
     tidyr,
+    ggplot2,
+    lubridate,
     worrms
 Depends: 
     R (>= 3.5)
 LazyData: true
 Suggests:
+    arrow,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
