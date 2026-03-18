@@ -67,6 +67,65 @@ cat("Tests run:", paste(names(result$tests), collapse = ", "), "\n")
 
 ---
 
+## Summarizing results with `utl_qc_summarize()`
+
+The nested list returned by `qc_run()` is well-structured for programmatic
+use but can be hard to scan. `utl_qc_summarize()` flattens it into two tidy
+data frames: a one-row-per-test **summary** and a combined **failures** table.
+
+```{r summarize-both}
+summary_out <- utl_qc_summarize(result)
+names(summary_out)
+```
+
+### Summary table
+
+One row per test with columns `test`, `status`, `message`, and `n_failures`.
+`n_failures` is `0L` for passing tests, the row count of `$failures` for
+non-passing tests, or `NA_integer_` when `detail = FALSE` was used.
+
+```{r summarize-summary}
+knitr::kable(summary_out$summary)
+```
+
+### Failures table
+
+All per-test failure rows bound into a single data frame with a leading `test`
+column identifying the source check. Columns not present in a given test's
+failures are filled with `NA`. Returns a zero-row data frame when all tests
+pass.
+
+```{r summarize-failures}
+knitr::kable(summary_out$failures)
+```
+
+Use `type` to request only one of the two outputs:
+
+```{r summarize-type}
+# summary only
+utl_qc_summarize(result, type = "summary")$summary |>
+  knitr::kable()
+```
+
+### With `detail = FALSE`
+
+When `qc_run()` is called with `detail = FALSE`, `$failures` is `NULL` for
+every test. `utl_qc_summarize()` handles this gracefully — `n_failures` is
+`NA_integer_` for any non-passing test, and the failures table is zero-row.
+
+```{r summarize-no-detail}
+result_nd <- qc_run(
+  seagrass_cover_example,
+  table_id = "seagrass-cover-monitoring-v1",
+  detail = FALSE
+)
+
+utl_qc_summarize(result_nd, type = "summary")$summary |>
+  knitr::kable()
+```
+
+---
+
 ## Inspecting individual test results
 
 Each element of `result$tests` has the same structure: `test`, `status`,

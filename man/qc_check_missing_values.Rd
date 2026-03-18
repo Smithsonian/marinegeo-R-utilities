@@ -33,7 +33,8 @@ A named list with the following elements:
 \item{\code{summary}}{Data frame with one row per validated column, showing
 \code{column_name}, \code{missing_rule}, and \code{n_missing}.}
 \item{\code{failures}}{Data frame with columns \code{row_index}, \code{col_index},
-\code{column_name}, and \code{missing_rule}, or \code{NULL} if \code{status == "pass"} or
+\code{column_name}, and \code{severity} (\code{"fail"} for \code{"enforce"} columns,
+\code{"warn"} for \code{"warn"} columns), or \code{NULL} if \code{status == "pass"} or
 \code{detail == FALSE}. Indices are 1-based (R convention).}
 }
 }

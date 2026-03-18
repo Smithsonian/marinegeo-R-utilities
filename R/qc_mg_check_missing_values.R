@@ -28,7 +28,8 @@
 #'     \item{`summary`}{Data frame with one row per validated column, showing
 #'       `column_name`, `missing_rule`, and `n_missing`.}
 #'     \item{`failures`}{Data frame with columns `row_index`, `col_index`,
-#'       `column_name`, and `missing_rule`, or `NULL` if `status == "pass"` or
+#'       `column_name`, and `severity` (`"fail"` for `"enforce"` columns,
+#'       `"warn"` for `"warn"` columns), or `NULL` if `status == "pass"` or
 #'       `detail == FALSE`. Indices are 1-based (R convention).}
 #'   }
 #'
@@ -115,10 +116,10 @@ qc_check_missing_values <- function(data, rules, detail = TRUE) {
 
     if (length(na_idx) > 0 && detail) {
       failures_list[[i]] <- data.frame(
-        row_index    = na_idx,
-        col_index    = col_pos,
-        column_name  = col,
-        missing_rule = rule,
+        row_index   = na_idx,
+        col_index   = col_pos,
+        column_name = col,
+        severity    = if (rule == "enforce") "fail" else "warn",
         stringsAsFactors = FALSE
       )
     }

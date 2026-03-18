@@ -40,7 +40,7 @@ test_that("enforce column with NAs -> fail", {
   expect_equal(result$status, "fail")
   expect_equal(result$summary$n_missing, 1)
   expect_equal(result$failures$row_index, 2)
-  expect_equal(result$failures$missing_rule, "enforce")
+  expect_equal(result$failures$severity, "fail")
 })
 
 test_that("warn column with NAs -> warn", {
