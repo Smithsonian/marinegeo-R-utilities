@@ -8,7 +8,10 @@ utl_mg_get_registry(table, ...)
 }
 \arguments{
 \item{table}{Character scalar. The registry table to retrieve. Must be one
-of \code{"partner_codes"}, \code{"site_names"}, or \code{"observation_lookup"}.}
+of \code{"partner_codes"}, \code{"site_names"}, \code{"observation_lookup"},
+\code{"taxonomic_lookup"}, \code{"functional_group_lookup"}, \code{"data_index"},
+\code{"database_structure"}, \code{"categorical_values"}, \code{"numeric_ranges"}, or
+\code{"taxonomic_classifications"}.}
 
 \item{...}{Named filter arguments. Each name must match a column in the
 requested table, and each value is matched with \code{\%in\%}, so character
@@ -23,8 +26,8 @@ frame with a \code{message()} if no rows match.
 }
 \description{
 Returns a registry table from the internal \code{marinegeo_metadata} object,
-optionally filtered to a subset of rows. Supported tables are
-\code{"partner_codes"}, \code{"site_names"}, and \code{"observation_lookup"}.
+optionally filtered to a subset of rows. All data frame tables stored in
+\code{marinegeo_metadata} are supported.
 }
 \details{
 \subsection{Column reference by table}{
@@ -54,6 +57,69 @@ MarineGEO datasets.
 \item \code{scientific_id} — Unique identifier (Aphia ID or functional group ID).
 Additional columns may be present depending on the version of the metadata.
 }
+
+\strong{\code{taxonomic_lookup}}
+\itemize{
+\item \code{id} — Raw adjacency-table key.
+\item \code{scientific_id} — Unique identifier for this node (e.g., \code{"APHIA:374534"}).
+\item \code{parent_id} — \code{scientific_id} of the parent taxonomic node (\code{NA} at root).
+\item \code{rank} — Taxonomic rank label (e.g., \code{"Species"}, \code{"Genus"}).
+\item \code{name} — Taxon name at this rank.
+}
+
+\strong{\code{functional_group_lookup}}
+\itemize{
+\item \code{scientific_id} — Unique identifier for this functional group or taxon.
+\item \code{parent_id} — \code{scientific_id} of the parent node (\code{NA} at root).
+\item \code{functional_group_name} — Human-readable functional group label.
+\item \code{enroll_all_lower_ranks} — Logical. If \code{TRUE}, all lower taxonomic ranks
+under this node are automatically enrolled as members.
+}
+
+\strong{\code{data_index}}
+\itemize{
+\item \code{table_id} — Versioned table identifier used across MarineGEO metadata
+and QC functions (e.g., \code{"sav_cover_v1"}).
+\item \code{protocol} — Monitoring or experiment program (e.g., \code{"seagrass"}).
+\item \code{table_name} — Human-readable label for the table.
+Additional columns may be present (e.g., data level, storage location).
+}
+
+\strong{\code{database_structure}}
+\itemize{
+\item \code{protocol} — Monitoring or experiment program.
+\item \code{table_id} — Links to \code{data_index}.
+\item \code{level} — Data processing level.
+\item \code{column_name} — Expected column name in the data table.
+\item \code{data_type} — SQL-style type name (e.g., \code{"STRING"}, \code{"DOUBLE"}, \code{"DATE"}).
+}
+
+\strong{\code{categorical_values}}
+\itemize{
+\item \code{table_id} — Links to \code{data_index} and \code{database_structure}.
+\item \code{column_name} — Column whose values are restricted.
+\item \code{value} — A permitted value for that column.
+}
+
+\strong{\code{numeric_ranges}}
+\itemize{
+\item \code{table_id} — Links to \code{data_index} and \code{database_structure}.
+\item \code{column_name} — Column whose values are range-checked.
+\item \code{min_fail} — Lower bound that triggers a fail (may be \code{NA}).
+\item \code{max_fail} — Upper bound that triggers a fail (may be \code{NA}).
+\item \code{min_warn} — Lower bound that triggers a warning (may be \code{NA}).
+\item \code{max_warn} — Upper bound that triggers a warning (may be \code{NA}).
+\item \code{range_type} — \code{"inclusive"} or \code{"exclusive"} boundary evaluation; \code{NA}
+rows are skipped by QC functions.
+}
+
+\strong{\code{taxonomic_classifications}}
+\itemize{
+\item \code{scientific_id} — Aphia-based identifier (e.g., \code{"APHIA:374534"}).
+\item \code{rank} — Taxonomic rank of the entry itself.
+\item \code{Kingdom}, \code{Phylum}, \code{Class}, \code{Order}, \code{Family}, \code{Genus}, \code{Species} —
+Taxon name at each standard rank (\code{NA} where not applicable).
+}
 }
 
 \subsection{Filtering}{
@@ -79,4 +145,13 @@ error.
 
 # Look up observation IDs for a known species
 # utl_mg_get_registry("observation_lookup", scientific_name = "Zostera marina")
+
+# Retrieve categorical values for a specific table
+# utl_mg_get_registry("categorical_values", table_id = "sav_cover_v1")
+
+# Retrieve numeric range rules for a specific table
+# utl_mg_get_registry("numeric_ranges", table_id = "sav_cover_v1")
+
+# Retrieve database structure for a specific protocol
+# utl_mg_get_registry("database_structure", protocol = "seagrass")
 }

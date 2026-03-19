@@ -26,14 +26,85 @@
   stringsAsFactors = FALSE
 )
 
+.taxonomic_lookup <- data.frame(
+  id            = c(1L, 2L, 3L),
+  scientific_id = c("APHIA:51", "APHIA:374534", "APHIA:145792"),
+  parent_id     = c(NA_character_, "APHIA:51", "APHIA:51"),
+  rank          = c("Kingdom", "Species", "Species"),
+  name          = c("Animalia", "Zostera marina", "Posidonia oceanica"),
+  stringsAsFactors = FALSE
+)
+
+.functional_group_lookup <- data.frame(
+  scientific_id         = c("FUNCTIONAL:1", "FUNCTIONAL:2"),
+  parent_id             = c(NA_character_, "FUNCTIONAL:1"),
+  functional_group_name = c("Seagrasses", "Tropical seagrasses"),
+  enroll_all_lower_ranks = c(FALSE, TRUE),
+  stringsAsFactors = FALSE
+)
+
+.data_index <- data.frame(
+  table_id   = c("sav_cover_v1", "sav_density_v1"),
+  protocol   = c("seagrass", "seagrass"),
+  table_name = c("SAV Percent Cover", "SAV Shoot Density"),
+  stringsAsFactors = FALSE
+)
+
+.database_structure <- data.frame(
+  protocol    = c("seagrass", "seagrass", "seagrass"),
+  table_id    = c("sav_cover_v1", "sav_cover_v1", "sav_density_v1"),
+  level       = c("raw", "raw", "raw"),
+  column_name = c("site_name", "percent_cover", "shoot_density"),
+  data_type   = c("STRING", "DOUBLE", "DOUBLE"),
+  stringsAsFactors = FALSE
+)
+
+.categorical_values <- data.frame(
+  table_id    = c("sav_cover_v1", "sav_cover_v1", "sav_density_v1"),
+  column_name = c("habitat", "habitat", "habitat"),
+  value       = c("seagrass", "mixed", "seagrass"),
+  stringsAsFactors = FALSE
+)
+
+.numeric_ranges <- data.frame(
+  table_id    = c("sav_cover_v1", "sav_cover_v1"),
+  column_name = c("percent_cover", "shoot_density"),
+  min_fail    = c(0, NA_real_),
+  max_fail    = c(100, 500),
+  min_warn    = c(NA_real_, NA_real_),
+  max_warn    = c(80, 300),
+  range_type  = c("inclusive", "inclusive"),
+  stringsAsFactors = FALSE
+)
+
+.taxonomic_classifications <- data.frame(
+  scientific_id = c("APHIA:374534", "APHIA:145792"),
+  rank          = c("Species", "Species"),
+  Kingdom       = c("Plantae", "Plantae"),
+  Phylum        = c("Tracheophyta", "Tracheophyta"),
+  Class         = c(NA_character_, NA_character_),
+  Order         = c("Alismatales", "Alismatales"),
+  Family        = c("Zosteraceae", "Posidoniaceae"),
+  Genus         = c("Zostera", "Posidonia"),
+  Species       = c("Zostera marina", "Posidonia oceanica"),
+  stringsAsFactors = FALSE
+)
+
 .mock_metadata <- list(
-  partner_codes      = .partner_codes,
-  site_names         = .site_names,
-  observation_lookup = .observation_lookup
+  partner_codes            = .partner_codes,
+  site_names               = .site_names,
+  observation_lookup       = .observation_lookup,
+  taxonomic_lookup         = .taxonomic_lookup,
+  functional_group_lookup  = .functional_group_lookup,
+  data_index               = .data_index,
+  database_structure       = .database_structure,
+  categorical_values       = .categorical_values,
+  numeric_ranges           = .numeric_ranges,
+  taxonomic_classifications = .taxonomic_classifications
 )
 
 # ---------------------------------------------------------------------------
-# Happy path — full table retrieval
+# Happy path — full table retrieval (original tables)
 # ---------------------------------------------------------------------------
 
 test_that("returns full partner_codes table with expected columns", {
@@ -76,6 +147,101 @@ test_that("returns full observation_lookup table with expected columns", {
 })
 
 # ---------------------------------------------------------------------------
+# Happy path — full table retrieval (new tables)
+# ---------------------------------------------------------------------------
+
+test_that("returns full taxonomic_lookup table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("taxonomic_lookup")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("id", "scientific_id", "parent_id", "rank", "name") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.taxonomic_lookup))
+})
+
+test_that("returns full functional_group_lookup table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("functional_group_lookup")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("scientific_id", "parent_id", "functional_group_name", "enroll_all_lower_ranks") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.functional_group_lookup))
+})
+
+test_that("returns full data_index table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("data_index")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("table_id", "protocol", "table_name") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.data_index))
+})
+
+test_that("returns full database_structure table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("database_structure")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("protocol", "table_id", "level", "column_name", "data_type") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.database_structure))
+})
+
+test_that("returns full categorical_values table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("categorical_values")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("table_id", "column_name", "value") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.categorical_values))
+})
+
+test_that("returns full numeric_ranges table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("numeric_ranges")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("table_id", "column_name", "min_fail", "max_fail", "min_warn", "max_warn", "range_type") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.numeric_ranges))
+})
+
+test_that("returns full taxonomic_classifications table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("taxonomic_classifications")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("scientific_id", "rank", "Kingdom", "Phylum", "Family", "Genus", "Species") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.taxonomic_classifications))
+})
+
+# ---------------------------------------------------------------------------
 # Filtering — single value
 # ---------------------------------------------------------------------------
 
@@ -89,6 +255,30 @@ test_that("single filter returns matching subset", {
 
   expect_equal(nrow(result), 2L)
   expect_true(all(result$partner_code == "USA-MDA"))
+})
+
+test_that("filtering categorical_values by table_id returns matching rows", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("categorical_values", table_id = "sav_density_v1")
+
+  expect_equal(nrow(result), 1L)
+  expect_true(all(result$table_id == "sav_density_v1"))
+})
+
+test_that("filtering numeric_ranges by table_id returns matching rows", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("numeric_ranges", table_id = "sav_cover_v1")
+
+  expect_equal(nrow(result), 2L)
+  expect_true(all(result$table_id == "sav_cover_v1"))
 })
 
 # ---------------------------------------------------------------------------

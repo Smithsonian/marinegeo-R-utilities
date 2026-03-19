@@ -15,13 +15,13 @@ test_that("test element is always 'qc_check_data_types'", {
   expect_equal(qc_check_data_types(df, c(a = "STRING"))$test, "qc_check_data_types")
 })
 
-test_that("summary has n_checked and n_type_mismatches columns", {
+test_that("summary has n_checked, n_type_mismatches, and n_type_warnings columns", {
   df     <- data.frame(a = "x", stringsAsFactors = FALSE)
   result <- qc_check_data_types(df, c(a = "STRING"))
   s      <- result$summary
 
   expect_s3_class(s, "data.frame")
-  expect_true(all(c("n_checked", "n_type_mismatches") %in% colnames(s)))
+  expect_true(all(c("n_checked", "n_type_mismatches", "n_type_warnings") %in% colnames(s)))
 })
 
 # ---------------------------------------------------------------------------
@@ -117,12 +117,12 @@ test_that("failures data frame lists mismatched column with expected and actual 
   result <- qc_check_data_types(df, c(cover = "DOUBLE"))
 
   expect_false(is.null(result$failures))
-  expect_true("column_name" %in% colnames(result$failures))
-  expect_true("expected_type" %in% colnames(result$failures))
-  expect_true("actual_type" %in% colnames(result$failures))
+  expect_true(all(c("column_name", "expected_type", "actual_type", "issue", "severity") %in%
+                    colnames(result$failures)))
   expect_equal(result$failures$column_name, "cover")
   expect_equal(result$failures$expected_type, "DOUBLE")
   expect_equal(result$failures$actual_type, "character")
+  expect_equal(result$failures$severity, "fail")
 })
 
 test_that("multiple type mismatches all appear in failures", {
@@ -192,6 +192,64 @@ test_that("empty data frame with type_map returns pass with zero checked", {
 test_that("all-NA logical column satisfies BOOL type", {
   df <- data.frame(present = NA)
   expect_equal(qc_check_data_types(df, c(present = "BOOL"))$status, "pass")
+})
+
+# ---------------------------------------------------------------------------
+# All-NA logical column -> warn (read_csv/read_excel artifact)
+# ---------------------------------------------------------------------------
+
+test_that("all-NA logical column with STRING expected returns warn", {
+  df <- data.frame(site = NA)  # logical NA — simulates read_csv artifact
+  result <- qc_check_data_types(df, c(site = "STRING"))
+
+  expect_equal(result$status, "warn")
+  expect_false(is.null(result$failures))
+  expect_equal(result$failures$issue, "all_na_inferred_type")
+  expect_equal(result$failures$severity, "warn")
+  expect_equal(result$summary$n_type_warnings, 1L)
+  expect_equal(result$summary$n_type_mismatches, 0L)
+})
+
+test_that("all-NA logical column with DOUBLE expected returns warn", {
+  df <- data.frame(cover = NA)
+  expect_equal(qc_check_data_types(df, c(cover = "DOUBLE"))$status, "warn")
+})
+
+test_that("all-NA logical column with DATE expected returns warn", {
+  df <- data.frame(date = NA)
+  expect_equal(qc_check_data_types(df, c(date = "DATE"))$status, "warn")
+})
+
+test_that("all-NA logical column with BOOL expected returns pass", {
+  df <- data.frame(present = NA)
+  result <- qc_check_data_types(df, c(present = "BOOL"))
+  expect_equal(result$status, "pass")
+  expect_null(result$failures)
+})
+
+test_that("all-NA warn column plus real type mismatch returns fail", {
+  df <- data.frame(
+    site  = NA,          # all-NA logical — warn
+    cover = "bad",       # character where DOUBLE expected — fail
+    stringsAsFactors = FALSE
+  )
+  result <- qc_check_data_types(df, c(site = "STRING", cover = "DOUBLE"))
+
+  expect_equal(result$status, "fail")
+  expect_equal(result$summary$n_type_mismatches, 1L)
+  expect_equal(result$summary$n_type_warnings, 1L)
+  expect_true("site" %in% result$failures$column_name)
+  expect_true("cover" %in% result$failures$column_name)
+  expect_equal(result$failures$severity[result$failures$column_name == "site"], "warn")
+  expect_equal(result$failures$severity[result$failures$column_name == "cover"], "fail")
+})
+
+test_that("detail = FALSE suppresses failures for warn status", {
+  df <- data.frame(site = NA)
+  result <- qc_check_data_types(df, c(site = "STRING"), detail = FALSE)
+
+  expect_equal(result$status, "warn")
+  expect_null(result$failures)
 })
 
 # ---------------------------------------------------------------------------

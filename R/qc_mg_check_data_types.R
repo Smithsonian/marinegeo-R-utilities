@@ -18,14 +18,17 @@
 #' @return A named list with the following elements:
 #'   \describe{
 #'     \item{`test`}{Character. Always `"qc_check_data_types"`.}
-#'     \item{`status`}{Character. One of `"pass"` or `"fail"`. `"fail"` if any
-#'       checked column has a type mismatch; `"pass"` otherwise.}
+#'     \item{`status`}{Character. One of `"pass"`, `"warn"`, or `"fail"`.
+#'       `"fail"` if any checked column has a true type mismatch; `"warn"` if
+#'       any column is entirely `NA` and stored as `logical` (a read artifact)
+#'       but no true mismatches exist; `"pass"` otherwise.}
 #'     \item{`message`}{Character. Human-readable summary.}
-#'     \item{`summary`}{Data frame with counts: `n_checked` and
-#'       `n_type_mismatches`.}
+#'     \item{`summary`}{Data frame with counts: `n_checked`,
+#'       `n_type_mismatches`, and `n_type_warnings`.}
 #'     \item{`failures`}{Data frame with columns `column_name`,
-#'       `expected_type`, `actual_type`, and `issue`, or `NULL` if
-#'       `status == "pass"` or `detail == FALSE`.}
+#'       `expected_type`, `actual_type`, `issue`, and `severity`
+#'       (`"fail"` for true mismatches, `"warn"` for all-NA inferred-type
+#'       columns), or `NULL` if `status == "pass"` or `detail == FALSE`.}
 #'   }
 #'
 #' @details
@@ -40,6 +43,12 @@
 #' Columns in `type_map` that are absent from `data` are skipped silently
 #' (use [qc_check_columns()] to catch missing columns). Unknown SQL type
 #' strings are also skipped with no error.
+#'
+#' A column that is entirely `NA` and stored as `logical` (a common artifact
+#' of `read_csv()` or `read_excel()` when no non-missing values are present)
+#' is treated as a warning rather than a failure for non-`BOOL` expected types.
+#' The column appears in `$failures` with `severity = "warn"` and
+#' `issue = "all_na_inferred_type"`.
 #'
 #' @export
 #'
@@ -76,6 +85,19 @@ qc_check_data_types <- function(data, type_map, detail = TRUE) {
   failures_list <- lapply(cols_to_check, function(col) {
     sql_type   <- toupper(type_map[[col]])
     actual_col <- data[[col]]
+
+    # All-NA logical column — inferred type artifact from read_csv/read_excel
+    if (is.logical(actual_col) && all(is.na(actual_col)) && sql_type != "BOOL") {
+      return(data.frame(
+        column_name      = col,
+        expected_type    = sql_type,
+        actual_type      = "logical (all NA)",
+        issue            = "all_na_inferred_type",
+        severity         = "warn",
+        stringsAsFactors = FALSE
+      ))
+    }
+
     ok <- .type_check(actual_col, sql_type)
 
     if (!isTRUE(ok)) {
@@ -84,6 +106,7 @@ qc_check_data_types <- function(data, type_map, detail = TRUE) {
         expected_type    = sql_type,
         actual_type      = .r_type_label(actual_col),
         issue            = "type_mismatch",
+        severity         = "fail",
         stringsAsFactors = FALSE
       )
     } else {
@@ -93,13 +116,22 @@ qc_check_data_types <- function(data, type_map, detail = TRUE) {
 
   failures_df  <- do.call(rbind, Filter(Negate(is.null), failures_list))
   n_checked    <- length(cols_to_check)
-  n_mismatches <- if (is.null(failures_df)) 0L else nrow(failures_df)
+  n_warn       <- if (is.null(failures_df)) 0L else sum(failures_df$severity == "warn")
+  n_mismatches <- if (is.null(failures_df)) 0L else sum(failures_df$severity == "fail")
 
   if (n_mismatches > 0) {
     status <- "fail"
+    fail_cols <- failures_df$column_name[failures_df$severity == "fail"]
     msg <- paste0(
       n_mismatches, " column(s) have unexpected data types: ",
-      paste(failures_df$column_name, collapse = ", ")
+      paste(fail_cols, collapse = ", ")
+    )
+  } else if (n_warn > 0) {
+    status <- "warn"
+    warn_cols <- failures_df$column_name[failures_df$severity == "warn"]
+    msg <- paste0(
+      n_warn, " column(s) are entirely NA (type inferred as logical): ",
+      paste(warn_cols, collapse = ", ")
     )
   } else {
     status      <- "pass"
@@ -114,6 +146,7 @@ qc_check_data_types <- function(data, type_map, detail = TRUE) {
     summary  = data.frame(
       n_checked         = n_checked,
       n_type_mismatches = n_mismatches,
+      n_type_warnings   = n_warn,
       stringsAsFactors  = FALSE
     ),
     failures = if (detail) failures_df else NULL

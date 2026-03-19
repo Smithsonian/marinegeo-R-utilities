@@ -22,14 +22,17 @@ returned list contains a data frame describing each type mismatch. If
 A named list with the following elements:
 \describe{
 \item{\code{test}}{Character. Always \code{"qc_check_data_types"}.}
-\item{\code{status}}{Character. One of \code{"pass"} or \code{"fail"}. \code{"fail"} if any
-checked column has a type mismatch; \code{"pass"} otherwise.}
+\item{\code{status}}{Character. One of \code{"pass"}, \code{"warn"}, or \code{"fail"}.
+\code{"fail"} if any checked column has a true type mismatch; \code{"warn"} if
+any column is entirely \code{NA} and stored as \code{logical} (a read artifact)
+but no true mismatches exist; \code{"pass"} otherwise.}
 \item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with counts: \code{n_checked} and
-\code{n_type_mismatches}.}
+\item{\code{summary}}{Data frame with counts: \code{n_checked},
+\code{n_type_mismatches}, and \code{n_type_warnings}.}
 \item{\code{failures}}{Data frame with columns \code{column_name},
-\code{expected_type}, \code{actual_type}, and \code{issue}, or \code{NULL} if
-\code{status == "pass"} or \code{detail == FALSE}.}
+\code{expected_type}, \code{actual_type}, \code{issue}, and \code{severity}
+(\code{"fail"} for true mismatches, \code{"warn"} for all-NA inferred-type
+columns), or \code{NULL} if \code{status == "pass"} or \code{detail == FALSE}.}
 }
 }
 \description{
@@ -50,6 +53,12 @@ SQL-style types map to R types as follows:
 Columns in \code{type_map} that are absent from \code{data} are skipped silently
 (use \code{\link[=qc_check_columns]{qc_check_columns()}} to catch missing columns). Unknown SQL type
 strings are also skipped with no error.
+
+A column that is entirely \code{NA} and stored as \code{logical} (a common artifact
+of \code{read_csv()} or \code{read_excel()} when no non-missing values are present)
+is treated as a warning rather than a failure for non-\code{BOOL} expected types.
+The column appears in \verb{$failures} with \code{severity = "warn"} and
+\code{issue = "all_na_inferred_type"}.
 }
 \examples{
 df <- data.frame(
