@@ -100,7 +100,7 @@ marinegeo_metadata <- list(
     )
   ),
 
-  site_names = readr::read_csv(
+  site_codes = readr::read_csv(
     list.files(
       paste0(
         Sys.getenv("repository_filepath"),
