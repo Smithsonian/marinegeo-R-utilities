@@ -8,7 +8,7 @@ utl_mg_get_registry(table, ...)
 }
 \arguments{
 \item{table}{Character scalar. The registry table to retrieve. Must be one
-of \code{"partner_codes"}, \code{"site_names"}, \code{"observation_lookup"},
+of \code{"partner_codes"}, \code{"site_codes"}, \code{"observation_lookup"},
 \code{"taxonomic_lookup"}, \code{"functional_group_lookup"}, \code{"data_index"},
 \code{"database_structure"}, \code{"categorical_values"}, \code{"numeric_ranges"}, or
 \code{"taxonomic_classifications"}.}
@@ -41,9 +41,10 @@ optionally filtered to a subset of rows. All data frame tables stored in
 \item \code{type} — Partner type: \code{"observatory"} or \code{"project"}.
 }
 
-\strong{\code{site_names}}
+\strong{\code{site_codes}}
 \itemize{
 \item \code{partner_code} — Links to \code{partner_codes}.
+\item \code{site_code} — Machine-readable unique site identifier (e.g., \code{"BIS-001"}).
 \item \code{site_name} — Human-readable site name.
 \item \code{habitat} — Dominant habitat type (e.g., \code{"seagrass"}, \code{"coral reef"}).
 \item \code{latitude} — Decimal latitude (may be \code{NA}).
@@ -135,13 +136,13 @@ error.
 # utl_mg_get_registry("partner_codes")
 
 # Filter sites for a single partner
-# utl_mg_get_registry("site_names", partner_code = "USA-MDA")
+# utl_mg_get_registry("site_codes", partner_code = "USA-MDA")
 
 # Filter sites for multiple partners at once
-# utl_mg_get_registry("site_names", partner_code = c("USA-MDA", "BLZ-CBC"))
+# utl_mg_get_registry("site_codes", partner_code = c("USA-MDA", "BLZ-CBC"))
 
 # Combine filters (AND logic): seagrass sites for a specific partner
-# utl_mg_get_registry("site_names", partner_code = "USA-MDA", habitat = "seagrass")
+# utl_mg_get_registry("site_codes", partner_code = "USA-MDA", habitat = "seagrass")
 
 # Look up observation IDs for a known species
 # utl_mg_get_registry("observation_lookup", scientific_name = "Zostera marina")

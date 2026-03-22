@@ -167,7 +167,7 @@ test_that("lookup_source values are correct for known columns", {
   )
   expect_equal(
     result$summary$lookup_source[result$summary$column_name == "site_name"],
-    "site_names"
+    "site_codes"
   )
   expect_equal(
     result$summary$lookup_source[result$summary$column_name == "scientific_name"],
@@ -204,4 +204,29 @@ test_that("input validation: non-logical detail -> stop", {
     qc_check_lookup_values(df, list(x = "a"), detail = "yes"),
     "`detail` must be a single logical"
   )
+})
+
+test_that("lookup_source for site_code column is 'site_codes'", {
+  df <- data.frame(
+    site_code = "BIS-001",
+    stringsAsFactors = FALSE
+  )
+  lookups <- list(site_code = c("BIS-001", "CCN-001"))
+  result <- qc_check_lookup_values(df, lookups)
+
+  expect_equal(result$status, "pass")
+  expect_equal(
+    result$summary$lookup_source[result$summary$column_name == "site_code"],
+    "site_codes"
+  )
+})
+
+test_that("unrecognized site_code -> fail", {
+  df <- data.frame(site_code = c("BIS-001", "FAKE-999"), stringsAsFactors = FALSE)
+  lookups <- list(site_code = c("BIS-001", "CCN-001"))
+  result <- qc_check_lookup_values(df, lookups)
+
+  expect_equal(result$status, "fail")
+  expect_equal(result$summary$n_violations, 1L)
+  expect_equal(result$failures$value, "FAKE-999")
 })

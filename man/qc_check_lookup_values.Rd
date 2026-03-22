@@ -55,7 +55,8 @@ The \code{lookup_source} shown in \code{summary} is derived from a fixed interna
 mapping of column names to their source tables in \code{marinegeo_metadata}:
 \itemize{
 \item \code{partner_code} → \code{"partner_codes"}
-\item \code{site_name}    → \code{"site_names"}
+\item \code{site_name}    → \code{"site_codes"}
+\item \code{site_code}    → \code{"site_codes"}
 \item \code{scientific_name} → \code{"observation_lookup"}
 }
 Any column name not in this mapping will have \code{lookup_source = NA}.

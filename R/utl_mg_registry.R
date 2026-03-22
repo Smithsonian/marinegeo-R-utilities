@@ -6,7 +6,7 @@
 #' `marinegeo_metadata` are supported.
 #'
 #' @param table Character scalar. The registry table to retrieve. Must be one
-#'   of `"partner_codes"`, `"site_names"`, `"observation_lookup"`,
+#'   of `"partner_codes"`, `"site_codes"`, `"observation_lookup"`,
 #'   `"taxonomic_lookup"`, `"functional_group_lookup"`, `"data_index"`,
 #'   `"database_structure"`, `"categorical_values"`, `"numeric_ranges"`, or
 #'   `"taxonomic_classifications"`.
@@ -30,8 +30,9 @@
 #' - `country` — Country of the partner.
 #' - `type` — Partner type: `"observatory"` or `"project"`.
 #'
-#' **`site_names`**
+#' **`site_codes`**
 #' - `partner_code` — Links to `partner_codes`.
+#' - `site_code` — Machine-readable unique site identifier (e.g., `"BIS-001"`).
 #' - `site_name` — Human-readable site name.
 #' - `habitat` — Dominant habitat type (e.g., `"seagrass"`, `"coral reef"`).
 #' - `latitude` — Decimal latitude (may be `NA`).
@@ -105,13 +106,13 @@
 #' # utl_mg_get_registry("partner_codes")
 #'
 #' # Filter sites for a single partner
-#' # utl_mg_get_registry("site_names", partner_code = "USA-MDA")
+#' # utl_mg_get_registry("site_codes", partner_code = "USA-MDA")
 #'
 #' # Filter sites for multiple partners at once
-#' # utl_mg_get_registry("site_names", partner_code = c("USA-MDA", "BLZ-CBC"))
+#' # utl_mg_get_registry("site_codes", partner_code = c("USA-MDA", "BLZ-CBC"))
 #'
 #' # Combine filters (AND logic): seagrass sites for a specific partner
-#' # utl_mg_get_registry("site_names", partner_code = "USA-MDA", habitat = "seagrass")
+#' # utl_mg_get_registry("site_codes", partner_code = "USA-MDA", habitat = "seagrass")
 #'
 #' # Look up observation IDs for a known species
 #' # utl_mg_get_registry("observation_lookup", scientific_name = "Zostera marina")
@@ -127,7 +128,7 @@
 utl_mg_get_registry <- function(table, ...) {
   valid_tables <- c(
     "partner_codes",
-    "site_names",
+    "site_codes",
     "observation_lookup",
     "taxonomic_lookup",
     "functional_group_lookup",

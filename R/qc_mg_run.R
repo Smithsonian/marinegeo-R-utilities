@@ -49,9 +49,9 @@
 #'   \item Numeric ranges test: runs if `numeric_ranges` has rows with non-`NA`
 #'     `range_type` for `table_id`.
 #'   \item Lookup values test: runs if `data` contains any of the columns
-#'     `partner_code`, `site_name`, or `scientific_name`, which are validated
-#'     against the corresponding global entity registries in
-#'     `marinegeo_metadata` (`partner_codes`, `site_names`,
+#'     `partner_code`, `site_name`, `site_code`, or `scientific_name`, which are
+#'     validated against the corresponding global entity registries in
+#'     `marinegeo_metadata` (`partner_codes`, `site_codes`,
 #'     `observation_lookup`).
 #' }
 #' Adding a new table type requires only updating the metadata CSVs and
@@ -234,7 +234,8 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   # --- Test 6: lookup values ---------------------------------------------------
   lookup_map <- Filter(Negate(is.null), list(
     partner_code    = marinegeo_metadata$partner_codes$partner_code,
-    site_name       = marinegeo_metadata$site_names$site_name,
+    site_name       = marinegeo_metadata$site_codes$site_name,
+    site_code       = marinegeo_metadata$site_codes$site_code,
     scientific_name = marinegeo_metadata$observation_lookup$scientific_name
   ))
   present_lookup_cols <- intersect(names(lookup_map), colnames(data))

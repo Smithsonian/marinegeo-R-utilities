@@ -244,9 +244,9 @@ values to evaluate — `NA` cells are silently skipped.
 
 ### Lookup values check
 
-The lookup values check validates that `partner_code`, `site_name`, and
-`scientific_name` values are recognized in the MarineGEO global entity
-registries (`marinegeo_metadata$partner_codes`, `$site_names`,
+The lookup values check validates that `partner_code`, `site_name`, `site_code`,
+and `scientific_name` values are recognized in the MarineGEO global entity
+registries (`marinegeo_metadata$partner_codes`, `$site_codes`,
 `$observation_lookup`). `NA` values are always ignored. This check runs
 automatically whenever any of these columns are present in `data` — it is not
 gated by `table_id`.

@@ -60,9 +60,9 @@ for \code{table_id}.
 \item Numeric ranges test: runs if \code{numeric_ranges} has rows with non-\code{NA}
 \code{range_type} for \code{table_id}.
 \item Lookup values test: runs if \code{data} contains any of the columns
-\code{partner_code}, \code{site_name}, or \code{scientific_name}, which are validated
-against the corresponding global entity registries in
-\code{marinegeo_metadata} (\code{partner_codes}, \code{site_names},
+\code{partner_code}, \code{site_name}, \code{site_code}, or \code{scientific_name}, which are
+validated against the corresponding global entity registries in
+\code{marinegeo_metadata} (\code{partner_codes}, \code{site_codes},
 \code{observation_lookup}).
 }
 Adding a new table type requires only updating the metadata CSVs and

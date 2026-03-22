@@ -45,7 +45,8 @@
 #' mapping of column names to their source tables in `marinegeo_metadata`:
 #' \itemize{
 #'   \item `partner_code` → `"partner_codes"`
-#'   \item `site_name`    → `"site_names"`
+#'   \item `site_name`    → `"site_codes"`
+#'   \item `site_code`    → `"site_codes"`
 #'   \item `scientific_name` → `"observation_lookup"`
 #' }
 #' Any column name not in this mapping will have `lookup_source = NA`.
@@ -89,7 +90,8 @@ qc_check_lookup_values <- function(data, lookups, detail = TRUE) {
   # Fixed mapping: column name -> source table label
   .source_map <- c(
     partner_code    = "partner_codes",
-    site_name       = "site_names",
+    site_name       = "site_codes",
+    site_code       = "site_codes",
     scientific_name = "observation_lookup"
   )
 

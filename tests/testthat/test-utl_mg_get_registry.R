@@ -11,8 +11,9 @@
   stringsAsFactors = FALSE
 )
 
-.site_names <- data.frame(
+.site_codes <- data.frame(
   partner_code = c("USA-MDA", "USA-MDA", "BLZ-CBC"),
+  site_code    = c("RHO-001", "CHB-001", "CCN-001"),
   site_name    = c("Rhode River", "Chesapeake Bay", "Calabash Caye North"),
   habitat      = c("seagrass", "estuary", "coral reef"),
   latitude     = c(38.88, 38.72, 17.21),
@@ -51,11 +52,12 @@
 )
 
 .database_structure <- data.frame(
-  protocol    = c("seagrass", "seagrass", "seagrass"),
-  table_id    = c("sav_cover_v1", "sav_cover_v1", "sav_density_v1"),
-  level       = c("raw", "raw", "raw"),
-  column_name = c("site_name", "percent_cover", "shoot_density"),
-  data_type   = c("STRING", "DOUBLE", "DOUBLE"),
+  protocol      = c("seagrass", "seagrass", "seagrass", "seagrass"),
+  table_id      = c("sav_cover_v1", "sav_cover_v1", "sav_cover_v1", "sav_density_v1"),
+  level         = c("raw", "raw", "raw", "raw"),
+  column_name   = c("site_code", "site_name", "percent_cover", "shoot_density"),
+  data_type     = c("STRING", "STRING", "DOUBLE", "DOUBLE"),
+  uuid_identity = c(FALSE, FALSE, FALSE, FALSE),
   stringsAsFactors = FALSE
 )
 
@@ -92,7 +94,7 @@
 
 .mock_metadata <- list(
   partner_codes            = .partner_codes,
-  site_names               = .site_names,
+  site_codes               = .site_codes,
   observation_lookup       = .observation_lookup,
   taxonomic_lookup         = .taxonomic_lookup,
   functional_group_lookup  = .functional_group_lookup,
@@ -120,17 +122,17 @@ test_that("returns full partner_codes table with expected columns", {
   expect_equal(nrow(result), nrow(.partner_codes))
 })
 
-test_that("returns full site_names table with expected columns", {
+test_that("returns full site_codes table with expected columns", {
   local_mocked_bindings(
     marinegeo_metadata = .mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_registry("site_names")
+  result <- utl_mg_get_registry("site_codes")
 
   expect_s3_class(result, "data.frame")
-  expect_true(all(c("partner_code", "site_name", "habitat", "latitude", "longitude") %in% colnames(result)))
-  expect_equal(nrow(result), nrow(.site_names))
+  expect_true(all(c("partner_code", "site_code", "site_name", "habitat", "latitude", "longitude") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.site_codes))
 })
 
 test_that("returns full observation_lookup table with expected columns", {
@@ -198,7 +200,7 @@ test_that("returns full database_structure table with expected columns", {
   result <- utl_mg_get_registry("database_structure")
 
   expect_s3_class(result, "data.frame")
-  expect_true(all(c("protocol", "table_id", "level", "column_name", "data_type") %in% colnames(result)))
+  expect_true(all(c("protocol", "table_id", "level", "column_name", "data_type", "uuid_identity") %in% colnames(result)))
   expect_equal(nrow(result), nrow(.database_structure))
 })
 
@@ -251,7 +253,7 @@ test_that("single filter returns matching subset", {
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_registry("site_names", partner_code = "USA-MDA")
+  result <- utl_mg_get_registry("site_codes", partner_code = "USA-MDA")
 
   expect_equal(nrow(result), 2L)
   expect_true(all(result$partner_code == "USA-MDA"))
@@ -291,7 +293,7 @@ test_that("multi-value filter returns union of matching rows", {
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_registry("site_names", partner_code = c("USA-MDA", "BLZ-CBC"))
+  result <- utl_mg_get_registry("site_codes", partner_code = c("USA-MDA", "BLZ-CBC"))
 
   expect_equal(nrow(result), 3L)
   expect_true(all(result$partner_code %in% c("USA-MDA", "BLZ-CBC")))
@@ -307,7 +309,7 @@ test_that("two filter args are combined with AND logic", {
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_registry("site_names", partner_code = "USA-MDA", habitat = "seagrass")
+  result <- utl_mg_get_registry("site_codes", partner_code = "USA-MDA", habitat = "seagrass")
 
   expect_equal(nrow(result), 1L)
   expect_equal(result$site_name, "Rhode River")
@@ -347,7 +349,7 @@ test_that("stops with informative error for unknown filter column", {
   )
 
   expect_error(
-    utl_mg_get_registry("site_names", not_a_col = "USA-MDA"),
+    utl_mg_get_registry("site_codes", not_a_col = "USA-MDA"),
     "Unknown filter column"
   )
 })
@@ -359,7 +361,7 @@ test_that("error for unknown filter column lists valid columns", {
   )
 
   expect_error(
-    utl_mg_get_registry("site_names", not_a_col = "x"),
+    utl_mg_get_registry("site_codes", not_a_col = "x"),
     "partner_code"
   )
 })
@@ -375,7 +377,7 @@ test_that("returns 0-row data frame and emits message when filter matches nothin
   )
 
   expect_message(
-    result <- utl_mg_get_registry("site_names", partner_code = "ZZZ-XXX"),
+    result <- utl_mg_get_registry("site_codes", partner_code = "ZZZ-XXX"),
     "No rows matched"
   )
   expect_s3_class(result, "data.frame")
