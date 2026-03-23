@@ -22,6 +22,10 @@ event; used to group observations before expanding.}
 \item{\code{cover_method}}{Character. Method used to estimate cover.}
 \item{\code{cover_quadrat_dimensions}}{Character. Dimensions of the cover
 quadrat.}
+\item{\code{site_code}}{Character. Machine-readable site identifier (e.g.,
+\code{"BIS-001"}).}
+\item{\code{table_id}}{Character. Versioned identifier for the source data
+table; links to the MarineGEO data index.}
 \item{\code{input_filename}}{Character. Source file name.}
 \item{\code{percent_cover}}{Numeric. Percent cover value; set to \code{0} for
 backfilled rows.}

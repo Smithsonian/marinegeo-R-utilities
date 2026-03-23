@@ -2,7 +2,9 @@
 .make_cover_df <- function(
     sample_event_id = "EVT-001",
     partner_code    = "TEST",
+    site_code       = "TST-001",
     site_name       = "Test Site",
+    table_id        = "sav_cover_v1",
     date            = as.Date("2024-01-01"),
     transect        = 1L,
     quadrat         = c(1L, 2L),
@@ -16,7 +18,9 @@
   data.frame(
     sample_event_id          = sample_event_id,
     partner_code             = partner_code,
+    site_code                = site_code,
     site_name                = site_name,
+    table_id                 = table_id,
     sample_collection_date   = date,
     transect                 = transect,
     quadrat                  = quadrat,

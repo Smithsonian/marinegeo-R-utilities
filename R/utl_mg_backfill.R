@@ -23,6 +23,10 @@
 #'     \item{`cover_method`}{Character. Method used to estimate cover.}
 #'     \item{`cover_quadrat_dimensions`}{Character. Dimensions of the cover
 #'       quadrat.}
+#'     \item{`site_code`}{Character. Machine-readable site identifier (e.g.,
+#'       `"BIS-001"`).}
+#'     \item{`table_id`}{Character. Versioned identifier for the source data
+#'       table; links to the MarineGEO data index.}
 #'     \item{`input_filename`}{Character. Source file name.}
 #'     \item{`percent_cover`}{Numeric. Percent cover value; set to `0` for
 #'       backfilled rows.}
@@ -75,7 +79,9 @@ utl_sav_backfill_cover <- function(df) {
     "scientific_name",
     "sample_event_id",
     "partner_code",
+    "site_code",
     "site_name",
+    "table_id",
     "sample_collection_date",
     "transect",
     "quadrat",
@@ -155,7 +161,9 @@ utl_sav_backfill_cover <- function(df) {
         tidyr::nesting(
           sample_event_id,
           partner_code,
+          site_code,
           site_name,
+          table_id,
           sample_collection_date,
           transect
         ),
@@ -170,7 +178,9 @@ utl_sav_backfill_cover <- function(df) {
       by = dplyr::join_by(
         sample_event_id,
         partner_code,
+        site_code,
         site_name,
+        table_id,
         sample_collection_date,
         transect,
         quadrat,
@@ -192,6 +202,7 @@ utl_sav_backfill_cover <- function(df) {
     dplyr::arrange(
       sample_event_id,
       lubridate::year(sample_collection_date),
+      site_code,
       site_name,
       transect,
       quadrat,
