@@ -247,6 +247,20 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
     )
   }
 
+  # --- Test 7: row uniqueness ------------------------------------------------
+  uuid_cols <- if ("uuid_identity" %in% colnames(tbl_struct)) {
+    tbl_struct$column_name[which(tbl_struct$uuid_identity)]
+  } else {
+    character(0)
+  }
+  if (length(uuid_cols) > 0) {
+    results$qc_check_row_uniqueness <- qc_check_row_uniqueness(
+      data    = data,
+      id_cols = uuid_cols,
+      detail  = detail
+    )
+  }
+
   # --- Aggregate status: fail > warn > pass ----------------------------------
   all_statuses <- vapply(results, `[[`, character(1), "status")
   if ("fail" %in% all_statuses) {

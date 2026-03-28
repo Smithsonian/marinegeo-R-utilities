@@ -20,7 +20,8 @@ Imports:
     tidyr,
     ggplot2,
     lubridate,
-    worrms
+    worrms,
+    data.tree
 Depends: 
     R (>= 3.5)
 LazyData: true

@@ -34,7 +34,7 @@
 
 # Mock utl_mg_assign_functional_groups to avoid dependency on marinegeo_metadata
 # state. Returns "Seagrass" for known seagrass species, NA for everything else.
-.mock_density_fg <- function(fg, scientific_names) {
+.mock_density_fg <- function(fg_tree, fg_labels, scientific_names) {
   seagrass <- c("Halodule wrightii", "Thalassia testudinum", "Halophila ovalis")
   dplyr::case_when(
     scientific_names %in% seagrass ~ "Seagrass",

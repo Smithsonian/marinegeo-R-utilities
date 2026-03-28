@@ -38,7 +38,7 @@
 # state (which may be reduced by other test files using local_mocked_bindings).
 # Returns "Seagrass" for known seagrass species, "Macroalgae" for known algae,
 # and NA for everything else.
-.mock_fg <- function(fg, scientific_names) {
+.mock_fg <- function(fg_tree, fg_labels, scientific_names) {
   seagrass   <- c("Halodule wrightii", "Thalassia testudinum", "Halophila ovalis")
   macroalgae <- c("Caulerpa", "Caulerpa sertularioides", "Acanthophora spicifera")
   dplyr::case_when(
