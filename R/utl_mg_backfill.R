@@ -112,7 +112,8 @@ utl_sav_backfill_cover <- function(df) {
   df <- df |>
     dplyr::mutate(
       functional_group = utl_mg_assign_functional_groups(
-        fg = c("Seagrass", "Macroalgae"),
+        fg_tree = "macrophytes",
+        fg_labels = c("Seagrass", "Macroalgae"),
         scientific_names = scientific_name
       )
     )
@@ -326,7 +327,8 @@ utl_sav_backfill_density <- function(df) {
   df <- df |>
     dplyr::mutate(
       functional_group = utl_mg_assign_functional_groups(
-        fg = "Seagrass",
+        fg_tree = "macrophytes",
+        fg_labels = "Seagrass",
         scientific_names = scientific_name
       )
     )

@@ -4,6 +4,7 @@
 repo_path <- paste0(Sys.getenv("repository_filepath"), "marinegeo-metadata")
 content <- readLines(file.path(repo_path, ".git", "HEAD"), warn = FALSE)
 # HEAD contains "ref: refs/heads/<branch-name>" when on a branch
+
 branch <- sub("ref: refs/heads/", "", content)
 
 if (branch != "main") {
@@ -115,13 +116,6 @@ marinegeo_metadata <- list(
 marinegeo_metadata$taxonomic_classifications <- .get_taxonomic_classifications(
   scientific_ids = marinegeo_metadata$taxonomic_lookup$scientific_id,
   taxonomic_lookup = marinegeo_metadata$taxonomic_lookup
-)
-
-# Precompute functional group enrollment nested tree (build-time adjacency table traversal)
-marinegeo_metadata$functional_group_enrollment <- .build_functional_group_enrollment(
-  tl = marinegeo_metadata$taxonomic_lookup,
-  fg = marinegeo_metadata$functional_group_lookup,
-  ol = marinegeo_metadata$observation_lookup
 )
 
 usethis::use_data(marinegeo_metadata, internal = TRUE, overwrite = TRUE)

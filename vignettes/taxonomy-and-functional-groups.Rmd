@@ -95,7 +95,10 @@ MarineGEO maintains nested functional group and taxonomic lookup tables. Taxa an
 
 ```{r functional-groups}
 species_ids <- c("APHIA:208925", "APHIA:144474")
-fg <- utl_mg_get_functional_groups(species_ids)
+fg <- utl_mg_get_functional_groups(
+  species_ids,
+  functional_group_tree = "macrophytes"
+)
 knitr::kable(fg)
 ```
 
@@ -105,8 +108,8 @@ The result is a long-format data frame with one row per
 | Column | Description |
 |---|---|
 | `scientific_id` | The queried identifier |
-| `parent_scientific_id` | ID of the parent node (`FUNCTIONAL:X` or `APHIA:X`) |
-| `parent_name` | Display name of the parent node |
+| `group_id` | ID of the parent node (`FUNCTIONAL:X` or `APHIA:X`) |
+| `group_name` | Display name of the parent node |
 | `depth` | Depth in the tree (1 = broadest group, incrementing toward the leaf) |
 
 ### Querying a functional group directly
@@ -117,12 +120,12 @@ belongs to:
 ```{r fg-functional-input}
 # Find the parent groups of "Seagrass"
 seagrass_id <- fg |>
-  dplyr::filter(parent_name == "Seagrass") |>
-  dplyr::pull(parent_scientific_id) |>
+  dplyr::filter(group_name == "Seagrass") |>
+  dplyr::pull(group_id) |>
   unique()
 
 knitr::kable(
-  utl_mg_get_functional_groups(seagrass_id)
+  utl_mg_get_functional_groups(seagrass_id, "macrophytes")
 )
 ```
 
@@ -136,7 +139,8 @@ While you could filter and join the table above to a data table in order to grou
 df_functional_groups <- seagrass_cover_example |>
   dplyr::mutate(
     functional_group = utl_mg_assign_functional_groups(
-      fg = c("Seagrass", "Macroalgae"),
+      fg_tree = "macrophytes",
+      fg_labels = c("Seagrass", "Macroalgae"),
       scientific_names = scientific_name
     )
   )

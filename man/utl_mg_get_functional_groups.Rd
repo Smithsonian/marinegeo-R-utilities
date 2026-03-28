@@ -4,66 +4,63 @@
 \alias{utl_mg_get_functional_groups}
 \title{Get functional group memberships for a set of scientific IDs}
 \usage{
-utl_mg_get_functional_groups(scientific_ids)
+utl_mg_get_functional_groups(scientific_ids, functional_group_tree)
 }
 \arguments{
 \item{scientific_ids}{Character vector of \code{scientific_id} values to look up
 (e.g. \code{c("APHIA:495077", "FUNCTIONAL:9")}). \code{NA} values are removed with
 a message.}
+
+\item{functional_group_tree}{Character scalar. Name of the functional group
+tree to query (e.g. \code{"macrophytes"}). Used to filter rows in
+\code{marinegeo_metadata$functional_group_lookup} by the \code{tree_name} column.}
 }
 \value{
-A data frame with one row per (\code{scientific_id}, ancestor node) pair.
-Columns:
+A data frame with one row per (\code{scientific_id}, \verb{FUNCTIONAL:} ancestor)
+pair. Columns:
 \describe{
 \item{scientific_id}{The supplied identifier.}
-\item{parent_scientific_id}{\code{scientific_id} of the ancestor node from the
-functional group lookup. May be \code{"FUNCTIONAL:X"} (a named functional
-group) or \code{"APHIA:X"} (a taxonomic anchor node, e.g. a family used as
-an enrollment boundary).}
-\item{parent_name}{Display name of the ancestor node (e.g. \code{"Seagrass"},
-\code{"Zosteraceae"}).}
-\item{depth}{Integer. Position of the ancestor node in the functional
-group hierarchy, counting all fg-lookup nodes from the root. The root
-node is depth 1; each child level increments by 1. Rows are ordered
-root-first (ascending depth) within each \code{scientific_id}.}
+\item{group_id}{\code{scientific_id} of the ancestor \verb{FUNCTIONAL:} node
+(e.g. \code{"FUNCTIONAL:2"}).}
+\item{group_name}{Display name of the ancestor node (e.g. \code{"Macrophytes"}).}
 }
 Returns a zero-row data frame with the above columns if no IDs are matched
 or if \code{scientific_ids} is empty after NA removal.
 }
 \description{
 Returns all functional group memberships for the supplied \code{scientific_ids}
-by walking the precomputed \code{functional_group_enrollment} nested tree stored
-in \code{marinegeo_metadata}. Each row in the result represents one ancestor
-node from the functional group lookup that the queried ID belongs to.
+by traversing the \code{functional_group_lookup} edge-list stored in
+\code{marinegeo_metadata} using the \code{data.tree} package. Each row in the result
+represents one \verb{FUNCTIONAL:} ancestor node that the queried ID belongs to.
 
 Both \code{"APHIA:X"} species IDs and \code{"FUNCTIONAL:X"} group IDs are accepted as
 input. IDs that do not appear in the tree produce zero rows, not an error.
 }
 \details{
-Functional group memberships are precomputed at package build time and
-stored in \code{marinegeo_metadata$functional_group_enrollment} as a nested tree.
-This function walks that tree — no on-the-fly enrollment computation occurs
-at runtime.
+The \code{functional_group_lookup} table in \code{marinegeo_metadata} is an edge-list
+data frame (columns \code{from}, \code{to}, \code{node_name}, \code{tree_name}) compatible with
+\code{data.tree::FromDataFrameNetwork()}. At query time the relevant tree is built
+from this table, the supplied ID is located via \code{data.tree::FindNode()}, and
+all \verb{FUNCTIONAL:}-prefixed ancestor nodes on the path from root to that ID
+are returned.
 
-A species enrolled under a leaf node (e.g. an APHIA: family anchor) will
-also appear as a member of all ancestor nodes up to the root. One row is
-returned per ancestor, with \code{depth} indicating each node's position in the
-hierarchy. The queried ID itself is never included as a result row —
-only its ancestors are returned.
-
-When a \code{"FUNCTIONAL:X"} ID is supplied, the function returns all functional
-group nodes that group is a child of (i.e. its ancestors in the tree).
+When a \code{"FUNCTIONAL:X"} ID is supplied, that node itself is included in
+the results alongside its ancestors. \code{"APHIA:X"} IDs (species or taxonomic
+anchor nodes) return only their \verb{FUNCTIONAL:} ancestors, not themselves.
 }
 \examples{
-# Species lookup — returns all ancestor nodes from the functional group tree
-utl_mg_get_functional_groups("APHIA:495077")
+# Species lookup — returns all FUNCTIONAL: ancestor nodes
+utl_mg_get_functional_groups("APHIA:144474", functional_group_tree = "macrophytes")
 
-# Functional group lookup — returns the groups it belongs to
-utl_mg_get_functional_groups("FUNCTIONAL:9")
+# Functional group lookup — returns the group itself and its ancestors
+utl_mg_get_functional_groups("FUNCTIONAL:SEAGRASS", functional_group_tree = "macrophytes")
 
 # Batch lookup
-utl_mg_get_functional_groups(c("APHIA:495077", "APHIA:111111"))
+utl_mg_get_functional_groups(
+  c("APHIA:144474", "APHIA:208925"),
+  functional_group_tree = "macrophytes"
+)
 
 # Unknown IDs produce zero rows (no error)
-utl_mg_get_functional_groups("APHIA:99999999")
+utl_mg_get_functional_groups("APHIA:99999999", functional_group_tree = "macrophytes")
 }

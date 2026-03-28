@@ -4,12 +4,16 @@
 \alias{utl_mg_assign_functional_groups}
 \title{Assign a functional group to each scientific name from a candidate set}
 \usage{
-utl_mg_assign_functional_groups(fg, scientific_names)
+utl_mg_assign_functional_groups(fg_tree, fg_labels, scientific_names)
 }
 \arguments{
-\item{fg}{Non-empty character vector of functional group names to test
+\item{fg_tree}{Character scalar. Name of the functional group tree to query
+(e.g. \code{"macrophytes"}). Passed to \code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}} as
+\code{functional_group_tree}.}
+
+\item{fg_labels}{Non-empty character vector of functional group names to test
 membership against (e.g. \code{c("Seagrass", "Macroalgae")}). Names are
-matched exactly (case-sensitive) against the \code{parent_name} column returned
+matched exactly (case-sensitive) against the \code{group_name} column returned
 by \code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}}.}
 
 \item{scientific_names}{Character vector of scientific names to classify,
@@ -18,20 +22,20 @@ typically a column from a data frame passed through \code{\link[dplyr:mutate]{dp
 }
 \value{
 A character vector of the same length as \code{scientific_names}. Each
-element is one of the values in \code{fg} (the matched group name), or
+element is one of the values in \code{fg_labels} (the matched group name), or
 \code{NA_character_} if:
 \itemize{
 \item The name is \code{NA}.
 \item The name is not found in \code{observation_lookup}.
-\item The name does not belong to any group in \code{fg}.
-\item The name belongs to more than one group in \code{fg}.
+\item The name does not belong to any group in \code{fg_labels}.
+\item The name belongs to more than one group in \code{fg_labels}.
 }
 }
 \description{
 For use inside \code{\link[dplyr:mutate]{dplyr::mutate()}}. Given a set of candidate functional group
-names (\code{fg}) and a vector of scientific names (\code{scientific_names}), returns a
-character vector of the same length indicating which candidate group each
-name belongs to.
+names (\code{fg_labels}) and a vector of scientific names (\code{scientific_names}),
+returns a character vector of the same length indicating which candidate
+group each name belongs to.
 
 Returns \code{NA} for a name when it matches none of the candidate groups or when
 it matches more than one. A \code{message()} is issued in both cases listing the
@@ -42,9 +46,8 @@ Functional group membership is resolved via two lookups from
 \code{marinegeo_metadata}:
 \enumerate{
 \item \code{observation_lookup} maps scientific names to \code{scientific_id} values.
-\item The functional group enrollment tree is walked by
-\code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}} to find all ancestor group names for
-each ID.
+\item The functional group tree is traversed by \code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}}
+to find all ancestor \code{group_name} values for each ID.
 }
 Group name matching is exact and case-sensitive.
 
@@ -52,11 +55,12 @@ The function processes all unique names in a single batch, making it
 efficient for use in \code{\link[dplyr:mutate]{dplyr::mutate()}} over large data frames.
 }
 \examples{
-df <- utl_mg_join_scientific_id(seagrass_cover_example)
+df <- seagrass_cover_example
 df |>
   dplyr::mutate(
     functional_group = utl_mg_assign_functional_groups(
-      fg = c("Seagrass", "Macroalgae"),
+      fg_tree = "macrophytes",
+      fg_labels = c("Seagrass", "Macroalgae"),
       scientific_names = scientific_name
     )
   )

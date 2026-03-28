@@ -1,49 +1,33 @@
-# Mock functional group enrollment nested tree.
-# Members are stored only at the deepest enrollment node — not propagated up.
+# Mock functional_group_lookup edge-list (data.tree::FromDataFrameNetwork format).
 #
-#   FUNCTIONAL:1 (Biota)           depth=1 — members: (empty)
-#     FUNCTIONAL:2 (Macrophytes)   depth=2 — members: (empty)
-#       APHIA:143770 (Zosteraceae) depth=3 — members: APHIA:143770, APHIA:495077
-#     FUNCTIONAL:3 (Fish)          depth=2 — members: (empty)
-#       APHIA:111111 (Labridae)    depth=3 — members: APHIA:111111
+# Linear tree (no siblings) to produce clean one-row-per-ancestor output:
 #
-# Expected results (ancestor nodes, queried ID excluded):
-#   "APHIA:495077"  -> FUNCTIONAL:1(d=1), FUNCTIONAL:2(d=2), APHIA:143770(d=3)
-#   "APHIA:143770"  -> FUNCTIONAL:1(d=1), FUNCTIONAL:2(d=2)
-#   "APHIA:111111"  -> FUNCTIONAL:1(d=1), FUNCTIONAL:3(d=2)
-#   "FUNCTIONAL:2"  -> FUNCTIONAL:1(d=1)
-#   "FUNCTIONAL:1"  -> (empty — root has no ancestors)
+#   FUNCTIONAL:1 (Biota)         <- root
+#     FUNCTIONAL:2 (Macrophytes)
+#       APHIA:143770 (Zosteraceae) <- anchor node
+#         APHIA:495077             <- enrolled species
+#
+# Columns:
+#   from      - parent node ID
+#   to        - child node ID  (data.tree node names are `to` values)
+#   node_name - display name of the `from` (parent) node
+#   tree_name - tree identifier used for filtering
+#
+# Expected results:
+#   "APHIA:495077"  -> group_id: FUNCTIONAL:1 (Biota), FUNCTIONAL:2 (Macrophytes)
+#   "APHIA:143770"  -> group_id: FUNCTIONAL:1 (Biota), FUNCTIONAL:2 (Macrophytes)
+#   "FUNCTIONAL:2"  -> group_id: FUNCTIONAL:1 (Biota), FUNCTIONAL:2 (self, Macrophytes)
+#   "FUNCTIONAL:1"  -> group_id: FUNCTIONAL:1 (self, Biota) — 1 row
 
-mock_tree <- list(
-  "FUNCTIONAL:1" = list(
-    name = "Biota",
-    members = character(0),
-    children = list(
-      "FUNCTIONAL:2" = list(
-        name = "Macrophytes",
-        members = character(0),
-        children = list(
-          "APHIA:143770" = list(
-            name = "Zosteraceae",
-            members = c("APHIA:143770", "APHIA:495077"),
-            children = list()
-          )
-        )
-      ),
-      "FUNCTIONAL:3" = list(
-        name = "Fish",
-        members = character(0),
-        children = list(
-          "APHIA:111111" = list(
-            name = "Labridae",
-            members = c("APHIA:111111"),
-            children = list()
-          )
-        )
-      )
-    )
-  )
+mock_fg_lookup <- data.frame(
+  from      = c("FUNCTIONAL:1", "FUNCTIONAL:2", "APHIA:143770"),
+  to        = c("FUNCTIONAL:2", "APHIA:143770", "APHIA:495077"),
+  node_name = c("Biota",        "Macrophytes",  "Zosteraceae"),
+  tree_name = rep("test_tree", 3),
+  stringsAsFactors = FALSE
 )
+
+mock_metadata <- list(functional_group_lookup = mock_fg_lookup)
 
 # ---------------------------------------------------------------------------
 # Return type and column structure
@@ -51,157 +35,166 @@ mock_tree <- list(
 
 test_that("result is a data frame with expected columns", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:495077")
+  result <- utl_mg_get_functional_groups("APHIA:495077", "test_tree")
 
   expect_s3_class(result, "data.frame")
   expect_true(all(
-    c("scientific_id", "parent_scientific_id", "parent_name", "depth") %in%
-      colnames(result)
+    c("scientific_id", "group_id", "group_name") %in% colnames(result)
   ))
 })
 
-test_that("depth column is integer", {
+test_that("group_id and group_name columns are character", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:495077")
-  expect_type(result$depth, "integer")
+  result <- utl_mg_get_functional_groups("APHIA:495077", "test_tree")
+  expect_type(result$group_id, "character")
+  expect_type(result$group_name, "character")
 })
 
 # ---------------------------------------------------------------------------
 # APHIA: species input
 # ---------------------------------------------------------------------------
 
-test_that("APHIA: species returns all ancestor nodes including APHIA: anchor", {
+test_that("APHIA: species returns all FUNCTIONAL: ancestor nodes", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:495077")
+  result <- utl_mg_get_functional_groups("APHIA:495077", "test_tree")
 
-  expect_setequal(
-    result$parent_scientific_id,
-    c("FUNCTIONAL:1", "FUNCTIONAL:2", "APHIA:143770")
-  )
+  expect_setequal(result$group_id, c("FUNCTIONAL:1", "FUNCTIONAL:2"))
+  expect_setequal(result$group_name, c("Biota", "Macrophytes"))
   expect_true(all(result$scientific_id == "APHIA:495077"))
 })
 
-test_that("queried APHIA: species does not appear in its own parent_scientific_id column", {
+test_that("queried APHIA: species does not appear in group_id column", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:495077")
-  expect_false("APHIA:495077" %in% result$parent_scientific_id)
+  result <- utl_mg_get_functional_groups("APHIA:495077", "test_tree")
+  expect_false("APHIA:495077" %in% result$group_id)
 })
 
-test_that("depth reflects position in fg hierarchy counting all fg nodes (root = 1)", {
+test_that("APHIA: anchor node returns only its FUNCTIONAL: ancestors", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:495077")
-  result <- result[order(result$depth), ]
+  result <- utl_mg_get_functional_groups("APHIA:143770", "test_tree")
 
-  expect_equal(result$parent_scientific_id[1], "FUNCTIONAL:1")
-  expect_equal(result$depth[1], 1L)
-  expect_equal(result$parent_scientific_id[2], "FUNCTIONAL:2")
-  expect_equal(result$depth[2], 2L)
-  expect_equal(result$parent_scientific_id[3], "APHIA:143770")
-  expect_equal(result$depth[3], 3L)
+  expect_setequal(result$group_id, c("FUNCTIONAL:1", "FUNCTIONAL:2"))
+  expect_false("APHIA:143770" %in% result$group_id)
 })
 
-test_that("APHIA: anchor node returns its ancestor FUNCTIONAL: nodes only", {
+test_that("APHIA: anchor node result contains only FUNCTIONAL: group_id values", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:143770")
-
-  expect_setequal(
-    result$parent_scientific_id,
-    c("FUNCTIONAL:1", "FUNCTIONAL:2")
-  )
-  expect_false("APHIA:143770" %in% result$parent_scientific_id)
-})
-
-test_that("sibling functional groups at the same level get the same depth", {
-  local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
-    .package = "marinegeo.utils"
-  )
-
-  macro <- utl_mg_get_functional_groups("APHIA:495077")
-  fish <- utl_mg_get_functional_groups("APHIA:111111")
-
-  macro_depth <- macro$depth[macro$parent_scientific_id == "FUNCTIONAL:2"]
-  fish_depth <- fish$depth[fish$parent_scientific_id == "FUNCTIONAL:3"]
-  expect_equal(macro_depth, fish_depth)
+  result <- utl_mg_get_functional_groups("APHIA:143770", "test_tree")
+  expect_true(all(startsWith(result$group_id, "FUNCTIONAL:")))
 })
 
 # ---------------------------------------------------------------------------
 # FUNCTIONAL: group input
 # ---------------------------------------------------------------------------
 
-test_that("FUNCTIONAL: input returns ancestor FUNCTIONAL: nodes", {
+test_that("FUNCTIONAL: input returns self and all ancestor FUNCTIONAL: nodes", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("FUNCTIONAL:2")
+  result <- utl_mg_get_functional_groups("FUNCTIONAL:2", "test_tree")
 
-  expect_setequal(result$parent_scientific_id, "FUNCTIONAL:1")
-  expect_equal(result$parent_name, "Biota")
+  expect_setequal(result$group_id, c("FUNCTIONAL:1", "FUNCTIONAL:2"))
+  expect_setequal(result$group_name, c("Biota", "Macrophytes"))
 })
 
-test_that("queried FUNCTIONAL: node does not appear in its own parent_scientific_id column", {
+test_that("queried FUNCTIONAL: node appears in its own group_id column (self-row)", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("FUNCTIONAL:2")
-  expect_false("FUNCTIONAL:2" %in% result$parent_scientific_id)
+  result <- utl_mg_get_functional_groups("FUNCTIONAL:2", "test_tree")
+  expect_true("FUNCTIONAL:2" %in% result$group_id)
 })
 
-test_that("root FUNCTIONAL: node returns zero rows (no ancestors)", {
+test_that("self-row for queried FUNCTIONAL: node has correct group_name", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("FUNCTIONAL:1")
-  expect_equal(nrow(result), 0)
+  result <- utl_mg_get_functional_groups("FUNCTIONAL:2", "test_tree")
+  self_row <- result[result$group_id == "FUNCTIONAL:2", ]
+
+  expect_equal(nrow(self_row), 1L)
+  expect_equal(self_row$group_name, "Macrophytes")
+})
+
+test_that("root FUNCTIONAL: node returns one row for itself", {
+  local_mocked_bindings(
+    marinegeo_metadata = mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("FUNCTIONAL:1", "test_tree")
+
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$group_id, "FUNCTIONAL:1")
+  expect_equal(result$group_name, "Biota")
 })
 
 # ---------------------------------------------------------------------------
 # Multiple IDs
 # ---------------------------------------------------------------------------
 
-test_that("multiple IDs return one row per (scientific_id, ancestor) pair", {
+test_that("multiple IDs return rows for each scientific_id", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups(c("APHIA:495077", "APHIA:111111"))
+  result <- utl_mg_get_functional_groups(
+    c("APHIA:495077", "FUNCTIONAL:2"),
+    "test_tree"
+  )
 
   expect_s3_class(result, "data.frame")
-  # APHIA:495077 -> 3 rows, APHIA:111111 -> 2 rows (FUNCTIONAL:1 + FUNCTIONAL:3 only,
-  # APHIA:111111 is not in its own results)
-  expect_equal(nrow(result[result$scientific_id == "APHIA:495077", ]), 3)
-  expect_equal(nrow(result[result$scientific_id == "APHIA:111111", ]), 2)
+  expect_true("APHIA:495077" %in% result$scientific_id)
+  expect_true("FUNCTIONAL:2" %in% result$scientific_id)
+})
+
+test_that("each scientific_id receives the correct group memberships", {
+  local_mocked_bindings(
+    marinegeo_metadata = mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups(
+    c("APHIA:495077", "FUNCTIONAL:1"),
+    "test_tree"
+  )
+
+  aphia_groups <- result$group_id[result$scientific_id == "APHIA:495077"]
+  fg1_groups   <- result$group_id[result$scientific_id == "FUNCTIONAL:1"]
+
+  expect_setequal(aphia_groups, c("FUNCTIONAL:1", "FUNCTIONAL:2"))
+  expect_equal(fg1_groups, "FUNCTIONAL:1")
 })
 
 # ---------------------------------------------------------------------------
@@ -210,27 +203,29 @@ test_that("multiple IDs return one row per (scientific_id, ancestor) pair", {
 
 test_that("unknown single ID returns zero-row data frame without error", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups("APHIA:99999999")
+  result <- utl_mg_get_functional_groups("APHIA:99999999", "test_tree")
 
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 0)
   expect_true(all(
-    c("scientific_id", "parent_scientific_id", "parent_name", "depth") %in%
-      colnames(result)
+    c("scientific_id", "group_id", "group_name") %in% colnames(result)
   ))
 })
 
 test_that("mix of known and unknown IDs: only known ID produces rows", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_functional_groups(c("APHIA:495077", "APHIA:99999999"))
+  result <- utl_mg_get_functional_groups(
+    c("APHIA:495077", "APHIA:99999999"),
+    "test_tree"
+  )
   expect_true(all(result$scientific_id == "APHIA:495077"))
 })
 
@@ -239,19 +234,21 @@ test_that("mix of known and unknown IDs: only known ID produces rows", {
 # ---------------------------------------------------------------------------
 
 test_that("empty character vector returns zero-row data frame with expected columns", {
-  result <- utl_mg_get_functional_groups(character(0))
+  result <- utl_mg_get_functional_groups(character(0), "test_tree")
 
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 0)
   expect_true(all(
-    c("scientific_id", "parent_scientific_id", "parent_name", "depth") %in%
-      colnames(result)
+    c("scientific_id", "group_id", "group_name") %in% colnames(result)
   ))
 })
 
 test_that("all-NA input removes NAs with message and returns zero-row data frame", {
   expect_message(
-    result <- utl_mg_get_functional_groups(c(NA_character_, NA_character_)),
+    result <- utl_mg_get_functional_groups(
+      c(NA_character_, NA_character_),
+      "test_tree"
+    ),
     "2 NA value\\(s\\) removed"
   )
   expect_s3_class(result, "data.frame")
@@ -260,12 +257,15 @@ test_that("all-NA input removes NAs with message and returns zero-row data frame
 
 test_that("NAs mixed with valid ID: NAs removed with message, valid ID processed", {
   local_mocked_bindings(
-    marinegeo_metadata = list(functional_group_enrollment = mock_tree),
+    marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
   expect_message(
-    result <- utl_mg_get_functional_groups(c(NA_character_, "APHIA:495077")),
+    result <- utl_mg_get_functional_groups(
+      c(NA_character_, "APHIA:495077"),
+      "test_tree"
+    ),
     "1 NA value\\(s\\) removed"
   )
 
@@ -280,14 +280,14 @@ test_that("NAs mixed with valid ID: NAs removed with message, valid ID processed
 
 test_that("non-character input stops with an informative error", {
   expect_error(
-    utl_mg_get_functional_groups(12345),
+    utl_mg_get_functional_groups(12345, "test_tree"),
     "`scientific_ids` must be a character vector"
   )
 })
 
 test_that("logical input stops with an informative error", {
   expect_error(
-    utl_mg_get_functional_groups(TRUE),
+    utl_mg_get_functional_groups(TRUE, "test_tree"),
     "`scientific_ids` must be a character vector"
   )
 })
