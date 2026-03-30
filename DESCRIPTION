@@ -9,19 +9,29 @@ License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
     license
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
-Imports: 
+RoxygenNote: 7.3.3
+Imports:
+    digest,
     dplyr,
     readr,
     readxl,
     stringr,
     tibble,
     tidyr,
-    worrms
+    ggplot2,
+    lubridate,
+    plotly,
+    purrr,
+    worrms,
+    data.tree
 Depends: 
     R (>= 3.5)
 LazyData: true
-Suggests: 
+Suggests:
+    arrow,
+    knitr,
+    rmarkdown,
     testthat (>= 3.0.0),
     writexl
+VignetteBuilder: knitr
 Config/testthat/edition: 3
