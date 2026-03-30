@@ -8,7 +8,7 @@ utl_mg_assign_functional_groups(fg_tree, fg_labels, scientific_names)
 }
 \arguments{
 \item{fg_tree}{Character scalar. Name of the functional group tree to query
-(e.g. \code{"macrophytes"}). Passed to \code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}} as
+(e.g. \code{"vegetation"}). Passed to \code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}} as
 \code{functional_group_tree}.}
 
 \item{fg_labels}{Non-empty character vector of functional group names to test
@@ -59,8 +59,8 @@ df <- seagrass_cover_example
 df |>
   dplyr::mutate(
     functional_group = utl_mg_assign_functional_groups(
-      fg_tree = "macrophytes",
-      fg_labels = c("Seagrass", "Macroalgae"),
+      fg_tree = "vegetation",
+      fg_labels = c("Seagrass", "Algae"),
       scientific_names = scientific_name
     )
   )

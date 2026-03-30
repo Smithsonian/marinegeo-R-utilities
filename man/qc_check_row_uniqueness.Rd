@@ -11,7 +11,9 @@ qc_check_row_uniqueness(data, id_cols, detail = TRUE)
 
 \item{id_cols}{Character vector. Names of the columns that together form
 each row's identity (i.e., the columns with \code{uuid_identity = TRUE} for
-the relevant table). All named columns must be present in \code{data}.}
+the relevant table). If any named columns are absent from \code{data}, the
+function returns a \code{"skip"} result rather than erroring — missing columns
+are expected to be flagged by a separate \code{qc_check_columns} test.}
 
 \item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element contains
 a data frame with the row indices and identity-column values of every row
@@ -21,8 +23,9 @@ involved in a duplicate group. If \code{FALSE}, \code{failures} is \code{NULL}.}
 A named list with the following elements:
 \describe{
 \item{\code{test}}{Character. Always \code{"qc_check_row_uniqueness"}.}
-\item{\code{status}}{Character. \code{"fail"} if any duplicate identity
-combinations are found; \code{"pass"} otherwise.}
+\item{\code{status}}{Character. \code{"pass"} if all rows are unique; \code{"fail"} if
+duplicate identity combinations are found; \code{"skip"} if any \code{id_cols}
+are absent from \code{data}.}
 \item{\code{message}}{Character. Human-readable summary.}
 \item{\code{summary}}{Data frame with one row containing:
 \code{n_rows} (total row count), \code{n_id_cols} (number of identity columns),

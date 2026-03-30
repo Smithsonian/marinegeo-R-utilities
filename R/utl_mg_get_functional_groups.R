@@ -13,7 +13,7 @@
 #'   (e.g. `c("APHIA:495077", "FUNCTIONAL:9")`). `NA` values are removed with
 #'   a message.
 #' @param functional_group_tree Character scalar. Name of the functional group
-#'   tree to query (e.g. `"macrophytes"`). Used to filter rows in
+#'   tree to query (e.g. `"vegetation"`). Used to filter rows in
 #'   `marinegeo_metadata$functional_group_lookup` by the `tree_name` column.
 #'
 #' @return A data frame with one row per (`scientific_id`, `FUNCTIONAL:` ancestor)
@@ -43,19 +43,19 @@
 #'
 #' @examples
 #' # Species lookup — returns all FUNCTIONAL: ancestor nodes
-#' utl_mg_get_functional_groups("APHIA:144474", functional_group_tree = "macrophytes")
+#' utl_mg_get_functional_groups("APHIA:144474", functional_group_tree = "vegetation")
 #'
 #' # Functional group lookup — returns the group itself and its ancestors
-#' utl_mg_get_functional_groups("FUNCTIONAL:SEAGRASS", functional_group_tree = "macrophytes")
+#' utl_mg_get_functional_groups("FUNCTIONAL:SEAGRASS", functional_group_tree = "vegetation")
 #'
 #' # Batch lookup
 #' utl_mg_get_functional_groups(
 #'   c("APHIA:144474", "APHIA:208925"),
-#'   functional_group_tree = "macrophytes"
+#'   functional_group_tree = "vegetation"
 #' )
 #'
 #' # Unknown IDs produce zero rows (no error)
-#' utl_mg_get_functional_groups("APHIA:99999999", functional_group_tree = "macrophytes")
+#' utl_mg_get_functional_groups("APHIA:99999999", functional_group_tree = "vegetation")
 utl_mg_get_functional_groups <- function(
   scientific_ids,
   functional_group_tree

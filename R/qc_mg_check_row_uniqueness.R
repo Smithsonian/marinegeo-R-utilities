@@ -12,7 +12,9 @@
 #' @param data A data frame to validate.
 #' @param id_cols Character vector. Names of the columns that together form
 #'   each row's identity (i.e., the columns with `uuid_identity = TRUE` for
-#'   the relevant table). All named columns must be present in `data`.
+#'   the relevant table). If any named columns are absent from `data`, the
+#'   function returns a `"skip"` result rather than erroring — missing columns
+#'   are expected to be flagged by a separate `qc_check_columns` test.
 #' @param detail Logical. If `TRUE` (default), the `failures` element contains
 #'   a data frame with the row indices and identity-column values of every row
 #'   involved in a duplicate group. If `FALSE`, `failures` is `NULL`.
@@ -20,8 +22,9 @@
 #' @return A named list with the following elements:
 #'   \describe{
 #'     \item{`test`}{Character. Always `"qc_check_row_uniqueness"`.}
-#'     \item{`status`}{Character. `"fail"` if any duplicate identity
-#'       combinations are found; `"pass"` otherwise.}
+#'     \item{`status`}{Character. `"pass"` if all rows are unique; `"fail"` if
+#'       duplicate identity combinations are found; `"skip"` if any `id_cols`
+#'       are absent from `data`.}
 #'     \item{`message`}{Character. Human-readable summary.}
 #'     \item{`summary`}{Data frame with one row containing:
 #'       `n_rows` (total row count), `n_id_cols` (number of identity columns),
@@ -67,13 +70,19 @@ qc_check_row_uniqueness <- function(data, id_cols, detail = TRUE) {
   }
 
   # --- Column presence check --------------------------------------------------
+  # Missing id_cols are caught by qc_check_columns; skip rather than error here.
   missing_cols <- setdiff(id_cols, colnames(data))
   if (length(missing_cols) > 0L) {
-    stop(
-      "Column(s) in `id_cols` are not present in `data`: ",
-      paste(paste0('"', missing_cols, '"'), collapse = ", "),
-      "."
-    )
+    return(list(
+      test     = "qc_check_row_uniqueness",
+      status   = "skip",
+      message  = paste0(
+        "Skipped: column(s) required for uniqueness check are not present in `data`: ",
+        paste(paste0('"', missing_cols, '"'), collapse = ", "), "."
+      ),
+      summary  = NULL,
+      failures = NULL
+    ))
   }
 
   # --- Empty data fast-path ---------------------------------------------------

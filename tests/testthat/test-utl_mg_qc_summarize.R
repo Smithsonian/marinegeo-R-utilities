@@ -11,9 +11,13 @@ test_that("utl_qc_summarize: all tests pass", {
   expect_equal(out$summary$status, c("pass", "pass"))
   expect_equal(out$summary$n_failures, c(0L, 0L))
 
-  # Failures table is zero-row
+  # Failures table is zero-row with canonical column structure
   expect_s3_class(out$failures, "data.frame")
   expect_equal(nrow(out$failures), 0L)
+  expect_named(
+    out$failures,
+    c("test", "row_index", "col_index", "column_name", "value", "severity")
+  )
 })
 
 test_that("utl_qc_summarize: one failing test with failures rows", {
@@ -115,6 +119,44 @@ test_that("utl_qc_summarize: failures table has 'test' column first", {
   out <- utl_qc_summarize(result, type = "failures")
 
   expect_equal(names(out$failures)[1], "test")
+})
+
+test_that("utl_qc_summarize: canonical columns always present in failures, in order", {
+  # make_fail_result() uses qc_check_data_types which has column_name + issue
+  # but NOT row_index, col_index, value — canonical set must still appear
+  out      <- utl_qc_summarize(make_fail_result(), type = "failures")
+  canonical <- c("test", "row_index", "col_index", "column_name", "value", "severity")
+
+  expect_true(all(canonical %in% names(out$failures)))
+  expect_equal(names(out$failures)[seq_along(canonical)], canonical)
+  expect_true(all(is.na(out$failures$row_index)))
+  expect_true(all(is.na(out$failures$col_index)))
+  expect_true(all(is.na(out$failures$value)))
+  expect_true("issue" %in% setdiff(names(out$failures), canonical))
+})
+
+test_that("utl_qc_summarize: canonical columns present for row_uniqueness failures", {
+  out      <- utl_qc_summarize(make_row_uniqueness_result(), type = "failures")
+  canonical <- c("test", "row_index", "col_index", "column_name", "value", "severity")
+
+  expect_true(all(canonical %in% names(out$failures)))
+  expect_equal(names(out$failures)[seq_along(canonical)], canonical)
+  expect_equal(out$failures$row_index, c(1L, 2L))
+  expect_true(all(is.na(out$failures$col_index)))
+  expect_true(all(is.na(out$failures$column_name)))
+  extra_cols <- setdiff(names(out$failures), canonical)
+  expect_true(all(c("site_code", "transect_id") %in% extra_cols))
+})
+
+test_that("utl_qc_summarize: empty failures frame has correct column types", {
+  out <- utl_qc_summarize(make_pass_result(), type = "failures")
+
+  expect_type(out$failures$test,        "character")
+  expect_type(out$failures$row_index,   "integer")
+  expect_type(out$failures$col_index,   "integer")
+  expect_type(out$failures$column_name, "character")
+  expect_type(out$failures$value,       "character")
+  expect_type(out$failures$severity,    "character")
 })
 
 test_that("utl_qc_summarize: heterogeneous failure columns filled with NA", {

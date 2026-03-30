@@ -138,6 +138,28 @@ make_heterogeneous_result <- function() {
   )
 }
 
+make_row_uniqueness_result <- function() {
+  list(
+    table_id = "test_table",
+    status   = "fail",
+    n_rows   = 3L,
+    tests    = list(
+      qc_check_row_uniqueness = list(
+        test     = "qc_check_row_uniqueness",
+        status   = "fail",
+        message  = "2 row(s) involved in 1 duplicate identity group(s).",
+        summary  = data.frame(n_rows = 3L, n_duplicate_rows = 2L),
+        failures = data.frame(
+          row_index   = c(1L, 2L),
+          site_code   = c("BIS-001", "BIS-001"),
+          transect_id = c(1L, 1L),
+          stringsAsFactors = FALSE
+        )
+      )
+    )
+  )
+}
+
 make_empty_failures_result <- function() {
   list(
     table_id = "test_table",

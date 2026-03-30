@@ -36,14 +36,14 @@
 
 # Mock utl_mg_assign_functional_groups to avoid dependency on marinegeo_metadata
 # state (which may be reduced by other test files using local_mocked_bindings).
-# Returns "Seagrass" for known seagrass species, "Macroalgae" for known algae,
+# Returns "Seagrass" for known seagrass species, "Algae" for known algae,
 # and NA for everything else.
 .mock_fg <- function(fg_tree, fg_labels, scientific_names) {
   seagrass   <- c("Halodule wrightii", "Thalassia testudinum", "Halophila ovalis")
   macroalgae <- c("Caulerpa", "Caulerpa sertularioides", "Acanthophora spicifera")
   dplyr::case_when(
     scientific_names %in% seagrass   ~ "Seagrass",
-    scientific_names %in% macroalgae ~ "Macroalgae",
+    scientific_names %in% macroalgae ~ "Algae",
     .default = NA_character_
   )
 }
@@ -257,7 +257,7 @@ test_that("data frame with no macrophyte rows returns input unchanged with messa
   local_mocked_bindings(utl_mg_assign_functional_groups = .mock_fg)
   expect_message(
     result <- utl_sav_backfill_cover(df),
-    "No Seagrass or Macroalgae rows found"
+    "No Seagrass or Algae rows found"
   )
   expect_equal(nrow(result), nrow(df))
 })

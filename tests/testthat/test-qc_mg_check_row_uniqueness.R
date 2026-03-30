@@ -179,11 +179,13 @@ test_that("empty id_cols -> stop", {
   )
 })
 
-test_that("id_col missing from data -> stop with column name", {
-  expect_error(
-    qc_check_row_uniqueness(.df_unique, c("site_code", "nonexistent_col")),
-    '"nonexistent_col"'
-  )
+test_that("id_col missing from data -> skip result with column name in message", {
+  result <- qc_check_row_uniqueness(.df_unique, c("site_code", "nonexistent_col"))
+  expect_equal(result$test, "qc_check_row_uniqueness")
+  expect_equal(result$status, "skip")
+  expect_match(result$message, '"nonexistent_col"')
+  expect_null(result$summary)
+  expect_null(result$failures)
 })
 
 test_that("non-logical detail -> stop", {

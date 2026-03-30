@@ -28,12 +28,19 @@
 #' - `NA_integer_` for non-passing tests where `$failures` is `NULL`, which
 #'   occurs when `qc_run()` was called with `detail = FALSE`.
 #'
-#' **Failures table columns:**
-#' Individual tests may record different columns in their `$failures` data
-#' frames. Before binding, all columns except `row_index` and `col_index` are
-#' coerced to character to avoid type conflicts (e.g. when `value` is numeric
-#' in one test and character in another). Columns not present in a given test
-#' are filled with `NA`.
+#' **Failures table canonical columns:**
+#' The returned `$failures` data frame always contains the following six columns
+#' in this order, regardless of which tests ran or which produced failures:
+#' `test` (character), `row_index` (integer), `col_index` (integer),
+#' `column_name` (character), `value` (character), `severity` (character).
+#' Columns absent for a given test are filled with `NA`. Test-specific extra
+#' columns (e.g. `issue`, `expected_type`, `actual_type` from
+#' `qc_check_data_types`; `position`, `expected_column`, `actual_column` from
+#' `qc_check_columns` warn failures; identity columns from
+#' `qc_check_row_uniqueness`) appear after the canonical set and are coerced
+#' to character before binding. `row_index` and `col_index` retain their
+#' integer type. Zero-row (no-failures) data frames have the same column
+#' structure.
 #'
 #' @examples
 #' result <- list(
@@ -129,7 +136,7 @@ utl_qc_summarize <- function(qc_result, type = "both") {
     failure_frames <- Filter(Negate(is.null), failure_frames)
 
     if (length(failure_frames) == 0L) {
-      failures_df <- dplyr::tibble()
+      failures_df <- .failures_skeleton()
     } else {
       # Coerce columns to character before binding to handle cases where shared
       # columns (e.g. `value`) have different types across tests. `row_index`
@@ -144,6 +151,24 @@ utl_qc_summarize <- function(qc_result, type = "both") {
         )
       })
       failures_df <- dplyr::bind_rows(failure_frames)
+      # Add any missing canonical columns with their correct types so that the
+      # returned frame always has the same structure regardless of which tests ran.
+      canonical_na <- list(
+        row_index   = NA_integer_,
+        col_index   = NA_integer_,
+        column_name = NA_character_,
+        value       = NA_character_,
+        severity    = NA_character_
+      )
+      for (col in names(canonical_na)) {
+        if (!col %in% names(failures_df)) {
+          failures_df[[col]] <- canonical_na[[col]]
+        }
+      }
+      # Reorder: canonical columns first, then any test-specific extra columns
+      canonical_cols <- names(.failures_skeleton())
+      extra_cols     <- setdiff(names(failures_df), canonical_cols)
+      failures_df    <- dplyr::select(failures_df, dplyr::all_of(c(canonical_cols, extra_cols)))
     }
   }
 
@@ -153,5 +178,17 @@ utl_qc_summarize <- function(qc_result, type = "both") {
     summary  = list(summary  = summary_df),
     failures = list(failures = failures_df),
     both     = list(summary  = summary_df, failures = failures_df)
+  )
+}
+
+#' @keywords internal
+.failures_skeleton <- function() {
+  tibble::tibble(
+    test        = character(0),
+    row_index   = integer(0),
+    col_index   = integer(0),
+    column_name = character(0),
+    value       = character(0),
+    severity    = character(0)
   )
 }

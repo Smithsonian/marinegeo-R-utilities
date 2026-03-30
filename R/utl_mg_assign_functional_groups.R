@@ -11,7 +11,7 @@
 #' affected names.
 #'
 #' @param fg_tree Character scalar. Name of the functional group tree to query
-#'   (e.g. `"macrophytes"`). Passed to [utl_mg_get_functional_groups()] as
+#'   (e.g. `"vegetation"`). Passed to [utl_mg_get_functional_groups()] as
 #'   `functional_group_tree`.
 #' @param fg_labels Non-empty character vector of functional group names to test
 #'   membership against (e.g. `c("Seagrass", "Macroalgae")`). Names are
@@ -51,8 +51,8 @@
 #' df |>
 #'   dplyr::mutate(
 #'     functional_group = utl_mg_assign_functional_groups(
-#'       fg_tree = "macrophytes",
-#'       fg_labels = c("Seagrass", "Macroalgae"),
+#'       fg_tree = "vegetation",
+#'       fg_labels = c("Seagrass", "Algae"),
 #'       scientific_names = scientific_name
 #'     )
 #'   )

@@ -2,10 +2,10 @@
 #'
 #' @description
 #' Accepts a seagrass cover data frame and adds new rows to ensure that every
-#' Seagrass or Macroalgae species observed anywhere within a sample event is
+#' Seagrass or Algae species observed anywhere within a sample event is
 #' represented at every transect × quadrat combination within that event. The
 #' `percent_cover` and `cover_code` for backfilled rows are set to `0`.
-#' Non-macrophyte rows (functional group is neither Seagrass nor Macroalgae)
+#' Non-vegetation rows (functional group is neither Seagrass nor Algae)
 #' are passed through unchanged.
 #'
 #' @param df A data frame containing seagrass cover observations. Must include
@@ -42,9 +42,9 @@
 #'
 #' @details
 #' Functional group assignment is performed via
-#' [utl_mg_assign_functional_groups()] with `fg = c("Seagrass", "Macroalgae")`.
+#' [utl_mg_assign_functional_groups()] with `fg = c("Seagrass", "Algae")`.
 #' Rows whose `scientific_name` resolves to neither group (including unknowns
-#' and non-macrophyte taxa) are collected in a separate data frame and
+#' and non-vegetation taxa) are collected in a separate data frame and
 #' re-appended to the output without modification.
 #'
 #' Within each sample event the function:
@@ -112,20 +112,20 @@ utl_sav_backfill_cover <- function(df) {
   df <- df |>
     dplyr::mutate(
       functional_group = utl_mg_assign_functional_groups(
-        fg_tree = "macrophytes",
-        fg_labels = c("Seagrass", "Macroalgae"),
+        fg_tree = "vegetation",
+        fg_labels = c("Seagrass", "Algae"),
         scientific_names = scientific_name
       )
     )
 
   df_non_macrophyte <- df |>
-    dplyr::filter(!functional_group %in% c("Seagrass", "Macroalgae"))
+    dplyr::filter(!functional_group %in% c("Seagrass", "Algae"))
 
   df_macrophyte <- df |>
-    dplyr::filter(functional_group %in% c("Seagrass", "Macroalgae"))
+    dplyr::filter(functional_group %in% c("Seagrass", "Algae"))
 
   if (nrow(df_macrophyte) == 0) {
-    message("No Seagrass or Macroalgae rows found. Returning input unchanged.")
+    message("No Seagrass or Algae rows found. Returning input unchanged.")
     return(df)
   }
 
@@ -327,7 +327,7 @@ utl_sav_backfill_density <- function(df) {
   df <- df |>
     dplyr::mutate(
       functional_group = utl_mg_assign_functional_groups(
-        fg_tree = "macrophytes",
+        fg_tree = "vegetation",
         fg_labels = "Seagrass",
         scientific_names = scientific_name
       )

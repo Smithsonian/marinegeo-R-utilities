@@ -20,6 +20,8 @@ Imports:
     tidyr,
     ggplot2,
     lubridate,
+    plotly,
+    purrr,
     worrms,
     data.tree
 Depends: 

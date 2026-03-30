@@ -97,7 +97,7 @@ MarineGEO maintains nested functional group and taxonomic lookup tables. Taxa an
 species_ids <- c("APHIA:208925", "APHIA:144474")
 fg <- utl_mg_get_functional_groups(
   species_ids,
-  functional_group_tree = "macrophytes"
+  functional_group_tree = "vegetation"
 )
 knitr::kable(fg)
 ```
@@ -125,22 +125,22 @@ seagrass_id <- fg |>
   unique()
 
 knitr::kable(
-  utl_mg_get_functional_groups(seagrass_id, "macrophytes")
+  utl_mg_get_functional_groups(seagrass_id, "vegetation")
 )
 ```
 
 ---
 
 ## Assign functional groups to data
-While you could filter and join the table above to a data table in order to group by functional groups to do some type of calculation, the `utl_mg_assign_functional_group()` function allows to you to assign functional groups of your choice within a mutate call. For instance, let's create a new column, `functional_group`, and assign observations to either "Seagrass" or "Macroalgae". Then we'll generate a timeseries plot based on those groups and the percent cover variable. 
+While you could filter and join the table above to a data table in order to group by functional groups to do some type of calculation, the `utl_mg_assign_functional_group()` function allows to you to assign functional groups of your choice within a mutate call. For instance, let's create a new column, `functional_group`, and assign observations to either "Seagrass" or "Algae". Then we'll generate a timeseries plot based on those groups and the percent cover variable. 
 
 ```{r summary}
 
 df_functional_groups <- seagrass_cover_example |>
   dplyr::mutate(
     functional_group = utl_mg_assign_functional_groups(
-      fg_tree = "macrophytes",
-      fg_labels = c("Seagrass", "Macroalgae"),
+      fg_tree = "vegetation",
+      fg_labels = c("Seagrass", "Algae"),
       scientific_names = scientific_name
     )
   )

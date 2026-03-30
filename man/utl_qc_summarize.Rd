@@ -40,12 +40,19 @@ failures data frame.
 occurs when \code{qc_run()} was called with \code{detail = FALSE}.
 }
 
-\strong{Failures table columns:}
-Individual tests may record different columns in their \verb{$failures} data
-frames. Before binding, all columns except \code{row_index} and \code{col_index} are
-coerced to character to avoid type conflicts (e.g. when \code{value} is numeric
-in one test and character in another). Columns not present in a given test
-are filled with \code{NA}.
+\strong{Failures table canonical columns:}
+The returned \verb{$failures} data frame always contains the following six columns
+in this order, regardless of which tests ran or which produced failures:
+\code{test} (character), \code{row_index} (integer), \code{col_index} (integer),
+\code{column_name} (character), \code{value} (character), \code{severity} (character).
+Columns absent for a given test are filled with \code{NA}. Test-specific extra
+columns (e.g. \code{issue}, \code{expected_type}, \code{actual_type} from
+\code{qc_check_data_types}; \code{position}, \code{expected_column}, \code{actual_column} from
+\code{qc_check_columns} warn failures; identity columns from
+\code{qc_check_row_uniqueness}) appear after the canonical set and are coerced
+to character before binding. \code{row_index} and \code{col_index} retain their
+integer type. Zero-row (no-failures) data frames have the same column
+structure.
 }
 \examples{
 result <- list(

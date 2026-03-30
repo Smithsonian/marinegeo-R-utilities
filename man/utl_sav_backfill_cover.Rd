@@ -42,17 +42,17 @@ the single value observed for that sample event, or \code{NA} with a
 }
 \description{
 Accepts a seagrass cover data frame and adds new rows to ensure that every
-Seagrass or Macroalgae species observed anywhere within a sample event is
+Seagrass or Algae species observed anywhere within a sample event is
 represented at every transect × quadrat combination within that event. The
 \code{percent_cover} and \code{cover_code} for backfilled rows are set to \code{0}.
-Non-macrophyte rows (functional group is neither Seagrass nor Macroalgae)
+Non-vegetation rows (functional group is neither Seagrass nor Algae)
 are passed through unchanged.
 }
 \details{
 Functional group assignment is performed via
-\code{\link[=utl_mg_assign_functional_groups]{utl_mg_assign_functional_groups()}} with \code{fg = c("Seagrass", "Macroalgae")}.
+\code{\link[=utl_mg_assign_functional_groups]{utl_mg_assign_functional_groups()}} with \code{fg = c("Seagrass", "Algae")}.
 Rows whose \code{scientific_name} resolves to neither group (including unknowns
-and non-macrophyte taxa) are collected in a separate data frame and
+and non-vegetation taxa) are collected in a separate data frame and
 re-appended to the output without modification.
 
 Within each sample event the function:
