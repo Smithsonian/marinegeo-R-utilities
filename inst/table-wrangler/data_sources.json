@@ -1,0 +1,198 @@
+{
+  "data_sources": [
+    {
+      "data_type": "Seagrass Monitoring",
+      "description": "MarineGEO Seagrass Monitoring",
+      "groupings": [
+        {
+          "grouping_name": "MarineGEO Required Excel",
+          "grouping_order": 1,
+          "location_type": "GitHub",
+          "location_path": "marinegeo-seagrass-monitoring/L1-data/seagrass-monitoring-marinegeo/marinegeo-excel-v1/seagrass-required/",
+		  "script_path": "marinegeo-seagrass-monitoring/scripts/",
+          "label_strategy": {
+            "type": "none",
+            "description": "No labels"
+          },
+          "file_types": ["xlsx", "xls"],
+          "mappings": {
+            "table_ids": ["seagrass-metadata-monitoring-v1", "seagrass-cover-monitoring-v1", "shoot-count-monitoring-v1", "seagrass-macroinvertebrates-monitoring-v1", "seagrass-leaf-monitoring-v1", "sheath-and-epibiont-monitoring-v1"],
+            "default_sheet_mappings": [
+              {
+                "sheet_name": "TRANSECTS",
+                "table_id": "seagrass-metadata-monitoring-v1"
+              },
+              {
+                "sheet_name": "COVER",
+                "table_id": "seagrass-cover-monitoring-v1"
+              },
+              {
+                "sheet_name": "DENSITY",
+                "table_id": "shoot-count-monitoring-v1"
+              },
+              {
+                "sheet_name": "MACROINVERTS",
+                "table_id": "seagrass-macroinvertebrates-monitoring-v1"
+              },
+              {
+                "sheet_name": "LEAF MEASUREMENTS",
+                "table_id": "seagrass-leaf-monitoring-v1"
+              },
+			  {
+                "sheet_name": "BLADE MEASUREMENTS",
+                "table_id": "seagrass-leaf-monitoring-v1"
+              },
+              {
+                "sheet_name": "SHEATH AND EPIBIONTS",
+                "table_id": "sheath-and-epibiont-monitoring-v1"
+              },
+              {
+                "sheet_name": "SHEATH AND EPIBIONT DATA",
+                "table_id": "sheath-and-epibiont-monitoring-v1"
+              }
+            ]
+          },
+		  "template_type": "standardized"
+        },
+		{
+          "grouping_name": "MarineGEO non-standard format",
+          "grouping_order": 2,
+          "location_type": "GitHub",
+          "location_path": "marinegeo-seagrass-monitoring/L1-data/seagrass-monitoring-marinegeo/marinegeo-nonstandard/",
+		  "script_path": "marinegeo-seagrass-monitoring/scripts/",
+          "label_strategy": {
+            "type": "subdirectory",
+            "description": "Use subdirectory folder names as labels for sorting individual files"
+          },
+          "file_types": ["xlsx", "xls", "csv"],
+          "mappings": {
+            "table_ids": ["seagrass-metadata-monitoring-v1", "seagrass-cover-monitoring-v1", "shoot-count-monitoring-v1", "seagrass-macroinvertebrates-monitoring-v1", "seagrass-leaf-monitoring-v1", "sheath-and-epibiont-monitoring-v1"]
+          },
+		  "template_type": "generic"
+        },
+        {
+          "grouping_name": "non-MarineGEO Seagrass Protocols",
+          "grouping_order": 3,
+          "location_type": "GitHub",
+          "location_path": "marinegeo-seagrass-monitoring/L1-data/seagrass-non-MarineGEO/",
+		  "script_path": "marinegeo-seagrass-monitoring/scripts/",
+          "label_strategy": {
+            "type": "subdirectory",
+            "description": "Use subdirectory folder names as labels for sorting individual files"
+          },
+          "file_types": ["xlsx", "xls", "csv"],
+          "mappings": {
+            "table_ids": ["seagrass-metadata-monitoring-v1", "seagrass-cover-monitoring-v1", "shoot-count-monitoring-v1", "seagrass-macroinvertebrates-monitoring-v1", "seagrass-leaf-monitoring-v1", "sheath-and-epibiont-monitoring-v1"]
+          },
+		  "template_type": "generic"
+        }
+      ]
+    },
+    {
+      "data_type": "Reef Life Survey",
+      "description": "MarineGEO Reef Life Survey Data",
+      "groupings": [
+        {
+          "grouping_name": "Official RLS Spreadsheets",
+          "grouping_order": 1,
+          "location_type": "GitHub",
+          "location_path": "marinegeo-reef-life-survey/L1-data/rls-data/",
+		  "script_path": "marinegeo-reef-life-survey/scripts/",
+          "label_strategy": {
+            "type": "subdirectory",
+            "description": "Use subdirectory folder names as labels for sorting individual files"
+          },
+          "file_types": ["xlsx", "xls"],
+          "mappings": {
+            "table_ids": ["reef-life-survey-data-marinegeo-v1"],
+            "default_sheet_mappings": [
+              {
+                "sheet_name": "DATA",
+                "table_id": "reef-life-survey-data-marinegeo-v1"
+              }
+            ]
+          },
+		  "template_type": "standardized"
+        }
+      ]
+    },
+    {
+      "data_type": "Oyster Experiment 2025",
+      "description": "MarineGEO Oyster Network Experiment 2025",
+      "groupings": [
+        {
+          "grouping_name": "Deployment Excel Spreadsheets",
+          "grouping_order": 2,
+          "location_type": "GitHub",
+          "location_path": "oyster-network-project-2025/L1-data/oyster-2025-deployment-input/",
+		  "script_path": "oyster-network-project-2025/scripts/",
+          "label_strategy": {
+            "type": "none",
+            "description": "No labels"
+          },
+          "file_types": ["xlsx", "xls"],
+          "mappings": {
+            "table_ids": ["oyster-2025-reef-metadata-deployment", "oyster-2025-rugosity"],
+            "default_sheet_mappings": [
+              {
+                "sheet_name": "REEF METADATA",
+                "table_id": "oyster-2025-reef-metadata-deployment"
+              },
+              {
+                "sheet_name": "RUGOSITY & CLUSTER HEIGHT",
+                "table_id": "oyster-2025-rugosity"
+              }
+            ]
+          },
+		  "template_type": "standardized"
+        },
+        {
+          "grouping_name": "Retrieval Excel Spreadsheets",
+          "grouping_order": 1,
+          "location_type": "GitHub",
+          "location_path": "oyster-network-project-2025/L1-data/oyster-2025-retrieval-input/",
+		  "script_path": "oyster-network-project-2025/scripts/",
+          "label_strategy": {
+            "type": "none",
+            "description": "No labels"
+          },
+          "file_types": ["xlsx", "xls"],
+          "mappings": {
+            "table_ids": ["oyster-2025-reef-metadata-retrieval", "oyster-2025-count", "oyster-2025-oyster-height", "oyster-2025-bivalve-height", "oyster-2025-weight", "oyster-2025-mobile-fauna", "oyster-2025-sessile-fauna"],
+            "default_sheet_mappings": [
+              {
+                "sheet_name": "REEF METADATA",
+                "table_id": "oyster-2025-reef-metadata-retrieval"
+              },
+              {
+                "sheet_name": "OYSTER & BIVALVE COUNT",
+                "table_id": "oyster-2025-count"
+              },
+              {
+                "sheet_name": "OYSTER HEIGHT",
+                "table_id": "oyster-2025-oyster-height"
+              },
+              {
+                "sheet_name": "BIVALVE HEIGHT",
+                "table_id": "oyster-2025-bivalve-height"
+              },
+              {
+                "sheet_name": "BIVALVE WEIGHT",
+                "table_id": "oyster-2025-weight"
+              },
+              {
+                "sheet_name": "MOBILE FAUNA",
+                "table_id": "oyster-2025-mobile-fauna"
+              },
+              {
+                "sheet_name": "SESSILE FAUNA",
+                "table_id": "oyster-2025-sessile-fauna"
+              }
+            ]
+          },
+		  "template_type": "standardized"
+        }
+      ]
+    }
+  ]
+}
