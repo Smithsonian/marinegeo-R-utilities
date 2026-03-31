@@ -119,3 +119,9 @@ marinegeo_metadata$taxonomic_classifications <- .get_taxonomic_classifications(
 )
 
 usethis::use_data(marinegeo_metadata, internal = TRUE, overwrite = TRUE)
+
+library(tidyverse)
+
+marinegeo_metadata$site_codes %>%
+  count(site_code) %>%
+  filter(n > 1)
