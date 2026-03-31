@@ -76,7 +76,8 @@ sample_event_server <- function(id, input_list) {
           
           df <- input_list$out_df |>
             dplyr::group_by(sample_event_id, site_name, transect) |>
-            dplyr::summarize(`unique quadrats` = dplyr::n_distinct(quadrat)) 
+            dplyr::summarize(`unique quadrats` = dplyr::n_distinct(quadrat),
+                             replicates = n()) 
           
           if("scientific_name" %in% colnames(input_list$out_df)){
             
@@ -88,7 +89,7 @@ sample_event_server <- function(id, input_list) {
                                  values_from = n,
                                  values_fill = 0) |>
               dplyr::right_join(df) |>
-              dplyr::relocate(`unique quadrats`, .after = "transect")
+              dplyr::relocate(`unique quadrats`, replicates, .after = "transect")
     
           }
         }

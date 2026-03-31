@@ -125,3 +125,11 @@ library(tidyverse)
 marinegeo_metadata$site_codes %>%
   count(site_code) %>%
   filter(n > 1)
+
+marinegeo_metadata$observation_lookup %>%
+  count(scientific_name) %>%
+  filter(n > 1)
+
+marinegeo_metadata$taxonomic_lookup %>%
+  count(scientific_id) %>%
+  filter(n > 1)
