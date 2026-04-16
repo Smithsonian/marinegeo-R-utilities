@@ -38,14 +38,14 @@ req_cols <- marinegeo.utils::utl_mg_column_order(table_out)
 # Load data
 __LOAD_DATA__
   mutate(input_filename = basename(input_file_path),
-         table_id = table_out)
-
-df_out <- df # %>%
+         table_id = table_out)# %>%
   #left_join(
   #  marinegeo.utils::utl_mg_get_registry("site_codes") %>%
   #    select(partner_code, site_code, site_name), by = "site_name"
   #) %>%
-  #mutate(sample_event_id = paste(partner_code, site_code, year(sample_collection_date), sep = "_")) %>%
+  #mutate(sample_event_id = paste(partner_code, site_code, year(sample_collection_date), sep = "_")) 
+  
+df_out <- df # %>%
   #marinegeo.utils::utl_sav_backfill_cover() %>%
   #marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
   #select(any_of(req_cols))

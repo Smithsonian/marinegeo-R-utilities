@@ -1,9 +1,6 @@
-# Process Seagrass Monitoring data
+# Process Oyster Composition Monitoring data
 
 ## How to use this script ####
-# Code entered in the 'MarineGEO Table Wrangler Start' section can be
-# run in the Table Wrangler application to assist processing data.
-# The application can create code that you can copy and paste into this script.
 # IMPORTANT: Any objects used in this script between the 'Start' and 'End' section
 # must also be available in the application or else it will crash:
 #   - Functions used in this section must be sourced from the `tidyverse` or `marinegeo.utils` packages,
@@ -21,6 +18,7 @@
 
 # Use the MarineGEO Table Wrangler Shiny application to support processing
 # run: marinegeo.utils::shiny_launch_table_wrangler()
+# or `R -e "marinegeo.utils::shiny_launch_table_wrangler()"` in your terminal
 
 # Load Packages
 library(tidyverse)
@@ -30,25 +28,24 @@ library(marinegeo.utils)
 input_file_path <- '__INPUT_FILE_PATH__'
 
 ## Destination table metadata
-table_out <- 'seagrass-leaf-monitoring-v1'
+table_out <- 'oyster-composition-monitoring-v1'
 req_cols <- marinegeo.utils::utl_mg_column_order(table_out)
 
 ## MarineGEO Table Wrangler Start ####
 
 # Load data
 __LOAD_DATA__
-  mutate(input_filename = basename(input_file_path),
-         table_id = table_out)# %>%
-  #left_join(
-  #  marinegeo.utils::utl_mg_get_registry("site_codes") %>%
-  #    select(partner_code, site_code, site_name), by = "site_name"
-  #) %>%
-  #mutate(sample_event_id = paste(partner_code, site_code, year(sample_collection_date), sep = "_")) 
-    
+mutate(input_filename = basename(input_file_path),
+       table_id = table_out)
 
 df_out <- df # %>%
-  #marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
-  #select(any_of(req_cols))
+#left_join(
+#  marinegeo.utils::utl_mg_get_registry("site_codes") %>%
+#    select(partner_code, site_code, site_name), by = "site_name"
+#) %>%
+#mutate(sample_event_id = paste(partner_code, site_code, year(sample_collection_date), sep = "_")) %>%
+#marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
+#select(any_of(req_cols))
 
 ## MarineGEO Table Wrangler End ##
 
@@ -61,4 +58,4 @@ df_out <- df # %>%
 df_out %>%
   select(all_of(req_cols)) %>%
   marinegeo.utils::utl_mg_test_data_types(table_out) %>%
-	write_csv('__OUTPUT_FILE_PATH__')
+  write_csv('__OUTPUT_FILE_PATH__')

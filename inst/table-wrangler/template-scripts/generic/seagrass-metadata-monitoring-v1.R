@@ -46,11 +46,11 @@ mutate(input_filename = basename(input_file_path),
 #      select(site_code, site_name), by = "site_name"
 #  )
   
-#sites <- unique(df_1$site_name)
+#sites <- unique(df$site_name)
 
 #sample_events_df <- marinegeo.utils::db_arrow_marinegeo("seagrass-cover-monitoring-v1") %>%
 #  filter(site_name %in% sites) %>%
-#  select(sample_event_id, site_code, site_name, year(sample_collection_date)) %>%
+#  select(sample_event_id, site_code, site_name, sample_collection_date) %>%
 #  distinct() %>%
 #  collect() %>%
 #  filter(year(sample_collection_date) == YYYY)

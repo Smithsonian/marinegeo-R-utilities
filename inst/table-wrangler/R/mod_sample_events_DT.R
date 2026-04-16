@@ -63,6 +63,30 @@ sample_event_server <- function(id, input_list) {
                    full_screen = TRUE)
             )
           )
+        } else if(str_starts(input_list$output_table_id, "oyster")){
+          
+          navset_card_pill(
+            
+            nav_panel(
+              title = "Unique Quadrats", 
+              card("Verify the number of unique quadrats per transect matches the protocol. If the table contains scientific IDs, separate columns show the number of unique quadrat values per ID.",
+                   DTOutput(session$ns("num_uniq_quadrats")),
+                   full_screen = TRUE)
+            ),
+            # nav_panel(
+            #   title = "Transect - Quadrat Cross Table", 
+            #   card("Verify that quadrat - transect relationships between tables match protocol expectations.",
+            #        DTOutput(session$ns("quadrat_relationships")),
+            #        full_screen = TRUE)
+            # ),
+            nav_panel(
+              title = "Functional Groups",
+              card("Check functional group enrollment",
+                   DTOutput(session$ns("oyster_functional_groups")),
+                   full_screen = TRUE)
+            )
+          )
+          
         }
       })
       
@@ -398,6 +422,50 @@ sample_event_server <- function(id, input_list) {
             options = list(pageLength = 50)
           )
       })
+      
+      # ## Oyster Monitoring ####
+      
+      output$oyster_functional_groups <- renderDT({
+        
+        if("cover_type" %in% colnames(input_list$out_df)){
+          
+          df <- input_list$out_df %>%
+            count(scientific_name, cover_type) %>%
+            utl_mg_join_scientific_id() %>%
+            mutate(
+              functional_group = utl_mg_assign_functional_groups(
+                fg_tree = "oyster_composition",
+                fg_labels = c("Algae", "Barnacles", "Bivalves",
+                              "Ascidians", "Sponges", "Sediment",
+                              "Rock", "Oysters"),
+                cover_type
+              )
+            ) %>%
+            select(cover_type, functional_group, scientific_name, scientific_id, n)
+          
+        }
+        
+        if(!"scientific_name" %in% colnames(input_list$out_df)){
+          df <- input_list$out_df %>%
+            count(scientific_name) %>%
+            utl_mg_join_scientific_id() %>%
+            mutate(
+              functional_group = utl_mg_assign_functional_groups(
+                fg_tree = "vegetation",
+                fg_labels = c("Seagrass", "Algae"),
+                scientific_name
+              )
+            ) %>%
+            select(scientific_name, scientific_id, functional_group, n)
+        }
+        
+        df %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
+          )
+      })
+      
       
       ## Oyster Network Project 2025 ####
       output$oyster_2025_roster <- renderDT({
