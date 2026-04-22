@@ -21,7 +21,7 @@ test_that("summary has expected columns and types", {
   s      <- result$summary
 
   expect_s3_class(s, "data.frame")
-  expect_true(all(c("n_expected", "n_present", "n_missing", "order_correct") %in% colnames(s)))
+  expect_true(all(c("n_expected", "n_present", "n_missing", "n_extra", "order_correct") %in% colnames(s)))
 })
 
 # ---------------------------------------------------------------------------
@@ -46,11 +46,45 @@ test_that("pass summary reports correct counts", {
   expect_true(result$summary$order_correct)
 })
 
-test_that("extra columns in data beyond expected are silently ignored", {
+test_that("extra columns in data beyond expected produce fail status", {
   df     <- data.frame(a = 1, b = 2, extra = 99)
   result <- qc_check_columns(df, c("a", "b"))
 
-  expect_equal(result$status, "pass")
+  expect_equal(result$status, "fail")
+})
+
+test_that("extra column appears in failures with issue = 'extra'", {
+  df     <- data.frame(a = 1, b = 2, extra = 99)
+  result <- qc_check_columns(df, c("a", "b"))
+
+  expect_false(is.null(result$failures))
+  expect_true("extra" %in% result$failures$column_name)
+  expect_true(all(result$failures$issue[result$failures$column_name == "extra"] == "extra"))
+})
+
+test_that("both missing and extra columns are reported in a single fail result", {
+  df     <- data.frame(a = 1, unexpected = 99)
+  result <- qc_check_columns(df, c("a", "b"))
+
+  expect_equal(result$status, "fail")
+  expect_true("b"          %in% result$failures$column_name)
+  expect_true("unexpected" %in% result$failures$column_name)
+  expect_true("missing" %in% result$failures$issue)
+  expect_true("extra"   %in% result$failures$issue)
+})
+
+test_that("summary n_extra reflects number of extra columns", {
+  df     <- data.frame(a = 1, b = 2, extra = 99)
+  result <- qc_check_columns(df, c("a", "b"))
+
+  expect_equal(result$summary$n_extra, 1)
+})
+
+test_that("detail = FALSE suppresses failures for extra columns", {
+  df     <- data.frame(a = 1, extra = 99)
+  result <- qc_check_columns(df, "a", detail = FALSE)
+
+  expect_equal(result$status, "fail")
   expect_null(result$failures)
 })
 
@@ -88,7 +122,7 @@ test_that("all columns missing produces fail with all in failures", {
   result <- qc_check_columns(df, c("a", "b", "c"))
 
   expect_equal(result$status, "fail")
-  expect_setequal(result$failures$column_name, c("a", "b", "c"))
+  expect_setequal(result$failures$column_name, c("a", "b", "c", "x"))
 })
 
 # ---------------------------------------------------------------------------
@@ -143,13 +177,12 @@ test_that("detail = FALSE suppresses failures on warn", {
 # Edge cases
 # ---------------------------------------------------------------------------
 
-test_that("empty expected_columns vector with populated data returns pass", {
+test_that("empty expected_columns vector with populated data returns fail", {
   df     <- data.frame(a = 1, b = 2)
   result <- qc_check_columns(df, character(0))
 
-  expect_equal(result$status, "pass")
-  expect_equal(result$summary$n_expected, 0)
-  expect_null(result$failures)
+  expect_equal(result$status, "fail")
+  expect_equal(result$summary$n_extra, 2)
 })
 
 test_that("empty data frame with empty expected_columns returns pass", {

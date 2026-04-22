@@ -1,17 +1,15 @@
-# Mock functional_group_lookup edge-list (data.tree::FromDataFrameNetwork format).
+# Mock functional_group_lookup edge-list (new format).
 #
-# Linear tree (no siblings) to produce clean one-row-per-ancestor output:
+# Each row: from=child display name, to=parent display name, scientific_id=child's sci_id.
+# Root ("Life") has no scientific_id and never appears in `from`.
 #
-#   FUNCTIONAL:1 (Biota)         <- root
-#     FUNCTIONAL:2 (Macrophytes)
-#       APHIA:143770 (Zosteraceae) <- anchor node
-#         APHIA:495077             <- enrolled species
+# Linear tree (no siblings):
 #
-# Columns:
-#   from      - parent node ID
-#   to        - child node ID  (data.tree node names are `to` values)
-#   node_name - display name of the `from` (parent) node
-#   tree_name - tree identifier used for filtering
+#   Life (root, no scientific_id)
+#     Biota (FUNCTIONAL:1)
+#       Macrophytes (FUNCTIONAL:2)
+#         Zosteraceae (APHIA:143770) <- anchor node
+#           Zostera marina (APHIA:495077) <- enrolled species
 #
 # Expected results:
 #   "APHIA:495077"  -> group_id: FUNCTIONAL:1 (Biota), FUNCTIONAL:2 (Macrophytes)
@@ -20,10 +18,10 @@
 #   "FUNCTIONAL:1"  -> group_id: FUNCTIONAL:1 (self, Biota) — 1 row
 
 mock_fg_lookup <- data.frame(
-  from      = c("FUNCTIONAL:1", "FUNCTIONAL:2", "APHIA:143770"),
-  to        = c("FUNCTIONAL:2", "APHIA:143770", "APHIA:495077"),
-  node_name = c("Biota",        "Macrophytes",  "Zosteraceae"),
-  tree_name = rep("test_tree", 3),
+  from         = c("Biota",       "Macrophytes",  "Zosteraceae",  "Zostera marina"),
+  to           = c("Life",        "Biota",        "Macrophytes",  "Zosteraceae"),
+  scientific_id = c("FUNCTIONAL:1", "FUNCTIONAL:2", "APHIA:143770", "APHIA:495077"),
+  tree_name    = rep("test_tree", 4),
   stringsAsFactors = FALSE
 )
 

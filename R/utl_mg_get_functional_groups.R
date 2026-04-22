@@ -10,7 +10,7 @@
 #' input. IDs that do not appear in the tree produce zero rows, not an error.
 #'
 #' @param scientific_ids Character vector of `scientific_id` values to look up
-#'   (e.g. `c("APHIA:495077", "FUNCTIONAL:9")`). `NA` values are removed with
+#'   (e.g. `c("APHIA:495077", "FUNCTIONAL:SAV")`). `NA` values are removed with
 #'   a message.
 #' @param functional_group_tree Character scalar. Name of the functional group
 #'   tree to query (e.g. `"vegetation"`). Used to filter rows in
@@ -21,19 +21,20 @@
 #'   \describe{
 #'     \item{scientific_id}{The supplied identifier.}
 #'     \item{group_id}{`scientific_id` of the ancestor `FUNCTIONAL:` node
-#'       (e.g. `"FUNCTIONAL:2"`).}
-#'     \item{group_name}{Display name of the ancestor node (e.g. `"Macrophytes"`).}
+#'       (e.g. `"FUNCTIONAL:SAV"`).}
+#'     \item{group_name}{Display name of the ancestor node (e.g. `"Seagrass"`).}
 #'   }
 #'   Returns a zero-row data frame with the above columns if no IDs are matched
 #'   or if `scientific_ids` is empty after NA removal.
 #'
 #' @details
 #' The `functional_group_lookup` table in `marinegeo_metadata` is an edge-list
-#' data frame (columns `from`, `to`, `node_name`, `tree_name`) compatible with
-#' `data.tree::FromDataFrameNetwork()`. At query time the relevant tree is built
-#' from this table, the supplied ID is located via `data.tree::FindNode()`, and
-#' all `FUNCTIONAL:`-prefixed ancestor nodes on the path from root to that ID
-#' are returned.
+#' data frame with columns `from` (child node display name), `to` (parent node
+#' display name), `scientific_id` (the child node's scientific identifier), and
+#' `tree_name`. At query time the relevant tree is built from this table, the
+#' node corresponding to the supplied `scientific_id` is located via
+#' `data.tree::FindNode()`, and all `FUNCTIONAL:`-prefixed ancestor nodes on
+#' the path from root to that node are returned.
 #'
 #' When a `"FUNCTIONAL:X"` ID is supplied, that node itself is included in
 #' the results alongside its ancestors. `"APHIA:X"` IDs (species or taxonomic
@@ -84,21 +85,28 @@ utl_mg_get_functional_groups <- function(
   fg <- marinegeo_metadata$functional_group_lookup |>
     dplyr::filter(tree_name == functional_group_tree)
 
-  fg_tree <- data.tree::FromDataFrameNetwork(
-    fg,
-    check = c("check", "no-warn", "no-check")
-  )
+  # CSV uses from=child, to=parent; swap to match data.tree's from=parent, to=child convention
+  # dplyr::select (not rename) is required to also reorder columns — data.tree reads by position
+  fg_tree <- fg |>
+    dplyr::select(from = to, to = from, dplyr::everything()) |>
+    data.tree::FromDataFrameNetwork(
+      check = c("check", "no-warn", "no-check")
+    )
 
-  dplyr::bind_rows(
-    lapply(scientific_ids, function(id) {
-      found <- data.tree::FindNode(fg_tree, id)
-      parents <- found$path
-      fg |>
-        dplyr::filter(from %in% parents) |>
-        dplyr::mutate(scientific_id = id)
-    })
-  ) |>
-    dplyr::filter(stringr::str_starts(from, "FUNCTIONAL:")) |>
-    dplyr::select(scientific_id, from, node_name) |>
-    dplyr::rename(group_id = from, group_name = node_name)
+  rows <- dplyr::bind_rows(lapply(scientific_ids, function(id) {
+    node_display_name <- fg$from[fg$scientific_id == id]
+    if (length(node_display_name) == 0) return(NULL)
+
+    found <- data.tree::FindNode(fg_tree, node_display_name)
+    fg |>
+      dplyr::filter(from %in% found$path) |>
+      dplyr::filter(stringr::str_starts(scientific_id, "FUNCTIONAL:")) |>
+      dplyr::mutate(queried_id = id)
+  }))
+
+  if (nrow(rows) == 0) return(empty_result)
+
+  rows |>
+    dplyr::select(queried_id, group_id = scientific_id, group_name = from) |>
+    dplyr::rename(scientific_id = queried_id)
 }

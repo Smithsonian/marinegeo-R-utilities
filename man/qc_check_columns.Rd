@@ -21,13 +21,15 @@ A named list with the following elements:
 \describe{
 \item{\code{test}}{Character. Always \code{"qc_check_columns"}.}
 \item{\code{status}}{Character. One of \code{"pass"}, \code{"warn"}, or \code{"fail"}.
-\code{"fail"} if any expected columns are missing; \code{"warn"} if all columns
-are present but in the wrong order; \code{"pass"} otherwise.}
+\code{"fail"} if any expected columns are missing or any extra columns are
+present; \code{"warn"} if all expected columns are present (with no extras)
+but in the wrong order; \code{"pass"} otherwise.}
 \item{\code{message}}{Character. Human-readable summary.}
 \item{\code{summary}}{Data frame with counts: \code{n_expected}, \code{n_present},
-\code{n_missing}, and a logical \code{order_correct} flag.}
-\item{\code{failures}}{Data frame with columns \code{column_name} and \code{issue}, or
-\code{NULL} if \code{status == "pass"} or \code{detail == FALSE}.}
+\code{n_missing}, \code{n_extra}, and a logical \code{order_correct} flag.}
+\item{\code{failures}}{Data frame with columns \code{column_name} and \code{issue}
+(values \code{"missing"} or \code{"extra"}), or \code{NULL} if \code{status == "pass"} or
+\code{detail == FALSE}.}
 }
 }
 \description{
@@ -36,9 +38,9 @@ columns appear in the correct order. Designed for use in MarineGEO QA/QC
 pipelines and can be called directly or via \code{\link[=qc_run]{qc_run()}}.
 }
 \details{
-Only columns listed in \code{expected_columns} are evaluated; extra columns in
-\code{data} are silently ignored. Order is evaluated only for columns that are
-present in \code{data}; missing columns do not affect order reporting.
+Columns in \code{data} that are not listed in \code{expected_columns} are treated as
+extra and produce a \code{"fail"} result. Order is evaluated only when all
+expected columns are present and no extra columns exist.
 
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} when column metadata
 exists for the given \code{table_id}. It can also be called standalone with a
@@ -55,4 +57,7 @@ qc_check_columns(df, c("site", "date", "cover", "species"))
 
 # Wrong order -> warn
 qc_check_columns(df, c("date", "site", "cover"))
+
+# Extra column -> fail
+qc_check_columns(df, c("site", "date"))
 }

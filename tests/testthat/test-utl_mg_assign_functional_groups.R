@@ -1,17 +1,17 @@
-# Mock functional_group_lookup edge-list (data.tree::FromDataFrameNetwork format).
+# Mock functional_group_lookup edge-list (new format).
 #
-# Branching tree with two lineages to support classification tests:
+# Each row: from=child display name, to=parent display name, scientific_id=child's sci_id.
+# Root ("Life") has no scientific_id and never appears in `from`.
 #
-#   FUNCTIONAL:1 (Biota)              <- root
-#     FUNCTIONAL:2 (Macrophytes)
-#       APHIA:143770 (Zosteraceae)    <- anchor node
-#         APHIA:495077                <- Zostera marina
-#     FUNCTIONAL:3 (Fish)
-#       APHIA:111111                  <- Labridae spp.
+# Branching tree with two lineages:
 #
-# NOTE: Because FUNCTIONAL:1 has two children, querying either APHIA:495077 or
-# APHIA:111111 will produce duplicate rows for FUNCTIONAL:1 (one per sibling
-# branch). The assign function handles this correctly via unique() in summarize().
+#   Life (root, no scientific_id)
+#     Biota (FUNCTIONAL:1)
+#       Macrophytes (FUNCTIONAL:2)
+#         Zosteraceae (APHIA:143770)  <- anchor node
+#           Zostera marina (APHIA:495077)
+#       Fish (FUNCTIONAL:3)
+#         Labridae spp. (APHIA:111111)
 #
 # Observation lookup:
 #   "Zostera marina"           -> APHIA:495077  (Macrophytes, Biota)
@@ -20,10 +20,10 @@
 #   "unidentified macroalgae"  -> FUNCTIONAL:2  (is Macrophytes)
 
 mock_fg_lookup <- data.frame(
-  from      = c("FUNCTIONAL:1", "FUNCTIONAL:1", "FUNCTIONAL:2", "FUNCTIONAL:3", "APHIA:143770"),
-  to        = c("FUNCTIONAL:2", "FUNCTIONAL:3", "APHIA:143770", "APHIA:111111", "APHIA:495077"),
-  node_name = c("Biota",        "Biota",        "Macrophytes",  "Fish",         "Zosteraceae"),
-  tree_name = rep("test_tree", 5),
+  from         = c("Biota",       "Macrophytes",  "Fish",        "Zosteraceae",  "Zostera marina", "Labridae spp."),
+  to           = c("Life",        "Biota",        "Biota",       "Macrophytes",  "Zosteraceae",    "Fish"),
+  scientific_id = c("FUNCTIONAL:1","FUNCTIONAL:2","FUNCTIONAL:3","APHIA:143770", "APHIA:495077",   "APHIA:111111"),
+  tree_name    = rep("test_tree", 6),
   stringsAsFactors = FALSE
 )
 

@@ -16,19 +16,21 @@
 #'   \describe{
 #'     \item{`test`}{Character. Always `"qc_check_columns"`.}
 #'     \item{`status`}{Character. One of `"pass"`, `"warn"`, or `"fail"`.
-#'       `"fail"` if any expected columns are missing; `"warn"` if all columns
-#'       are present but in the wrong order; `"pass"` otherwise.}
+#'       `"fail"` if any expected columns are missing or any extra columns are
+#'       present; `"warn"` if all expected columns are present (with no extras)
+#'       but in the wrong order; `"pass"` otherwise.}
 #'     \item{`message`}{Character. Human-readable summary.}
 #'     \item{`summary`}{Data frame with counts: `n_expected`, `n_present`,
-#'       `n_missing`, and a logical `order_correct` flag.}
-#'     \item{`failures`}{Data frame with columns `column_name` and `issue`, or
-#'       `NULL` if `status == "pass"` or `detail == FALSE`.}
+#'       `n_missing`, `n_extra`, and a logical `order_correct` flag.}
+#'     \item{`failures`}{Data frame with columns `column_name` and `issue`
+#'       (values `"missing"` or `"extra"`), or `NULL` if `status == "pass"` or
+#'       `detail == FALSE`.}
 #'   }
 #'
 #' @details
-#' Only columns listed in `expected_columns` are evaluated; extra columns in
-#' `data` are silently ignored. Order is evaluated only for columns that are
-#' present in `data`; missing columns do not affect order reporting.
+#' Columns in `data` that are not listed in `expected_columns` are treated as
+#' extra and produce a `"fail"` result. Order is evaluated only when all
+#' expected columns are present and no extra columns exist.
 #'
 #' This function is called automatically by [qc_run()] when column metadata
 #' exists for the given `table_id`. It can also be called standalone with a
@@ -47,6 +49,9 @@
 #'
 #' # Wrong order -> warn
 #' qc_check_columns(df, c("date", "site", "cover"))
+#'
+#' # Extra column -> fail
+#' qc_check_columns(df, c("site", "date"))
 qc_check_columns <- function(data, expected_columns, detail = TRUE) {
   # --- Input validation -------------------------------------------------------
   if (!is.data.frame(data)) {
@@ -59,12 +64,14 @@ qc_check_columns <- function(data, expected_columns, detail = TRUE) {
     stop("`detail` must be a single logical value (TRUE or FALSE).")
   }
 
-  actual_cols    <- colnames(data)
-  missing_cols   <- setdiff(expected_columns, actual_cols)
+  actual_cols      <- colnames(data)
+  missing_cols     <- setdiff(expected_columns, actual_cols)
+  extra_cols       <- setdiff(actual_cols, expected_columns)
   present_expected <- expected_columns[expected_columns %in% actual_cols]
 
   n_expected <- length(expected_columns)
   n_missing  <- length(missing_cols)
+  n_extra    <- length(extra_cols)
   n_present  <- n_expected - n_missing
 
   # Order of present expected columns as they appear in data
@@ -72,17 +79,17 @@ qc_check_columns <- function(data, expected_columns, detail = TRUE) {
   order_correct <- identical(actual_order, present_expected)
 
   # --- Determine status and build failures ------------------------------------
-  if (n_missing > 0) {
+  if (n_missing > 0 || n_extra > 0) {
     status <- "fail"
-    msg <- paste0(
-      n_missing, " expected column(s) missing: ",
-      paste(missing_cols, collapse = ", ")
+    parts <- c(
+      if (n_missing > 0) paste0(n_missing, " expected column(s) missing: ",  paste(missing_cols, collapse = ", ")),
+      if (n_extra  > 0) paste0(n_extra,  " unexpected column(s) present: ", paste(extra_cols,   collapse = ", "))
     )
+    msg <- paste(parts, collapse = "; ")
     failures <- if (detail) {
-      data.frame(
-        column_name      = missing_cols,
-        issue            = "missing",
-        stringsAsFactors = FALSE
+      rbind(
+        if (n_missing > 0) data.frame(column_name = missing_cols, issue = "missing", stringsAsFactors = FALSE),
+        if (n_extra  > 0) data.frame(column_name = extra_cols,   issue = "extra",   stringsAsFactors = FALSE)
       )
     } else {
       NULL
@@ -123,6 +130,7 @@ qc_check_columns <- function(data, expected_columns, detail = TRUE) {
       n_expected    = n_expected,
       n_present     = n_present,
       n_missing     = n_missing,
+      n_extra       = n_extra,
       order_correct = order_correct,
       stringsAsFactors = FALSE
     ),

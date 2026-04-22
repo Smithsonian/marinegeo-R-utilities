@@ -8,7 +8,7 @@ utl_mg_get_functional_groups(scientific_ids, functional_group_tree)
 }
 \arguments{
 \item{scientific_ids}{Character vector of \code{scientific_id} values to look up
-(e.g. \code{c("APHIA:495077", "FUNCTIONAL:9")}). \code{NA} values are removed with
+(e.g. \code{c("APHIA:495077", "FUNCTIONAL:SAV")}). \code{NA} values are removed with
 a message.}
 
 \item{functional_group_tree}{Character scalar. Name of the functional group
@@ -21,8 +21,8 @@ pair. Columns:
 \describe{
 \item{scientific_id}{The supplied identifier.}
 \item{group_id}{\code{scientific_id} of the ancestor \verb{FUNCTIONAL:} node
-(e.g. \code{"FUNCTIONAL:2"}).}
-\item{group_name}{Display name of the ancestor node (e.g. \code{"Macrophytes"}).}
+(e.g. \code{"FUNCTIONAL:SAV"}).}
+\item{group_name}{Display name of the ancestor node (e.g. \code{"Seagrass"}).}
 }
 Returns a zero-row data frame with the above columns if no IDs are matched
 or if \code{scientific_ids} is empty after NA removal.
@@ -38,11 +38,12 @@ input. IDs that do not appear in the tree produce zero rows, not an error.
 }
 \details{
 The \code{functional_group_lookup} table in \code{marinegeo_metadata} is an edge-list
-data frame (columns \code{from}, \code{to}, \code{node_name}, \code{tree_name}) compatible with
-\code{data.tree::FromDataFrameNetwork()}. At query time the relevant tree is built
-from this table, the supplied ID is located via \code{data.tree::FindNode()}, and
-all \verb{FUNCTIONAL:}-prefixed ancestor nodes on the path from root to that ID
-are returned.
+data frame with columns \code{from} (child node display name), \code{to} (parent node
+display name), \code{scientific_id} (the child node's scientific identifier), and
+\code{tree_name}. At query time the relevant tree is built from this table, the
+node corresponding to the supplied \code{scientific_id} is located via
+\code{data.tree::FindNode()}, and all \verb{FUNCTIONAL:}-prefixed ancestor nodes on
+the path from root to that node are returned.
 
 When a \code{"FUNCTIONAL:X"} ID is supplied, that node itself is included in
 the results alongside its ancestors. \code{"APHIA:X"} IDs (species or taxonomic
