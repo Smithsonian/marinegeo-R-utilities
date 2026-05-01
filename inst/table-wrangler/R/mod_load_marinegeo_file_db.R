@@ -244,6 +244,8 @@ load_marinegeo_data_server <- function(id) {
           filter(filename == data_filename) %>%
           pull(filepath)
 
+        filepath <- normalizePath(filepath, winslash = "/")
+        
         if (str_ends(data_filename, ".xlsx") | str_ends(data_filename, ".xls")) {
           df <- readxl::read_excel(filepath, sheet = input$select_excel_sheet)
 
