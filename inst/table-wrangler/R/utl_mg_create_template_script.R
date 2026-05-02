@@ -1,6 +1,8 @@
 
 create_template_script <- function(script_filepath, target_table, input_filepath, excel_sheet = NULL, template_type = "standardized") {
 
+  browser()
+  
   if(str_starts(input_filepath, "/")){
     input_filepath <- substr(input_filepath, 2, nchar(input_filepath))
   }
@@ -53,7 +55,7 @@ assemble_output_filepath <- function(input_filepath, target_table){
 
   # Add new string to filename and potentially change file type
   if(str_ends(basename(input_filepath), ".xlsx")){
-    filename <- gsub(".xlsx", paste0(target_table, ".csv"), basename(input_filepath))
+    filename <- gsub(".xlsx", paste0("_", get_short_name_for_table(target_table), ".csv"), basename(input_filepath))
 
   } else if(str_ends(basename(input_filepath), ".csv")) {
     filename <- basename(input_filepath)

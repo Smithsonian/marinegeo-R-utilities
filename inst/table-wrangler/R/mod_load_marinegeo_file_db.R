@@ -238,6 +238,8 @@ load_marinegeo_data_server <- function(id) {
       #### Load data into application ####
       observeEvent(input$load_selected_data, {
 
+        #browser()
+        
         data_filename <- input$select_file
 
         filepath <- get_data_dir_inventory() %>%
@@ -248,9 +250,11 @@ load_marinegeo_data_server <- function(id) {
         
         if (str_ends(data_filename, ".xlsx") | str_ends(data_filename, ".xls")) {
           df <- readxl::read_excel(filepath, sheet = input$select_excel_sheet)
-
+          target_excel_sheet <- input$select_excel_sheet
+          
         } else if (str_ends(data_filename, ".csv")) {
           df <- readr::read_csv(filepath)
+          target_excel_sheet <- NULL
         }
 
         project_dir_value <- get_data_dir_inventory() %>%
@@ -289,6 +293,7 @@ load_marinegeo_data_server <- function(id) {
               script_filepath = script_filepath_value,
               target_table    = input$select_output_data_table,
               input_filepath  = local_data_filepath,
+              excel_sheet = target_excel_sheet,
               template_type   = grouping$template_type
             )
             
