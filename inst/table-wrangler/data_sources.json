@@ -188,6 +188,46 @@
         }
       ]		
 	},
+		{
+      "data_type": "Fouling Panel Monitoring",
+      "description": "MarineGEO Fouling Panel Monitoring",
+      "groupings": [
+        {
+          "grouping_name": "MarineGEO Required Excel",
+          "grouping_order": 1,
+          "location_type": "GitHub",
+          "location_path": "marinegeo-fouling-monitoring/L1-data/marinegeo-monitoring-v1/",
+		  "script_path": "marinegeo-fouling-monitoring/scripts/",
+          "label_strategy": {
+            "type": "none",
+            "description": "No labels"
+          },
+          "file_types": ["xlsx", "xls"],
+          "mappings": {
+            "table_ids": ["fouling-panel-metadata-v1", "fouling-biomass-v1", "fouling-sessile-v1", "fouling-cover-v1"],
+            "default_sheet_mappings": [
+              {
+                "sheet_name": "sample metadata",
+                "table_id": "fouling-panel-metadata-v1"
+              },
+              {
+                "sheet_name": "biomass data",
+                "table_id": "fouling-biomass-v1"
+              },
+              {
+                "sheet_name": "sessile species data",
+                "table_id": "fouling-sessile-v1"
+              },
+              {
+                "sheet_name": "percent cover",
+                "table_id": "fouling-cover-v1"
+              }
+            ]
+          },
+		  "template_type": "standardized"
+        }
+      ]		
+	},
     {
       "data_type": "Oyster Experiment 2025",
       "description": "MarineGEO Oyster Network Experiment 2025",
