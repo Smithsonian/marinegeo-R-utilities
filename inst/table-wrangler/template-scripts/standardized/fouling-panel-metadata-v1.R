@@ -29,7 +29,7 @@ library(marinegeo.utils)
 input_file_path <- '__INPUT_FILE_PATH__'
 
 ## Destination table metadata
-table_out <- 'fouling_panel_metadata_v1'
+table_out <- 'fouling-panel-metadata-v1'
 req_cols <- marinegeo.utils::utl_mg_column_order(table_out)
 
 ## MarineGEO Table Wrangler Start ####
@@ -39,16 +39,19 @@ __LOAD_DATA__
   mutate(input_filename = basename(input_file_path),
          table_id = table_out,
          deployment_date = ymd(paste(panel_deployment_year, panel_deployment_month, panel_deployment_day, sep = "-")),
-         retieval_date = ymd(paste(sample_retrieval_year, sample_retrieval_month, sample_retrieval_day, sep = "-")))
-
-colnames(df) <- gsub(" ", "_", tolower(colnames(df)))
+         retrieval_date = ymd(paste(sample_retrieval_year, sample_retrieval_month, sample_retrieval_day, sep = "-"))) %>%
+    mutate(deployment_length_days = interval(deployment_date, retrieval_date) / ddays(1)) %>%
+    rename(latitude = deployment_latitude,
+           longitude = deployment_longitude)
 
 df_out <- df #%>%
   # left_join(
   #   marinegeo.utils::utl_mg_get_registry("site_codes") %>%
   #     select(partner_code, site_code, site_name), by = "site_name"
   # ) %>%
-  #mutate(sample_event_id = paste(partner_code, site_code, year, sep = "_")) #%>%
+  # mutate(sample_event_id = paste(partner_code, 
+  #                                site_code, "panel", 
+  #                                year(retrieval_date), sep = "_")) %>%
   #marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
   #select(any_of(req_cols), everything())
 

@@ -1,8 +1,6 @@
 
 create_template_script <- function(script_filepath, target_table, input_filepath, excel_sheet = NULL, template_type = "standardized") {
 
-  browser()
-  
   if(str_starts(input_filepath, "/")){
     input_filepath <- substr(input_filepath, 2, nchar(input_filepath))
   }
