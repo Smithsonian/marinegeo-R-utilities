@@ -63,7 +63,7 @@ df_1 <- df %>%
 
 sample_events <- unique(df_1$sample_event_id)
 
-leaves_df <- marinegeo.utils::db_marinegeo_L2("seagrass-leaf-monitoring-v1") %>%
+leaves_df <- marinegeo.utils::db_arrow_marinegeo("seagrass-leaf-monitoring-v1") %>%
   filter(sample_event_id  %in% sample_events) %>%
   group_by(sample_event_id, site_name, transect, quadrat, scientific_name, taxonomic_id) %>%
   collect() %>%
