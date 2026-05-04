@@ -63,7 +63,7 @@ df_1 <- df %>%
 
 sites <- unique(df_1$site_name)
 
-sample_events_df <- marinegeo.utils::db_marinegeo_L2("seagrass-cover-monitoring-v1") %>%
+sample_events_df <- marinegeo.utils::db_arrow_marinegeo("seagrass-cover-monitoring-v1") %>%
   filter(site_name %in% sites) %>%
   select(sample_event_id, site_code, site_name, sample_collection_date) %>%
   distinct() %>%
