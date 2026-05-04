@@ -64,7 +64,10 @@ df_out <- df %>%
   mutate(flowers_present = case_when(
             flowers_p_a == "A" ~ F,
             flowers_p_a == "P" ~ T,
-            T ~ NA))
+            T ~ NA)) # %>%
+#marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
+#select(any_of(req_cols), everything())
+
 
 ## MarineGEO Table Wrangler End ##
 

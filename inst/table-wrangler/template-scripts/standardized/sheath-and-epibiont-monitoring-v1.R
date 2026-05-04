@@ -71,7 +71,10 @@ leaves_df <- marinegeo.utils::db_arrow_marinegeo("seagrass-leaf-monitoring-v1") 
 
 df_out <- df_1 %>%
   left_join(leaves_df) %>%
-  mutate(shoot_length_mm = sheath_length_mm + median_leaf_length_mm)
+  mutate(shoot_length_mm = sheath_length_mm + median_leaf_length_mm) #%>%
+  #marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
+  #select(any_of(req_cols), everything())
+  
 
 ## MarineGEO Table Wrangler End ##
 
