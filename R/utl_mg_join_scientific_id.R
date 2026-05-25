@@ -54,8 +54,9 @@
 #' utl_mg_join_scientific_id(df, scientific_name_col = "Species")
 utl_mg_join_scientific_id <- function(
   df,
-  scientific_name_col      = "scientific_name",
-  include_classifications  = FALSE
+  scientific_name_col = "scientific_name",
+  include_classifications = FALSE,
+  drop_abbreviations = TRUE
 ) {
   # --- Input validation -------------------------------------------------------
   if (!is.data.frame(df)) {
@@ -93,6 +94,18 @@ utl_mg_join_scientific_id <- function(
 
   if (using_alias) {
     df <- df |> dplyr::rename(scientific_name = dplyr::all_of(original_col))
+  }
+
+  # Drop abbreviations or unknown species identifiers
+  # e.g., sp., spp., sp. nov, sp. A, sp. 1
+  if(drop_abbreviations){
+    df <- df |>
+      mutate(scientific_name = trimws(
+        stringr::str_remove(
+          scientific_name, regex("\\s+spp?\\.?\\b.*$",
+                                 ignore_case = T)
+        ))
+      )
   }
 
   result <- df |>
@@ -157,4 +170,13 @@ utl_mg_join_scientific_id <- function(
   }
 
   result
+}
+
+# Use within a mutate(), e.g., mutate(df, scientific_id = utl_mg_get_scientific_id(scientific_name))
+# Accept a vector of scientific_ids
+utl_mg_get_scientific_id <- function(scientific_name,
+                                     drop_abbreviations = TRUE){
+
+
+
 }
