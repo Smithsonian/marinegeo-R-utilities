@@ -408,7 +408,7 @@ sample_event_server <- function(id, input_list) {
         
         input_list$out_df %>%
           count(scientific_name) %>%
-          utl_mg_join_scientific_id() %>%
+          mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
           mutate(
             functional_group = utl_mg_assign_functional_groups(
               fg_tree = "vegetation",
@@ -431,7 +431,7 @@ sample_event_server <- function(id, input_list) {
           
           df <- input_list$out_df %>%
             count(scientific_name, cover_type) %>%
-            utl_mg_join_scientific_id() %>%
+            mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
             mutate(
               functional_group = utl_mg_assign_functional_groups(
                 fg_tree = "oyster_composition",
@@ -448,7 +448,7 @@ sample_event_server <- function(id, input_list) {
         if(!"scientific_name" %in% colnames(input_list$out_df)){
           df <- input_list$out_df %>%
             count(scientific_name) %>%
-            utl_mg_join_scientific_id() %>%
+            mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
             mutate(
               functional_group = utl_mg_assign_functional_groups(
                 fg_tree = "vegetation",

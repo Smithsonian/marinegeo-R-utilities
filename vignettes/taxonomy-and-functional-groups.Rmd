@@ -34,57 +34,36 @@ knitr::kable(head(
 
 ```
 
-The dataset contains observations recorded to the species level, which is indicated by the column `scientific_name`. Each `scientific_name` value is associated with a standardized identifier, `scientific_id`. This allows scientific names such as "Gastropoda A", "Gastropoda B", and "Gastropoda C" to all be linked to the same `scientific_id`, "APHIA:101", and thus any taxonomic or functional group relationships associated with that ID. 
+The dataset contains observations recorded at either a species- or functional group level, which is indicated by the column `scientific_name`. Each `scientific_name` value is associated with a standardized identifier, `scientific_id`. `scientific_id` is the primary identifier linking observations across MarineGEO taxonomic and functional group metadata tables. It is either an Aphia ID (e.g. `"urn:lsid:marinespecies.org:taxname:123"`) for species/taxonomic rank observations, a functional group ID (e.g. `"FUNCTIONAL:SEAGRASS"`) for observations recorded at a functional group level, or a temporary undefined label (`"UNDEFINED:SOMETHINGNOVEL"``). 
 
-The functions below add `scientific_id` and use them to retrieve taxonomic and functional group information.
+The identifier allows scientific names such as "Gastropoda sp A", "Gastropoda sp B", and "Gastropoda sp C" to all be linked to the same `scientific_id`, "urn:lsid:marinespecies.org:taxname:101", and thus any taxonomic or functional group relationships associated with that ID, while preserving the original abbreviations in the `scientific_name` column.
+
+The functions below retrieves `scientific_id` values.
 
 ---
 
-## Join a `scientific_id` to each observation and obtain optional taxonomic classifications
+## Review `scientific_id` for each observation
 
-`utl_mg_join_scientific_id()` matches each `scientific_name` value against the
-`observation_lookup` table bundled with the package and appends a `scientific_id`
-column. Rows whose names are not in the lookup receive `NA` and trigger a
-warning so unrecognized names are never silently dropped.
+`utl_mg_get_scientific_id()` matches each provided `scientific_name` value against the
+`observation_lookup` table bundled with the package and returns a `scientific_id`
+value. Input values that are not in the lookup receive `NA` and trigger a
+warning.
 
 ```{r join-id}
-cover <- utl_mg_join_scientific_id(seagrass_cover_example)
 
+# Run the function with a vector of strings 
+utl_mg_get_scientific_id("Thalassia testudinum")
+
+# Here "Gastropoda C" doesn't follow guidance on formatting: an sp or sp. is required between the species identifier and "Gastropoda" for proper matching to a scientific ID. 
+utl_mg_get_scientific_id(c("Gastropoda sp A", "Gastropoda sp. B", "Gastropoda", "Gastropoda C"))
+
+# Use the function within a `mutate()` call
 # How many distinct names were matched?
 knitr::kable(
-  cover |>
+  seagrass_cover_example |>
+    dplyr::mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) |>
     dplyr::distinct(scientific_name, scientific_id) |>
     dplyr::arrange(scientific_name)
-)
-```
-
-Names that are not in the lookup will have `scientific_id = NA`.
-These observations are kept in the data — the warning is informational only.
-
-An optional argument to `utl_mg_join_scientific_id()`, `include_classifications`, also appends all known ranks as columns to the input dataframe. 
-
-```{r taxonomy}
-
-cover <- utl_mg_join_scientific_id(
-  seagrass_cover_example,
-  include_classifications = TRUE
-)
-
-knitr::kable(
-  cover |>
-    dplyr::arrange(scientific_name) |>
-    dplyr::select(
-      scientific_name,
-      rank,
-      Kingdom,
-      Phylum,
-      Class,
-      Order,
-      Family,
-      Genus,
-      Species
-    ) |>
-    dplyr::distinct()
 )
 
 ```
