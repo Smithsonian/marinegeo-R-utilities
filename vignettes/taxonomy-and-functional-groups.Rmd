@@ -73,7 +73,8 @@ knitr::kable(
 MarineGEO maintains nested functional group and taxonomic lookup tables. Taxa and functional/morphological groups are arranged hierarchically, allowing child elements to inherit all of the groups above them. `utl_mg_get_functional_groups()` returns every parent from the broadest group (e.g. "Biota") down for each queried ID. Here we see what groups are associated with Halodule wrightii (APHIA:208925) and Caulerpa sertularioides (APHIA:144474).
 
 ```{r functional-groups}
-species_ids <- c("APHIA:208925", "APHIA:144474")
+species_ids <- c("urn:lsid:marinespecies.org:taxname:208925", "urn:lsid:marinespecies.org:taxname:144474")
+
 fg <- utl_mg_get_functional_groups(
   species_ids,
   functional_group_tree = "vegetation"
@@ -82,30 +83,22 @@ knitr::kable(fg)
 ```
 
 The result is a long-format data frame with one row per
-(`scientific_id`, parent node) pair. The columns are:
+(`scientific_id`, group) pair. The columns are:
 
 | Column | Description |
 |---|---|
 | `scientific_id` | The queried identifier |
-| `group_id` | ID of the parent node (`FUNCTIONAL:X` or `APHIA:X`) |
-| `group_name` | Display name of the parent node |
-| `depth` | Depth in the tree (1 = broadest group, incrementing toward the leaf) |
+| `group_id` | ID of the group (parent node) |
+| `group_name` | Display name of the group (parent node) |
 
-### Querying a functional group directly
-
-You can also pass a `FUNCTIONAL:X` ID to see which higher-level groups it
-belongs to:
+You can also use the function on functional groups, as well:
 
 ```{r fg-functional-input}
-# Find the parent groups of "Seagrass"
-seagrass_id <- fg |>
-  dplyr::filter(group_name == "Seagrass") |>
-  dplyr::pull(group_id) |>
-  unique()
 
-knitr::kable(
-  utl_mg_get_functional_groups(seagrass_id, "vegetation")
-)
+# Find the parent groups of "Seagrass"
+seagrass_id <- "FUNCTIONAL:SEAGRASS"
+utl_mg_get_functional_groups(seagrass_id, "vegetation")
+
 ```
 
 ---
@@ -113,7 +106,7 @@ knitr::kable(
 ## Assign functional groups to data
 While you could filter and join the table above to a data table in order to group by functional groups to do some type of calculation, the `utl_mg_assign_functional_group()` function allows to you to assign functional groups of your choice within a mutate call. For instance, let's create a new column, `functional_group`, and assign observations to either "Seagrass" or "Algae". Then we'll generate a timeseries plot based on those groups and the percent cover variable. 
 
-```{r summary}
+```{r summary, fig.width = 8}
 
 df_functional_groups <- seagrass_cover_example |>
   dplyr::mutate(
