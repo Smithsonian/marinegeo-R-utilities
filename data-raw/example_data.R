@@ -1,7 +1,9 @@
 library(tidyverse)
+library(marinegeo.utils)
 
-seagrass_cover_example <- read_csv(
-  "C:/Users/marine/Documents/repositories/marinegeo-seagrass-monitoring/L2-data/seagrass-cover-monitoring-v1/cover_USA-IRL_2025_seagrass.csv"
-)
+seagrass_cover_example <- marinegeo.utils::db_arrow_marinegeo("seagrass-cover-monitoring-v1") %>%
+  filter(partner_code == "USA-IRL",
+         year(sample_collection_date) > 2021) %>%
+  collect()
 
 save(seagrass_cover_example, file = "data/seagrass_cover_example.rda")
