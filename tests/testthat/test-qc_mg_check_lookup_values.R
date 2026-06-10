@@ -230,3 +230,46 @@ test_that("unrecognized site_code -> fail", {
   expect_equal(result$summary$n_violations, 1L)
   expect_equal(result$failures$value, "FAKE-999")
 })
+
+test_that("scientific_name with sp. abbreviation passes when bare genus is in registry", {
+  df <- data.frame(scientific_name = "Halodule sp.", stringsAsFactors = FALSE)
+  lookups <- list(scientific_name = c("Halodule", "Zostera marina"))
+  result <- qc_check_lookup_values(df, lookups)
+
+  expect_equal(result$status, "pass")
+  expect_equal(result$summary$n_violations, 0L)
+})
+
+test_that("scientific_name with spp. abbreviation passes when bare genus is in registry", {
+  df <- data.frame(scientific_name = c("Zostera marina", "Thalassia spp."), stringsAsFactors = FALSE)
+  lookups <- list(scientific_name = c("Zostera marina", "Thalassia"))
+  result <- qc_check_lookup_values(df, lookups)
+
+  expect_equal(result$status, "pass")
+  expect_equal(result$summary$n_violations, 0L)
+})
+
+test_that("scientific_name with sp. abbreviation fails when genus not in registry", {
+  df <- data.frame(scientific_name = "Cymodocea sp.", stringsAsFactors = FALSE)
+  lookups <- list(scientific_name = c("Zostera marina", "Halodule"))
+  result <- qc_check_lookup_values(df, lookups)
+
+  expect_equal(result$status, "fail")
+  expect_equal(result$summary$n_violations, 1L)
+})
+
+test_that("failures value shows original abbreviated name, not stripped form", {
+  df <- data.frame(scientific_name = "Cymodocea sp.", stringsAsFactors = FALSE)
+  lookups <- list(scientific_name = c("Zostera marina"))
+  result <- qc_check_lookup_values(df, lookups)
+
+  expect_equal(result$failures$value, "Cymodocea sp.")
+})
+
+test_that("abbreviation stripping is not applied to non-scientific_name columns", {
+  df <- data.frame(partner_code = "USA sp.", stringsAsFactors = FALSE)
+  lookups <- list(partner_code = c("USA sp."))
+  result <- qc_check_lookup_values(df, lookups)
+
+  expect_equal(result$status, "pass")
+})

@@ -41,6 +41,15 @@
 #'
 #' # Abbreviations are stripped before matching
 #' utl_mg_get_scientific_id("Halodule sp.")
+.strip_rank_abbreviations <- function(x) {
+  trimws(
+    stringr::str_remove(
+      x,
+      stringr::regex("\\s+spp?\\.?\\b.*$", ignore_case = TRUE)
+    )
+  )
+}
+
 utl_mg_get_scientific_id <- function(
   scientific_name,
   drop_abbreviations = TRUE
@@ -67,12 +76,7 @@ utl_mg_get_scientific_id <- function(
   # --- Optionally strip trailing rank abbreviations ---------------------------
   names_to_match <- scientific_name
   if (drop_abbreviations) {
-    names_to_match <- trimws(
-      stringr::str_remove(
-        names_to_match,
-        stringr::regex("\\s+spp?\\.?\\b.*$", ignore_case = TRUE)
-      )
-    )
+    names_to_match <- .strip_rank_abbreviations(names_to_match)
   }
 
   # --- Perform lookup (preserves NA positions) --------------------------------

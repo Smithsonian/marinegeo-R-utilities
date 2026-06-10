@@ -122,8 +122,15 @@ qc_check_lookup_values <- function(data, lookups, detail = TRUE) {
     registry  <- lookups[[col]]
     col_vals  <- data[[col]]
 
+    # Strip rank abbreviations for scientific names to match lookup table convention
+    vals_to_compare <- if (col == "scientific_name") {
+      .strip_rank_abbreviations(col_vals)
+    } else {
+      col_vals
+    }
+
     # NA values are not violations
-    bad_idx <- which(!is.na(col_vals) & !(col_vals %in% registry))
+    bad_idx <- which(!is.na(col_vals) & !(vals_to_compare %in% registry))
 
     source_label <- unname(.source_map[col])
     if (is.na(source_label)) source_label <- NA_character_
