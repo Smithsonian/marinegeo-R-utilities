@@ -42,10 +42,11 @@ it matches more than one. A \code{message()} is issued in both cases listing the
 affected names.
 }
 \details{
-Functional group membership is resolved via two lookups from
-\code{marinegeo_metadata}:
+Functional group membership is resolved via two lookups:
 \enumerate{
-\item \code{observation_lookup} maps scientific names to \code{scientific_id} values.
+\item \code{\link[=utl_mg_get_scientific_id]{utl_mg_get_scientific_id()}} maps scientific names to \code{scientific_id}
+values, with trailing rank abbreviations (e.g. \code{"sp."}, \code{"spp."}) stripped
+by default before matching. Unresolved names trigger a \code{warning()}.
 \item The functional group tree is traversed by \code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}}
 to find all ancestor \code{group_name} values for each ID.
 }

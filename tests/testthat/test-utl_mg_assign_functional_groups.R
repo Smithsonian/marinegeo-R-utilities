@@ -11,16 +11,16 @@
 #         Zosteraceae (APHIA:143770)  <- anchor node
 #           Zostera marina (APHIA:495077)
 #       Fish (FUNCTIONAL:3)
-#         Labridae spp. (APHIA:111111)
+#         Labridae (APHIA:111111)
 #
-# Observation lookup:
+# Observation lookup (names stored without abbreviations):
 #   "Zostera marina"           -> APHIA:495077  (Macrophytes, Biota)
-#   "Labridae spp."            -> APHIA:111111  (Fish, Biota)
-#   "Unknown sp."              -> APHIA:999999  (not in fg tree)
+#   "Labridae"                 -> APHIA:111111  (Fish, Biota)   [input "Labridae spp." strips to this]
+#   "Unknown"                  -> APHIA:999999  (not in fg tree) [input "Unknown sp." strips to this]
 #   "unidentified macroalgae"  -> FUNCTIONAL:2  (is Macrophytes)
 
 mock_fg_lookup <- data.frame(
-  from         = c("Biota",       "Macrophytes",  "Fish",        "Zosteraceae",  "Zostera marina", "Labridae spp."),
+  from         = c("Biota",       "Macrophytes",  "Fish",        "Zosteraceae",  "Zostera marina", "Labridae"),
   to           = c("Life",        "Biota",        "Biota",       "Macrophytes",  "Zosteraceae",    "Fish"),
   scientific_id = c("FUNCTIONAL:1","FUNCTIONAL:2","FUNCTIONAL:3","APHIA:143770", "APHIA:495077",   "APHIA:111111"),
   tree_name    = rep("test_tree", 6),
@@ -28,7 +28,7 @@ mock_fg_lookup <- data.frame(
 )
 
 mock_obs_lookup <- data.frame(
-  scientific_name = c("Zostera marina", "Labridae spp.", "Unknown sp.", "unidentified macroalgae"),
+  scientific_name = c("Zostera marina", "Labridae", "Unknown", "unidentified macroalgae"),
   scientific_id   = c("APHIA:495077",   "APHIA:111111", "APHIA:999999", "FUNCTIONAL:2"),
   stringsAsFactors = FALSE
 )
@@ -236,31 +236,31 @@ test_that("multi-match message lists the affected name", {
 # Name not in observation_lookup
 # ---------------------------------------------------------------------------
 
-test_that("name absent from observation_lookup returns NA with a message", {
+test_that("name absent from observation_lookup returns NA with a warning", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  expect_message(
+  expect_warning(
     result <- utl_mg_assign_functional_groups(
       fg_tree          = "test_tree",
       fg_labels        = c("Macrophytes"),
       scientific_names = "Nonexistent species"
     ),
-    "not found in observation_lookup"
+    "could not be matched"
   )
 
   expect_true(is.na(result))
 })
 
-test_that("unresolved-name message lists the affected name", {
+test_that("unresolved-name warning lists the affected name", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  expect_message(
+  expect_warning(
     utl_mg_assign_functional_groups(
       fg_tree          = "test_tree",
       fg_labels        = c("Macrophytes"),
@@ -280,13 +280,13 @@ test_that("mix of matched, unmatched, and unresolved names all handled in one ca
     .package = "marinegeo.utils"
   )
 
-  result <- suppressMessages(
+  result <- suppressWarnings(suppressMessages(
     utl_mg_assign_functional_groups(
       fg_tree          = "test_tree",
       fg_labels        = c("Macrophytes", "Fish"),
       scientific_names = c("Zostera marina", "Unknown sp.", "Not in lookup")
     )
-  )
+  ))
 
   expect_equal(result[1], "Macrophytes")
   expect_true(is.na(result[2]))   # in lookup, but not enrolled in candidate groups
@@ -298,6 +298,11 @@ test_that("mix of matched, unmatched, and unresolved names all handled in one ca
 # ---------------------------------------------------------------------------
 
 test_that("all-NA scientific_names returns all-NA character vector with no message", {
+  local_mocked_bindings(
+    marinegeo_metadata = mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
   expect_no_message(
     result <- utl_mg_assign_functional_groups(
       fg_tree          = "test_tree",

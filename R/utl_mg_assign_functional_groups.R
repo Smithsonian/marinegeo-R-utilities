@@ -32,10 +32,11 @@
 #'   }
 #'
 #' @details
-#' Functional group membership is resolved via two lookups from
-#' `marinegeo_metadata`:
+#' Functional group membership is resolved via two lookups:
 #' \enumerate{
-#'   \item `observation_lookup` maps scientific names to `scientific_id` values.
+#'   \item [utl_mg_get_scientific_id()] maps scientific names to `scientific_id`
+#'     values, with trailing rank abbreviations (e.g. `"sp."`, `"spp."`) stripped
+#'     by default before matching. Unresolved names trigger a `warning()`.
 #'   \item The functional group tree is traversed by [utl_mg_get_functional_groups()]
 #'     to find all ancestor `group_name` values for each ID.
 #' }
@@ -72,30 +73,16 @@ utl_mg_assign_functional_groups <- function(
   }
 
   # --- Resolve scientific names to scientific_ids ----------------------------
-  unique_names <- unique(scientific_names[!is.na(scientific_names)])
+  ids <- utl_mg_get_scientific_id(scientific_names)
 
-  if (length(unique_names) == 0) {
-    return(rep(NA_character_, length(scientific_names)))
-  }
-
-  obs_lookup <- marinegeo_metadata$observation_lookup |>
-    dplyr::filter(scientific_name %in% unique_names) |>
-    dplyr::select(scientific_name, scientific_id) |>
+  obs_lookup <- dplyr::tibble(
+    scientific_name = scientific_names,
+    scientific_id   = ids
+  ) |>
+    dplyr::filter(!is.na(scientific_name)) |>
     dplyr::distinct()
 
-  unresolved <- setdiff(unique_names, obs_lookup$scientific_name)
-  if (length(unresolved) > 0) {
-    message(
-      length(unresolved),
-      " scientific name(s) not found in observation_lookup and will be ",
-      "assigned NA: ",
-      paste(unresolved, collapse = ", ")
-    )
-  }
-
-  unique_ids <- unique(obs_lookup$scientific_id[
-    !is.na(obs_lookup$scientific_id)
-  ])
+  unique_ids <- unique(ids[!is.na(ids)])
 
   if (length(unique_ids) == 0) {
     return(rep(NA_character_, length(scientific_names)))
