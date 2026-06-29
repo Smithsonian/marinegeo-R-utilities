@@ -46,7 +46,10 @@ db_arrow_marinegeo <- function(
   return_type = "arrow_dataset"
 ) {
   # Validate return_type
-  return_type <- match.arg(return_type, choices = c("arrow_dataset", "dataframe"))
+  return_type <- match.arg(
+    return_type,
+    choices = c("arrow_dataset", "dataframe")
+  )
 
   # Load data structure and use column and data types to create schema
   table_data_structure <- marinegeo_metadata$database_structure |>
@@ -71,15 +74,15 @@ db_arrow_marinegeo <- function(
 
     arrow_type <- switch(
       data_type,
-      "STRING"       = arrow::string(),
-      "INT"          = arrow::int32(),
-      "INT64"        = arrow::int64(),
-      "TIMESTAMP"    = arrow::timestamp(),
+      "STRING" = arrow::string(),
+      "INT" = arrow::int32(),
+      "INT64" = arrow::int64(),
+      "TIMESTAMP" = arrow::timestamp(),
       "TIMESTAMP UTC" = arrow::timestamp(timezone = "UTC"),
-      "DOUBLE"       = arrow::float64(),
-      "DATE"         = arrow::date32(),
-      "TINYINT"      = arrow::uint8(),
-      "BOOL"         = arrow::bool()
+      "DOUBLE" = arrow::float64(),
+      "DATE" = arrow::date32(),
+      "TINYINT" = arrow::uint8(),
+      "BOOL" = arrow::bool()
     )
 
     arrow::field(column_name, arrow_type)
