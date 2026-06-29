@@ -145,13 +145,16 @@ utl_mg_get_registry <- function(table, ...) {
 
   if (!table %in% valid_tables) {
     stop(
-      "'", table, "' is not a recognized registry table. ",
+      "'",
+      table,
+      "' is not a recognized registry table. ",
       "Valid options are: ",
-      paste(paste0('"', valid_tables, '"'), collapse = ", "), "."
+      paste(paste0('"', valid_tables, '"'), collapse = ", "),
+      "."
     )
   }
 
-  tbl <- marinegeo_metadata[[table]]
+  tbl <- .mg_get_registry_table(table)
 
   filters <- list(...)
 
@@ -159,10 +162,14 @@ utl_mg_get_registry <- function(table, ...) {
     unknown_cols <- setdiff(names(filters), colnames(tbl))
     if (length(unknown_cols) > 0) {
       stop(
-        "Unknown filter column(s) for table '", table, "': ",
-        paste(paste0('"', unknown_cols, '"'), collapse = ", "), ". ",
+        "Unknown filter column(s) for table '",
+        table,
+        "': ",
+        paste(paste0('"', unknown_cols, '"'), collapse = ", "),
+        ". ",
         "Valid columns are: ",
-        paste(paste0('"', colnames(tbl), '"'), collapse = ", "), "."
+        paste(paste0('"', colnames(tbl), '"'), collapse = ", "),
+        "."
       )
     }
 

@@ -45,6 +45,7 @@ mock_metadata <- list(
 test_that("returns a character vector of the same length as scientific_names", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -67,6 +68,7 @@ test_that("returns a character vector of the same length as scientific_names", {
 test_that("name belonging to exactly one candidate group returns that group", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -85,6 +87,7 @@ test_that("name belonging to exactly one candidate group returns that group", {
 test_that("FUNCTIONAL: scientific_id that IS a candidate group is correctly assigned", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -102,6 +105,7 @@ test_that("FUNCTIONAL: scientific_id that IS a candidate group is correctly assi
 test_that("repeated names in scientific_names are all assigned correctly", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -123,6 +127,7 @@ test_that("repeated names in scientific_names are all assigned correctly", {
 test_that("NA scientific names are returned as NA without a message", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -140,6 +145,7 @@ test_that("NA scientific names are returned as NA without a message", {
 test_that("NA values in a mixed vector are NA in output, valid names are assigned", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -162,6 +168,7 @@ test_that("NA values in a mixed vector are NA in output, valid names are assigne
 test_that("name with no fg match returns NA with a message", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -180,6 +187,7 @@ test_that("name with no fg match returns NA with a message", {
 test_that("no-match message lists the affected scientific name", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -200,6 +208,7 @@ test_that("no-match message lists the affected scientific name", {
 test_that("name matching multiple candidate groups returns NA with a message", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -219,6 +228,7 @@ test_that("name matching multiple candidate groups returns NA with a message", {
 test_that("multi-match message lists the affected name", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -239,6 +249,7 @@ test_that("multi-match message lists the affected name", {
 test_that("name absent from observation_lookup returns NA with a warning", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -257,6 +268,7 @@ test_that("name absent from observation_lookup returns NA with a warning", {
 test_that("unresolved-name warning lists the affected name", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -277,6 +289,7 @@ test_that("unresolved-name warning lists the affected name", {
 test_that("mix of matched, unmatched, and unresolved names all handled in one call", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -300,6 +313,7 @@ test_that("mix of matched, unmatched, and unresolved names all handled in one ca
 test_that("all-NA scientific_names returns all-NA character vector with no message", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 
