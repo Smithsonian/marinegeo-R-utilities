@@ -12,9 +12,9 @@
 # Every directory-backed table is fetched live. When a live fetch fails (offline,
 # 404, timeout, empty directory, ...) the resolver falls back to the bundled copy
 # of that table, so the package keeps working without a network connection.
-# Tables that are not directory-backed (`data_index`, a single root CSV, and
-# `taxonomic_classifications`, computed at build time) are always returned from
-# the bundled `marinegeo_metadata` object.
+# `data_index` (a single root CSV, not a directory) is the one table that is not
+# directory-backed and is always returned from the bundled `marinegeo_metadata`
+# object.
 #
 # Live fetching can be turned off entirely — forcing every table to come from the
 # bundled object — by setting `options(marinegeo.utils.live_registry = FALSE)` or
@@ -22,11 +22,10 @@
 # reproducible / fully offline runs (and the test suite uses it to avoid the
 # network).
 #
-# Note: `taxonomic_classifications` is precomputed at build time from
-# `taxonomic_lookup` (see .get_taxonomic_classifications() in
-# R/utl_mg_traverse_adjacency_tables.R) and remains bundled. It is NOT recomputed
-# from live `taxonomic_lookup`, so it can drift from the live table until the next
-# sysdata rebuild. This is a known limitation, not a bug.
+# Note: wide-form taxonomic classifications are no longer bundled. They are
+# reconstructed on demand from the live `taxonomic_lookup` by
+# utl_mg_get_taxonomic_classifications() (see R/utl_mg_traverse_adjacency_tables.R),
+# so they always reflect the current lookup table.
 
 # GitHub sources, pinned to `main`.
 .mg_raw_base <- "https://raw.githubusercontent.com/Smithsonian/marinegeo-metadata/refs/heads/main/"

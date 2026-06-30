@@ -84,19 +84,6 @@
   stringsAsFactors = FALSE
 )
 
-.taxonomic_classifications <- data.frame(
-  scientific_id = c("APHIA:374534", "APHIA:145792"),
-  rank = c("Species", "Species"),
-  Kingdom = c("Plantae", "Plantae"),
-  Phylum = c("Tracheophyta", "Tracheophyta"),
-  Class = c(NA_character_, NA_character_),
-  Order = c("Alismatales", "Alismatales"),
-  Family = c("Zosteraceae", "Posidoniaceae"),
-  Genus = c("Zostera", "Posidonia"),
-  Species = c("Zostera marina", "Posidonia oceanica"),
-  stringsAsFactors = FALSE
-)
-
 .mock_metadata <- list(
   partner_codes = .partner_codes,
   site_codes = .site_codes,
@@ -106,8 +93,7 @@
   data_index = .data_index,
   database_structure = .database_structure,
   categorical_values = .categorical_values,
-  numeric_ranges = .numeric_ranges,
-  taxonomic_classifications = .taxonomic_classifications
+  numeric_ranges = .numeric_ranges
 )
 
 # ---------------------------------------------------------------------------
@@ -281,30 +267,6 @@ test_that("returns full numeric_ranges table with expected columns", {
       colnames(result)
   ))
   expect_equal(nrow(result), nrow(.numeric_ranges))
-})
-
-test_that("returns full taxonomic_classifications table with expected columns", {
-  local_mocked_bindings(
-    marinegeo_metadata = .mock_metadata,
-    .package = "marinegeo.utils"
-  )
-
-  result <- utl_mg_get_registry("taxonomic_classifications")
-
-  expect_s3_class(result, "data.frame")
-  expect_true(all(
-    c(
-      "scientific_id",
-      "rank",
-      "Kingdom",
-      "Phylum",
-      "Family",
-      "Genus",
-      "Species"
-    ) %in%
-      colnames(result)
-  ))
-  expect_equal(nrow(result), nrow(.taxonomic_classifications))
 })
 
 # ---------------------------------------------------------------------------
