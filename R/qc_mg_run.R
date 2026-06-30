@@ -120,15 +120,28 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
       return(arrow::read_parquet(x))
     } else {
       stop(
-        "Unsupported file extension '.", ext, "'. ",
+        "Unsupported file extension '.",
+        ext,
+        "'. ",
         "Supported: csv, xlsx, xls, parquet."
       )
     }
   }
 
   # Arrow Dataset or Table
-  if (inherits(x, c("ArrowObject", "Dataset", "arrow_dplyr_query",
-                     "RecordBatch", "Table", "ArrowTabular"))) {
+  if (
+    inherits(
+      x,
+      c(
+        "ArrowObject",
+        "Dataset",
+        "arrow_dplyr_query",
+        "RecordBatch",
+        "Table",
+        "ArrowTabular"
+      )
+    )
+  ) {
     if (!requireNamespace("arrow", quietly = TRUE)) {
       stop(
         "The 'arrow' package is required to process Arrow objects. ",
@@ -140,7 +153,8 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
 
   stop(
     "`x` must be a data frame, a file path (character), or an Arrow object. ",
-    "Got: ", paste(class(x), collapse = "/")
+    "Got: ",
+    paste(class(x), collapse = "/")
   )
 }
 
@@ -148,23 +162,25 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
 # Internal: metadata-driven dispatch
 # ---------------------------------------------------------------------------
 .qc_dispatch <- function(data, table_id, detail) {
-  db_struct  <- marinegeo_metadata$database_structure
-  cat_vals   <- marinegeo_metadata$categorical_values
+  db_struct <- .mg_get_registry_table("database_structure")
+  cat_vals <- .mg_get_registry_table("categorical_values")
 
   tbl_struct <- db_struct[db_struct$table_id == table_id, ]
-  tbl_cats   <- cat_vals[cat_vals$table_id == table_id, ]
+  tbl_cats <- cat_vals[cat_vals$table_id == table_id, ]
 
   if (nrow(tbl_struct) == 0 && nrow(tbl_cats) == 0) {
     warning(
-      "No metadata found for table_id '", table_id, "'. ",
+      "No metadata found for table_id '",
+      table_id,
+      "'. ",
       "No tests will be run. ",
       "Check `marinegeo_metadata$data_index` for valid table_id values."
     )
     return(list(
       table_id = table_id,
-      status   = "pass",
-      n_rows   = nrow(data),
-      tests    = list()
+      status = "pass",
+      n_rows = nrow(data),
+      tests = list()
     ))
   }
 
@@ -173,9 +189,9 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   # --- Test 1: column presence and order -------------------------------------
   if (nrow(tbl_struct) > 0) {
     results$qc_check_columns <- qc_check_columns(
-      data             = data,
+      data = data,
       expected_columns = tbl_struct$column_name,
-      detail           = detail
+      detail = detail
     )
   }
 
@@ -185,9 +201,9 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
     if (nrow(type_rows) > 0) {
       type_map <- stats::setNames(type_rows$data_type, type_rows$column_name)
       results$qc_check_data_types <- qc_check_data_types(
-        data     = data,
+        data = data,
         type_map = type_map,
-        detail   = detail
+        detail = detail
       )
     }
   }
@@ -195,8 +211,8 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   # --- Test 3: categorical values --------------------------------------------
   if (nrow(tbl_cats) > 0) {
     results$qc_check_categorical_values <- qc_check_categorical_values(
-      data   = data,
-      rules  = tbl_cats[, c("column_name", "value")],
+      data = data,
+      rules = tbl_cats[, c("column_name", "value")],
       detail = detail
     )
   }
@@ -205,18 +221,27 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   miss_rows <- tbl_struct[tbl_struct$missing_values %in% c("enforce", "warn"), ]
   if (nrow(miss_rows) > 0) {
     results$qc_check_missing_values <- qc_check_missing_values(
-      data   = data,
-      rules  = miss_rows[, c("column_name", "missing_values")],
+      data = data,
+      rules = miss_rows[, c("column_name", "missing_values")],
       detail = detail
     )
   }
 
   # --- Test 5: numeric ranges ------------------------------------------------
-  num_ranges <- marinegeo_metadata$numeric_ranges
-  range_cols <- c("column_name", "max_fail", "min_fail", "max_warn",
-                  "min_warn", "range_type")
-  if (nrow(num_ranges) > 0 && "table_id" %in% colnames(num_ranges) &&
-      all(range_cols %in% colnames(num_ranges))) {
+  num_ranges <- .mg_get_registry_table("numeric_ranges")
+  range_cols <- c(
+    "column_name",
+    "max_fail",
+    "min_fail",
+    "max_warn",
+    "min_warn",
+    "range_type"
+  )
+  if (
+    nrow(num_ranges) > 0 &&
+      "table_id" %in% colnames(num_ranges) &&
+      all(range_cols %in% colnames(num_ranges))
+  ) {
     tbl_ranges <- num_ranges[num_ranges$table_id == table_id, ]
     tbl_ranges <- tbl_ranges[!is.na(tbl_ranges$range_type), ]
   } else {
@@ -224,26 +249,37 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   }
   if (nrow(tbl_ranges) > 0) {
     results$qc_check_numeric_ranges <- qc_check_numeric_ranges(
-      data   = data,
-      rules  = tbl_ranges[, c("column_name", "max_fail", "min_fail",
-                               "max_warn", "min_warn", "range_type")],
+      data = data,
+      rules = tbl_ranges[, c(
+        "column_name",
+        "max_fail",
+        "min_fail",
+        "max_warn",
+        "min_warn",
+        "range_type"
+      )],
       detail = detail
     )
   }
 
   # --- Test 6: lookup values ---------------------------------------------------
-  lookup_map <- Filter(Negate(is.null), list(
-    partner_code    = marinegeo_metadata$partner_codes$partner_code,
-    site_name       = marinegeo_metadata$site_codes$site_name,
-    site_code       = marinegeo_metadata$site_codes$site_code,
-    scientific_name = marinegeo_metadata$observation_lookup$scientific_name
-  ))
+  lookup_map <- Filter(
+    Negate(is.null),
+    list(
+      partner_code = .mg_get_registry_table("partner_codes")$partner_code,
+      site_name = .mg_get_registry_table("site_codes")$site_name,
+      site_code = .mg_get_registry_table("site_codes")$site_code,
+      scientific_name = .mg_get_registry_table(
+        "observation_lookup"
+      )$scientific_name
+    )
+  )
   present_lookup_cols <- intersect(names(lookup_map), colnames(data))
   if (length(present_lookup_cols) > 0) {
     results$qc_check_lookup_values <- qc_check_lookup_values(
-      data    = data,
+      data = data,
       lookups = lookup_map[present_lookup_cols],
-      detail  = detail
+      detail = detail
     )
   }
 
@@ -255,9 +291,9 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   }
   if (length(uuid_cols) > 0) {
     results$qc_check_row_uniqueness <- qc_check_row_uniqueness(
-      data    = data,
+      data = data,
       id_cols = uuid_cols,
-      detail  = detail
+      detail = detail
     )
   }
 
@@ -273,8 +309,8 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
 
   list(
     table_id = table_id,
-    status   = top_status,
-    n_rows   = nrow(data),
-    tests    = results
+    status = top_status,
+    n_rows = nrow(data),
+    tests = results
   )
 }

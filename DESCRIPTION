@@ -13,6 +13,7 @@ RoxygenNote: 7.3.3
 Imports:
     digest,
     dplyr,
+    jsonlite,
     readr,
     readxl,
     stringr,
@@ -20,6 +21,7 @@ Imports:
     tidyr,
     ggplot2,
     lubridate,
+    memoise,
     plotly,
     purrr,
     worrms,
@@ -32,6 +34,7 @@ Suggests:
     knitr,
     rmarkdown,
     testthat (>= 3.0.0),
+    withr,
     writexl
 VignetteBuilder: knitr
 Config/testthat/edition: 3

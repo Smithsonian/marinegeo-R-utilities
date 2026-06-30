@@ -4,35 +4,46 @@
 
 # Minimal database_structure for a mock table
 mock_db_struct <- data.frame(
-  table_id    = c("test_table_v1", "test_table_v1", "test_table_v1"),
+  table_id = c("test_table_v1", "test_table_v1", "test_table_v1"),
   column_name = c("site_name", "survey_date", "cover"),
-  data_type   = c("STRING", "DATE", "DOUBLE"),
+  data_type = c("STRING", "DATE", "DOUBLE"),
   stringsAsFactors = FALSE
 )
 
 # Categorical rules for the same mock table
 mock_cat_vals <- data.frame(
-  table_id    = c("test_table_v1", "test_table_v1"),
+  table_id = c("test_table_v1", "test_table_v1"),
   column_name = c("site_name", "site_name"),
-  value       = c("Site A", "Site B"),
+  value = c("Site A", "Site B"),
   stringsAsFactors = FALSE
 )
 
 # A data frame that should produce a clean pass against mock_db_struct
 good_df <- data.frame(
-  site_name   = c("Site A", "Site B"),
+  site_name = c("Site A", "Site B"),
   survey_date = as.Date(c("2024-06-01", "2024-06-02")),
-  cover       = c(20.5, 35.0),
+  cover = c(20.5, 35.0),
   stringsAsFactors = FALSE
 )
 
 make_mock_metadata <- function(
   db_struct = mock_db_struct,
-  cat_vals  = mock_cat_vals
+  cat_vals = mock_cat_vals
 ) {
   list(
     database_structure = db_struct,
     categorical_values = cat_vals
+  )
+}
+
+# qc_run resolves observation_lookup via the live fetcher (.mg_fetch_registry).
+# Stub it so these tests never touch the network; the test data carries no
+# scientific_name column, so an empty lookup is sufficient.
+.stub_fetch_obs <- function(url) {
+  data.frame(
+    scientific_name = character(0),
+    scientific_id = character(0),
+    stringsAsFactors = FALSE
   )
 }
 
@@ -43,17 +54,21 @@ make_mock_metadata <- function(
 test_that("qc_run returns a named list with required top-level elements", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(good_df, table_id = "test_table_v1")
 
   expect_type(result, "list")
-  expect_true(all(c("table_id", "status", "n_rows", "tests") %in% names(result)))
+  expect_true(all(
+    c("table_id", "status", "n_rows", "tests") %in% names(result)
+  ))
 })
 
 test_that("table_id is echoed back in the result", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(good_df, table_id = "test_table_v1")
@@ -64,6 +79,7 @@ test_that("table_id is echoed back in the result", {
 test_that("n_rows matches the number of rows in the input data", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(good_df, table_id = "test_table_v1")
@@ -74,6 +90,7 @@ test_that("n_rows matches the number of rows in the input data", {
 test_that("tests is a named list with expected test names", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(good_df, table_id = "test_table_v1")
@@ -91,6 +108,7 @@ test_that("tests is a named list with expected test names", {
 test_that("clean data against known schema returns top-level pass", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(good_df, table_id = "test_table_v1")
@@ -103,12 +121,17 @@ test_that("clean data against known schema returns top-level pass", {
 # ---------------------------------------------------------------------------
 
 test_that("missing column in data causes top-level fail", {
-  df <- good_df[, c("survey_date", "cover")]  # remove site_name
+  df <- good_df[, c("survey_date", "cover")] # remove site_name
   local_mocked_bindings(
-    marinegeo_metadata = make_mock_metadata(cat_vals = data.frame(
-      table_id = character(0), column_name = character(0), value = character(0),
-      stringsAsFactors = FALSE
-    )),
+    marinegeo_metadata = make_mock_metadata(
+      cat_vals = data.frame(
+        table_id = character(0),
+        column_name = character(0),
+        value = character(0),
+        stringsAsFactors = FALSE
+      )
+    ),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(df, table_id = "test_table_v1")
@@ -122,6 +145,7 @@ test_that("bad categorical value causes top-level fail", {
 
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(df, table_id = "test_table_v1")
@@ -132,10 +156,15 @@ test_that("bad categorical value causes top-level fail", {
 test_that("wrong column order causes top-level warn", {
   df <- good_df[, c("cover", "survey_date", "site_name")]
   local_mocked_bindings(
-    marinegeo_metadata = make_mock_metadata(cat_vals = data.frame(
-      table_id = character(0), column_name = character(0), value = character(0),
-      stringsAsFactors = FALSE
-    )),
+    marinegeo_metadata = make_mock_metadata(
+      cat_vals = data.frame(
+        table_id = character(0),
+        column_name = character(0),
+        value = character(0),
+        stringsAsFactors = FALSE
+      )
+    ),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(df, table_id = "test_table_v1")
@@ -153,6 +182,7 @@ test_that("detail = FALSE: fail status but no failures in any test", {
 
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(df, table_id = "test_table_v1", detail = FALSE)
@@ -170,6 +200,7 @@ test_that("detail = FALSE: fail status but no failures in any test", {
 test_that("unknown table_id issues a warning and returns empty tests", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   expect_warning(
@@ -188,10 +219,13 @@ test_that("table with no categorical metadata skips categorical test", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(
       cat_vals = data.frame(
-        table_id = character(0), column_name = character(0), value = character(0),
+        table_id = character(0),
+        column_name = character(0),
+        value = character(0),
         stringsAsFactors = FALSE
       )
     ),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
   result <- qc_run(good_df, table_id = "test_table_v1")
@@ -206,6 +240,7 @@ test_that("table with no categorical metadata skips categorical test", {
 test_that("CSV file path produces same result as passing data frame directly", {
   local_mocked_bindings(
     marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_registry = .stub_fetch_obs,
     .package = "marinegeo.utils"
   )
 
@@ -213,7 +248,7 @@ test_that("CSV file path produces same result as passing data frame directly", {
   on.exit(unlink(csv_path))
   readr::write_csv(good_df, csv_path)
 
-  result_df  <- qc_run(good_df, table_id = "test_table_v1")
+  result_df <- qc_run(good_df, table_id = "test_table_v1")
   result_csv <- qc_run(csv_path, table_id = "test_table_v1")
 
   expect_equal(result_df$status, result_csv$status)

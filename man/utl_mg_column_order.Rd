@@ -8,8 +8,8 @@ utl_mg_column_order(table_id)
 }
 \arguments{
 \item{table_id}{Character scalar. A MarineGEO table identifier (e.g.,
-\code{"sav_cover_v1"}). Must match a \code{table_id} present in
-\code{marinegeo_metadata$database_structure}. Use \code{\link[=utl_mg_list_tables]{utl_mg_list_tables()}} to
+\code{"sav_cover_v1"}). Must match a \code{table_id} present in the
+\code{database_structure} registry. Use \code{\link[=utl_mg_list_tables]{utl_mg_list_tables()}} to
 browse valid table identifiers.}
 }
 \value{

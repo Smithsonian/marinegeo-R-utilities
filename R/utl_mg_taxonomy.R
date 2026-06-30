@@ -1,3 +1,12 @@
+.strip_rank_abbreviations <- function(x) {
+  trimws(
+    stringr::str_remove(
+      x,
+      stringr::regex("\\s+spp?\\.?\\b.*$", ignore_case = TRUE)
+    )
+  )
+}
+
 #' Look up scientific IDs for a vector of scientific names
 #'
 #' @description
@@ -41,15 +50,6 @@
 #'
 #' # Abbreviations are stripped before matching
 #' utl_mg_get_scientific_id("Halodule sp.")
-.strip_rank_abbreviations <- function(x) {
-  trimws(
-    stringr::str_remove(
-      x,
-      stringr::regex("\\s+spp?\\.?\\b.*$", ignore_case = TRUE)
-    )
-  )
-}
-
 utl_mg_get_scientific_id <- function(
   scientific_name,
   drop_abbreviations = TRUE
@@ -64,7 +64,7 @@ utl_mg_get_scientific_id <- function(
   }
 
   # --- Build lookup table -----------------------------------------------------
-  obs_lookup <- marinegeo_metadata$observation_lookup |>
+  obs_lookup <- .mg_get_registry_table("observation_lookup") |>
     dplyr::select(scientific_name, scientific_id) |>
     dplyr::distinct()
 

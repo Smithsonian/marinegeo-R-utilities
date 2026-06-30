@@ -30,7 +30,7 @@ matched.
 For each Aphia-based \code{scientific_id} supplied, walks the MarineGEO
 \code{taxonomic_lookup} adjacency table to reconstruct the full taxonomic
 hierarchy and returns the result as a wide data frame with one column per
-standard rank. Called at sysdata build time to precompute classifications.
+standard rank. Called at runtime by \code{\link[=utl_mg_get_taxonomic_classifications]{utl_mg_get_taxonomic_classifications()}}.
 
 Only IDs that begin with \code{"APHIA:"} are present in \code{taxonomic_lookup}.
 Functional group IDs (\code{"FUNCTIONAL:"}) will not be matched and are silently

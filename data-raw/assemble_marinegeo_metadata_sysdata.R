@@ -16,9 +16,6 @@ if (branch != "main") {
   )
 }
 
-# Load internal helper functions for traversing adjacency tables
-source("R/utl_mg_traverse_adjacency_tables.R")
-
 # ---------------------------------------------------------------------------
 # Assemble marinegeo_metadata
 # ---------------------------------------------------------------------------
@@ -110,12 +107,6 @@ marinegeo_metadata <- list(
       full.names = T
     )
   )
-)
-
-# Precompute wide-form taxonomic classifications (build-time adjacency table traversal)
-marinegeo_metadata$taxonomic_classifications <- .get_taxonomic_classifications(
-  scientific_ids = marinegeo_metadata$taxonomic_lookup$scientific_id,
-  taxonomic_lookup = marinegeo_metadata$taxonomic_lookup
 )
 
 usethis::use_data(marinegeo_metadata, internal = TRUE, overwrite = TRUE)
