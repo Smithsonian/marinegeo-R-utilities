@@ -2,7 +2,7 @@
 #' Join taxonomic classification to input dataframe
 #'
 #'@description
-#' The function calls `utl_get_taxonomy_by_scientific_name()` to query the MarineGEO taxonomic
+#' The function calls `utl_get_taxonomy_by_scientific_name_deprecated()` to query the MarineGEO taxonomic
 #' database by scientific name. If the sample is identified by a column not named "scientific_name",
 #' it should be defined in the `identification_column_name` argument.
 #'
@@ -14,10 +14,10 @@
 #' @export
 #'
 #' @examples
-#' df <- utl_rls_load_excel("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
+#' df <- utl_rls_load_excel_deprecated("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
 #'  dplyr::filter(Method == "1" | Method == "2")
-#' utl_join_taxonomy_by_scientific_name(df, identification_column_name = "Species")
-#' utl_join_taxonomy_by_scientific_name(df, identification_column_name = "Species", "phylum")
+#' utl_join_taxonomy_by_scientific_name_deprecated(df, identification_column_name = "Species")
+#' utl_join_taxonomy_by_scientific_name+_deprecated(df, identification_column_name = "Species", "phylum")
 utl_join_taxonomy_by_scientific_name_deprecated <- function(df,
                                                  identification_column_name = "scientific_name",
                                                  taxonomic_levels = NULL){
@@ -65,7 +65,7 @@ utl_join_taxonomy_by_scientific_name_deprecated <- function(df,
 
   }, error = function(e){
 
-    cat("Error in utl_join_taxonomy_by_scientific_name():", e$message, "\n")
+    cat("Error in utl_join_taxonomy_by_scientific_name_deprecated:", e$message, "\n")
     return(NULL)
 
   })

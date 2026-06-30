@@ -105,7 +105,7 @@ utl_mg_load_excel_deprecated <- function(filepath, output_table, sheet_name){
 
     } else {
 
-      message(paste("Target table is not defined in utl_mg_load_excel(): ", output_table))
+      message(paste("Target table is not defined in utl_mg_load_excel_deprecated(): ", output_table))
       return(NULL)
 
     }

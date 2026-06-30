@@ -66,7 +66,7 @@ db_get_taxonomy_by_scientific_name_deprecated <- function(scientific_names,
 
   }, error = function(e){
 
-    cat("Error in db_get_taxonomy_by_scientific_name():", e$message, "\n")
+    cat("Error in db_get_taxonomy_by_scientific_name_deprecated():", e$message, "\n")
     return(NULL)
 
   })
