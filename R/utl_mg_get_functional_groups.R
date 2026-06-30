@@ -82,7 +82,7 @@ utl_mg_get_functional_groups <- function(
     return(empty_result)
   }
 
-  fg <- marinegeo_metadata$functional_group_lookup |>
+  fg <- .mg_get_registry_table("functional_group_lookup") |>
     dplyr::filter(tree_name == functional_group_tree)
 
   # CSV uses from=child, to=parent; swap to match data.tree's from=parent, to=child convention
@@ -95,7 +95,9 @@ utl_mg_get_functional_groups <- function(
 
   rows <- dplyr::bind_rows(lapply(scientific_ids, function(id) {
     node_display_name <- fg$from[fg$scientific_id == id]
-    if (length(node_display_name) == 0) return(NULL)
+    if (length(node_display_name) == 0) {
+      return(NULL)
+    }
 
     found <- data.tree::FindNode(fg_tree, node_display_name)
     fg |>
@@ -104,7 +106,9 @@ utl_mg_get_functional_groups <- function(
       dplyr::mutate(queried_id = id)
   }))
 
-  if (nrow(rows) == 0) return(empty_result)
+  if (nrow(rows) == 0) {
+    return(empty_result)
+  }
 
   rows |>
     dplyr::select(queried_id, group_id = scientific_id, group_name = from) |>

@@ -162,8 +162,8 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
 # Internal: metadata-driven dispatch
 # ---------------------------------------------------------------------------
 .qc_dispatch <- function(data, table_id, detail) {
-  db_struct <- marinegeo_metadata$database_structure
-  cat_vals <- marinegeo_metadata$categorical_values
+  db_struct <- .mg_get_registry_table("database_structure")
+  cat_vals <- .mg_get_registry_table("categorical_values")
 
   tbl_struct <- db_struct[db_struct$table_id == table_id, ]
   tbl_cats <- cat_vals[cat_vals$table_id == table_id, ]
@@ -228,7 +228,7 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   }
 
   # --- Test 5: numeric ranges ------------------------------------------------
-  num_ranges <- marinegeo_metadata$numeric_ranges
+  num_ranges <- .mg_get_registry_table("numeric_ranges")
   range_cols <- c(
     "column_name",
     "max_fail",
@@ -266,9 +266,9 @@ qc_run <- function(x, table_id, detail = TRUE, sheet = 1L) {
   lookup_map <- Filter(
     Negate(is.null),
     list(
-      partner_code = marinegeo_metadata$partner_codes$partner_code,
-      site_name = marinegeo_metadata$site_codes$site_name,
-      site_code = marinegeo_metadata$site_codes$site_code,
+      partner_code = .mg_get_registry_table("partner_codes")$partner_code,
+      site_name = .mg_get_registry_table("site_codes")$site_name,
+      site_code = .mg_get_registry_table("site_codes")$site_code,
       scientific_name = .mg_get_registry_table(
         "observation_lookup"
       )$scientific_name

@@ -52,7 +52,7 @@ db_arrow_marinegeo <- function(
   )
 
   # Load data structure and use column and data types to create schema
-  table_data_structure <- marinegeo_metadata$database_structure |>
+  table_data_structure <- .mg_get_registry_table("database_structure") |>
     dplyr::filter(table_id == !!table_id)
 
   if (nrow(table_data_structure) == 0) {

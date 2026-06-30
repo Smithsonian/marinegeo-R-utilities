@@ -7,8 +7,8 @@
 #' validate columns in a data frame.
 #'
 #' @param table_id Character scalar. A MarineGEO table identifier (e.g.,
-#'   `"sav_cover_v1"`). Must match a `table_id` present in
-#'   `marinegeo_metadata$database_structure`. Use [utl_mg_list_tables()] to
+#'   `"sav_cover_v1"`). Must match a `table_id` present in the
+#'   `database_structure` registry. Use [utl_mg_list_tables()] to
 #'   browse valid table identifiers.
 #'
 #' @return A character vector of column names in the expected order for the
@@ -36,7 +36,7 @@ utl_mg_column_order <- function(table_id) {
     stop("`table_id` must be a single non-NA character string.")
   }
 
-  valid_ids <- unique(marinegeo_metadata$database_structure$table_id)
+  valid_ids <- unique(.mg_get_registry_table("database_structure")$table_id)
 
   if (!table_id %in% valid_ids) {
     stop(
@@ -48,7 +48,7 @@ utl_mg_column_order <- function(table_id) {
     )
   }
 
-  marinegeo_metadata$database_structure |>
+  .mg_get_registry_table("database_structure") |>
     dplyr::filter(table_id == !!table_id) |>
     dplyr::pull(column_name)
 }
