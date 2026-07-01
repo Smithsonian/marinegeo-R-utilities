@@ -110,16 +110,27 @@ marinegeo_metadata <- list(
       full.names = T
     )
   ),
-  
+
   legacy_taxonomic_ids = readr::read_csv(
     list.files(
       paste0(
         Sys.getenv("repository_filepath"),
-        "marinegeo-metadata/taxonomy-and-functional-groups/legacy_taxonomic_ids/"
+        "marinegeo-metadata/taxonomy-and-functional-groups/legacy/legacy-taxonomic-ids/"
+      ),
+      full.names = T
+    )
+  ),
+
+  legacy_taxonomic_classifications = readr::read_csv(
+    list.files(
+      paste0(
+        Sys.getenv("repository_filepath"),
+        "marinegeo-metadata/taxonomy-and-functional-groups/legacy/legacy-taxonomic-classifications/"
       ),
       full.names = T
     )
   )
+
 )
 
 # Precompute wide-form taxonomic classifications (build-time adjacency table traversal)
