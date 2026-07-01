@@ -115,7 +115,7 @@ marinegeo_metadata <- list(
     list.files(
       paste0(
         Sys.getenv("repository_filepath"),
-        "marinegeo-metadata/taxonomy-and-functional-groups/legacy/legacy-taxonomic-ids/"
+        "marinegeo-R-utilities/data-raw/legacy_taxonomic_data_rls/legacy-taxonomic-ids/"
       ),
       full.names = T
     )
@@ -125,7 +125,7 @@ marinegeo_metadata <- list(
     list.files(
       paste0(
         Sys.getenv("repository_filepath"),
-        "marinegeo-metadata/taxonomy-and-functional-groups/legacy/legacy-taxonomic-classifications/"
+        "marinegeo-R-utilities/data-raw/legacy_taxonomic_data_rls/legacy-taxonomic-classifications/"
       ),
       full.names = T
     )
