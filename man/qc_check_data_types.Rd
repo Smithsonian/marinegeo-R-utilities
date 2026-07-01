@@ -4,7 +4,7 @@
 \alias{qc_check_data_types}
 \title{Check column data types against expected schema}
 \usage{
-qc_check_data_types(data, type_map, detail = TRUE)
+qc_check_data_types(data, type_map)
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -13,27 +13,12 @@ qc_check_data_types(data, type_map, detail = TRUE)
 SQL-style type strings: \code{"STRING"}, \code{"INT"}, \code{"TINYINT"}, \code{"DOUBLE"},
 \code{"DATE"}, or \code{"BOOL"}. Columns in \code{data} not present in \code{type_map} are
 silently skipped.}
-
-\item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element of the
-returned list contains a data frame describing each type mismatch. If
-\code{FALSE}, \code{failures} is \code{NULL}.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{test}}{Character. Always \code{"qc_check_data_types"}.}
-\item{\code{status}}{Character. One of \code{"pass"}, \code{"warn"}, or \code{"fail"}.
-\code{"fail"} if any checked column has a true type mismatch; \code{"warn"} if
-any column is entirely \code{NA} and stored as \code{logical} (a read artifact)
-but no true mismatches exist; \code{"pass"} otherwise.}
-\item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with counts: \code{n_checked},
-\code{n_type_mismatches}, and \code{n_type_warnings}.}
-\item{\code{failures}}{Data frame with columns \code{column_name},
-\code{expected_type}, \code{actual_type}, \code{issue}, and \code{severity}
-(\code{"fail"} for true mismatches, \code{"warn"} for all-NA inferred-type
-columns), or \code{NULL} if \code{status == "pass"} or \code{detail == FALSE}.}
-}
+A \link{qc_issues} tibble with one \code{"fail"} row per column whose type does
+not match (\code{issue = "type_mismatch"}), or zero rows if all types are
+correct. These are column-level issues, so \code{row} is \code{NA} and \code{value}
+carries the observed R type.
 }
 \description{
 Validates that columns in a data frame match the expected SQL-style data
@@ -56,9 +41,8 @@ strings are also skipped with no error.
 
 A column that is entirely \code{NA} and stored as \code{logical} (a common artifact
 of \code{read_csv()} or \code{read_excel()} when no non-missing values are present)
-is treated as a warning rather than a failure for non-\code{BOOL} expected types.
-The column appears in \verb{$failures} with \code{severity = "warn"} and
-\code{issue = "all_na_inferred_type"}.
+has no determinable type and is skipped for non-\code{BOOL} expected types — it
+is neither a mismatch nor a warning.
 }
 \examples{
 df <- data.frame(
@@ -68,10 +52,10 @@ df <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# All types match -> pass
+# All types match -> zero issues
 qc_check_data_types(df, c(site = "STRING", depth = "INT", cover = "DOUBLE"))
 
-# cover stored as character -> fail
+# cover stored as character -> one fail row
 df2 <- df
 df2$cover <- "0.75"
 qc_check_data_types(df2, c(site = "STRING", cover = "DOUBLE"))

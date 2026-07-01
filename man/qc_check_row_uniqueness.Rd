@@ -4,7 +4,7 @@
 \alias{qc_check_row_uniqueness}
 \title{Check that rows are unique across identity columns}
 \usage{
-qc_check_row_uniqueness(data, id_cols, detail = TRUE)
+qc_check_row_uniqueness(data, id_cols)
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -12,31 +12,15 @@ qc_check_row_uniqueness(data, id_cols, detail = TRUE)
 \item{id_cols}{Character vector. Names of the columns that together form
 each row's identity (i.e., the columns with \code{uuid_identity = TRUE} for
 the relevant table). If any named columns are absent from \code{data}, the
-function returns a \code{"skip"} result rather than erroring — missing columns
-are expected to be flagged by a separate \code{qc_check_columns} test.}
-
-\item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element contains
-a data frame with the row indices and identity-column values of every row
-involved in a duplicate group. If \code{FALSE}, \code{failures} is \code{NULL}.}
+check returns zero issues rather than erroring — missing columns are
+expected to be flagged by a separate \code{\link[=qc_check_columns]{qc_check_columns()}} test.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{test}}{Character. Always \code{"qc_check_row_uniqueness"}.}
-\item{\code{status}}{Character. \code{"pass"} if all rows are unique; \code{"fail"} if
-duplicate identity combinations are found; \code{"skip"} if any \code{id_cols}
-are absent from \code{data}.}
-\item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with one row containing:
-\code{n_rows} (total row count), \code{n_id_cols} (number of identity columns),
-\code{n_duplicate_rows} (rows involved in at least one duplicate group),
-and \code{n_duplicate_groups} (number of distinct duplicated identity
-combinations).}
-\item{\code{failures}}{Data frame with one row per duplicated row. Columns
-are \code{row_index} (1-based position in \code{data}) followed by one column
-per identity column showing the duplicated values. \code{NULL} if
-\code{status == "pass"} or \code{detail == FALSE}.}
-}
+A \link{qc_issues} tibble with one \code{"fail"} row per duplicated row
+(\code{issue = "duplicate_row"}), or zero rows if all rows are unique (or if
+\code{id_cols} are absent from \code{data}). \code{row} is the 1-based position in \code{data}
+and \code{value} holds the duplicated identity key; \code{column} is \code{NA} because the
+identity spans multiple columns.
 }
 \description{
 Validates that no two rows share the same combination of identity-column
@@ -45,12 +29,12 @@ flag is \code{TRUE} in \code{marinegeo_metadata$database_structure} — the same
 columns used by \code{\link[=utl_mg_generate_row_uuid]{utl_mg_generate_row_uuid()}} to produce stable row UUIDs.
 
 Duplicate identity combinations represent data-entry errors or pipeline
-faults and are always reported as a \code{"fail"}.
+faults and are always reported as \code{"fail"}.
 }
 \details{
-All rows that are members of a duplicate group are included in \code{failures},
-not just the second (and later) occurrences. This makes it easy to locate
-every affected row in the source data.
+All rows that are members of a duplicate group are included, not just the
+second (and later) occurrences. This makes it easy to locate every affected
+row in the source data.
 
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} when the
 \code{database_structure} metadata contains one or more columns with

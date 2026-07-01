@@ -7,40 +7,25 @@
 #' columns used by [utl_mg_generate_row_uuid()] to produce stable row UUIDs.
 #'
 #' Duplicate identity combinations represent data-entry errors or pipeline
-#' faults and are always reported as a `"fail"`.
+#' faults and are always reported as `"fail"`.
 #'
 #' @param data A data frame to validate.
 #' @param id_cols Character vector. Names of the columns that together form
 #'   each row's identity (i.e., the columns with `uuid_identity = TRUE` for
 #'   the relevant table). If any named columns are absent from `data`, the
-#'   function returns a `"skip"` result rather than erroring — missing columns
-#'   are expected to be flagged by a separate `qc_check_columns` test.
-#' @param detail Logical. If `TRUE` (default), the `failures` element contains
-#'   a data frame with the row indices and identity-column values of every row
-#'   involved in a duplicate group. If `FALSE`, `failures` is `NULL`.
+#'   check returns zero issues rather than erroring — missing columns are
+#'   expected to be flagged by a separate [qc_check_columns()] test.
 #'
-#' @return A named list with the following elements:
-#'   \describe{
-#'     \item{`test`}{Character. Always `"qc_check_row_uniqueness"`.}
-#'     \item{`status`}{Character. `"pass"` if all rows are unique; `"fail"` if
-#'       duplicate identity combinations are found; `"skip"` if any `id_cols`
-#'       are absent from `data`.}
-#'     \item{`message`}{Character. Human-readable summary.}
-#'     \item{`summary`}{Data frame with one row containing:
-#'       `n_rows` (total row count), `n_id_cols` (number of identity columns),
-#'       `n_duplicate_rows` (rows involved in at least one duplicate group),
-#'       and `n_duplicate_groups` (number of distinct duplicated identity
-#'       combinations).}
-#'     \item{`failures`}{Data frame with one row per duplicated row. Columns
-#'       are `row_index` (1-based position in `data`) followed by one column
-#'       per identity column showing the duplicated values. `NULL` if
-#'       `status == "pass"` or `detail == FALSE`.}
-#'   }
+#' @return A [qc_issues] tibble with one `"fail"` row per duplicated row
+#'   (`issue = "duplicate_row"`), or zero rows if all rows are unique (or if
+#'   `id_cols` are absent from `data`). `row` is the 1-based position in `data`
+#'   and `value` holds the duplicated identity key; `column` is `NA` because the
+#'   identity spans multiple columns.
 #'
 #' @details
-#' All rows that are members of a duplicate group are included in `failures`,
-#' not just the second (and later) occurrences. This makes it easy to locate
-#' every affected row in the source data.
+#' All rows that are members of a duplicate group are included, not just the
+#' second (and later) occurrences. This makes it easy to locate every affected
+#' row in the source data.
 #'
 #' This function is called automatically by [qc_run()] when the
 #' `database_structure` metadata contains one or more columns with
@@ -57,7 +42,7 @@
 #' )
 #'
 #' qc_check_row_uniqueness(df, id_cols = c("site_code", "transect_id"))
-qc_check_row_uniqueness <- function(data, id_cols, detail = TRUE) {
+qc_check_row_uniqueness <- function(data, id_cols) {
   # --- Input validation -------------------------------------------------------
   if (!is.data.frame(data)) {
     stop("`data` must be a data frame.")
@@ -65,92 +50,42 @@ qc_check_row_uniqueness <- function(data, id_cols, detail = TRUE) {
   if (!is.character(id_cols) || length(id_cols) == 0L) {
     stop("`id_cols` must be a non-empty character vector.")
   }
-  if (!is.logical(detail) || length(detail) != 1L || is.na(detail)) {
-    stop("`detail` must be a single logical value (TRUE or FALSE).")
-  }
 
-  # --- Column presence check --------------------------------------------------
-  # Missing id_cols are caught by qc_check_columns; skip rather than error here.
-  missing_cols <- setdiff(id_cols, colnames(data))
-  if (length(missing_cols) > 0L) {
-    return(list(
-      test     = "qc_check_row_uniqueness",
-      status   = "skip",
-      message  = paste0(
-        "Skipped: column(s) required for uniqueness check are not present in `data`: ",
-        paste(paste0('"', missing_cols, '"'), collapse = ", "), "."
-      ),
-      summary  = NULL,
-      failures = NULL
-    ))
-  }
-
-  # --- Empty data fast-path ---------------------------------------------------
-  if (nrow(data) == 0L) {
-    return(list(
-      test    = "qc_check_row_uniqueness",
-      status  = "pass",
-      message = "No rows to check.",
-      summary = data.frame(
-        n_rows             = 0L,
-        n_id_cols          = length(id_cols),
-        n_duplicate_rows   = 0L,
-        n_duplicate_groups = 0L,
-        stringsAsFactors   = FALSE
-      ),
-      failures = NULL
-    ))
-  }
-
-  # --- Duplicate detection ----------------------------------------------------
-  id_df   <- data[, id_cols, drop = FALSE]
-  is_dup  <- duplicated(id_df) | duplicated(id_df, fromLast = TRUE)
-
-  n_dup_rows   <- sum(is_dup)
-  n_dup_groups <- if (n_dup_rows > 0L) nrow(unique(id_df[is_dup, , drop = FALSE])) else 0L
-
-  summary_df <- data.frame(
-    n_rows             = nrow(data),
-    n_id_cols          = length(id_cols),
-    n_duplicate_rows   = n_dup_rows,
-    n_duplicate_groups = n_dup_groups,
-    stringsAsFactors   = FALSE
-  )
-
-  # --- Build result -----------------------------------------------------------
-  if (n_dup_rows == 0L) {
-    return(list(
-      test     = "qc_check_row_uniqueness",
-      status   = "pass",
-      message  = paste0(
-        "All ", nrow(data), " rows are unique across ",
-        length(id_cols), " identity column(s)."
-      ),
-      summary  = summary_df,
-      failures = NULL
-    ))
-  }
-
-  msg <- paste0(
-    n_dup_rows, " row(s) involved in ", n_dup_groups,
-    " duplicate identity group(s) across column(s): ",
-    paste(id_cols, collapse = ", ")
-  )
-
-  failures_df <- if (detail) {
-    cbind(
-      data.frame(row_index = which(is_dup), stringsAsFactors = FALSE),
-      id_df[is_dup, , drop = FALSE]
+  empty <- function() {
+    new_qc_issues(
+      n_rows = nrow(data),
+      checks_run = "qc_check_row_uniqueness"
     )
-  } else {
-    NULL
   }
 
-  list(
-    test     = "qc_check_row_uniqueness",
-    status   = "fail",
-    message  = msg,
-    summary  = summary_df,
-    failures = failures_df
+  # Missing id_cols are caught by qc_check_columns; emit no issues here.
+  if (length(setdiff(id_cols, colnames(data))) > 0L || nrow(data) == 0L) {
+    return(empty())
+  }
+
+  id_df <- data[, id_cols, drop = FALSE]
+  is_dup <- duplicated(id_df) | duplicated(id_df, fromLast = TRUE)
+
+  if (!any(is_dup)) {
+    return(empty())
+  }
+
+  col_strs <- lapply(id_cols, function(cn) {
+    paste0(cn, "=", as.character(id_df[[cn]]))
+  })
+  keys <- do.call(paste, c(col_strs, list(sep = ", ")))[is_dup]
+
+  rows <- .qc_issue(
+    check = "qc_check_row_uniqueness",
+    severity = "fail",
+    issue = "duplicate_row",
+    row = which(is_dup),
+    value = keys
+  )
+
+  new_qc_issues(
+    rows,
+    n_rows = nrow(data),
+    checks_run = "qc_check_row_uniqueness"
   )
 }

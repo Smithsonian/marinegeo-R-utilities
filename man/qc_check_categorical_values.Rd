@@ -4,7 +4,7 @@
 \alias{qc_check_categorical_values}
 \title{Check categorical column values against controlled vocabularies}
 \usage{
-qc_check_categorical_values(data, rules, detail = TRUE)
+qc_check_categorical_values(data, rules)
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -12,24 +12,12 @@ qc_check_categorical_values(data, rules, detail = TRUE)
 \item{rules}{A data frame with columns \code{column_name} and \code{value}. Each row
 specifies one allowed value for one column. Multiple rows with the same
 \code{column_name} define the complete allowed set for that column.}
-
-\item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element contains
-a data frame with the row indices and values that violate the controlled
-vocabulary. If \code{FALSE}, \code{failures} is \code{NULL}.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{test}}{Character. Always \code{"qc_check_categorical_values"}.}
-\item{\code{status}}{Character. One of \code{"pass"} or \code{"fail"}.}
-\item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with one row per validated column, showing
-\code{column_name}, \code{n_allowed_values}, and \code{n_violations}.}
-\item{\code{failures}}{Data frame with columns \code{row_index}, \code{col_index},
-\code{column_name}, and \code{value}, or \code{NULL} if \code{status == "pass"} or
-\code{detail == FALSE}. Both indices are 1-based (R convention); DT/DataTables
-users should subtract 1 from each for JavaScript cell callbacks.}
-}
+A \link{qc_issues} tibble with one \code{"fail"} row per offending cell
+(\code{issue = "invalid_category"}), or zero rows if every value matches the
+controlled vocabulary. \code{row} and \code{col_index} are 1-based (R convention);
+DT/DataTables users should subtract 1 for JavaScript cell callbacks.
 }
 \description{
 Validates that columns in a data frame contain only values listed in the
@@ -44,7 +32,8 @@ column are silently ignored and not counted as violations.
 
 \code{col_index} reflects the column's position in the original \code{data} argument
 (\code{which(colnames(data) == column_name)}), not its rank among only the
-validated columns, so it remains correct when \code{data} contains unvalidated columns.
+validated columns, so it remains correct when \code{data} contains unvalidated
+columns.
 
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} when categorical value
 metadata exists for the given \code{table_id}.
@@ -61,6 +50,6 @@ rules <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# "unknown" is not in the allowed set -> fail
+# "unknown" is not in the allowed set -> one fail row
 qc_check_categorical_values(df, rules)
 }
