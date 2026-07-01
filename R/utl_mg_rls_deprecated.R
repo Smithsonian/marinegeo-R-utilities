@@ -151,7 +151,8 @@ utl_mg_load_excel_deprecated <- function(filepath, output_table, sheet_name){
 #' @param taxonomic_levels Vector of classification levels. By default, returns all options
 #'
 #' @returns A dataframe with taxonomic levels as columns
-#'
+#' @export
+#' @keyword internal
 #' @examples
 #' df <- utl_rls_load_excel_deprecated("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
 #'  dplyr::filter(Method == "1" | Method == "2")
@@ -220,7 +221,8 @@ utl_join_taxonomy_by_scientific_name_deprecated <- function(df,
 #' @param taxonomic_levels Vector of classification levels. By default, returns all available levels
 #'
 #' @returns dataframe of taxonomic classifications and taxonomic ID (usually Aphia ID)
-#'
+#' @export
+#' @keyword internal
 #' @examples
 #' utl_get_taxonomy_by_scientific_name(c("Gastropoda", "Dardanus venosus"))
 #' utl_get_taxonomy_by_scientific_name("Dardanus venosus", taxonomic_levels = "phylum")
