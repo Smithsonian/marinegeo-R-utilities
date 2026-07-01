@@ -99,7 +99,7 @@ qc_flag_server <- function(id, input_list) {
 
       utl_run_all_qc <- function(df, output_table) {
         # Returns a qc_issues tibble: one row per problem, with columns
-        # check / severity / row / column / col_index / value / issue / message.
+        # check / severity / row / column / col_index / value / issue.
         marinegeo.utils::qc_run(df, output_table)
       }
 
@@ -235,14 +235,32 @@ qc_flag_server <- function(id, input_list) {
           return(NULL)
         }
 
+        issue_labels <- c(
+          missing_column = "Missing column",
+          unexpected_column = "Unexpected column",
+          wrong_order = "Wrong column order",
+          type_mismatch = "Type mismatch"
+        )
+
+        # One alert box per check; each bullet describes a flagged column so the
+        # sidebar stays compact when a check flags many columns.
         tags$div(
-          purrr::map(seq_len(nrow(issues)), function(i) {
+          purrr::map(unique(issues$check), function(chk) {
+            sub <- issues[issues$check == chk, , drop = FALSE]
+            labels <- unname(issue_labels[sub$issue])
+            labels[is.na(labels)] <- sub$issue[is.na(labels)]
+            bullets <- paste0(labels, ": ", sub$column)
+            tm <- sub$issue == "type_mismatch" & !is.na(sub$value)
+            bullets[tm] <- paste0(bullets[tm], " (found ", sub$value[tm], ")")
+
             tags$div(
               class = "alert alert-warning",
               style = "font-size: 0.85em; padding: 6px 10px; margin-bottom: 4px;",
-              tags$strong(QC_TEST_LABELS[issues$check[i]]),
-              ": ",
-              issues$message[i]
+              tags$strong(QC_TEST_LABELS[chk]),
+              tags$ul(
+                style = "margin: 4px 0 0 0; padding-left: 18px;",
+                purrr::map(bullets, tags$li)
+              )
             )
           })
         )
@@ -284,7 +302,7 @@ qc_flag_server <- function(id, input_list) {
       utl_get_qc_details <- function(selected_flag, issues) {
         detail <- issues %>%
           filter(check == selected_flag) %>%
-          select(column, value, issue, message) %>%
+          select(column, value, issue) %>%
           distinct() %>%
           select(where(~ !all(is.na(.x))))
 

@@ -7,8 +7,7 @@ qc_issue_cols <- c(
   "column",
   "col_index",
   "value",
-  "issue",
-  "message"
+  "issue"
 )
 
 # Assert an object is a well-formed qc_issues table.

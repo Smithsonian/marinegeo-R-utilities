@@ -15,12 +15,10 @@ SQL-style type strings: \code{"STRING"}, \code{"INT"}, \code{"TINYINT"}, \code{"
 silently skipped.}
 }
 \value{
-A \link{qc_issues} tibble with one row per column whose type does not
-match (zero rows if all types are correct). True mismatches are \code{"fail"}
-rows (\code{issue = "type_mismatch"}); a column that is entirely \code{NA} and stored
-as \code{logical} (a read artifact) is a \code{"warn"} row
-(\code{issue = "all_na_type"}). These are column-level issues, so \code{row} is \code{NA}
-and \code{value} carries the observed R type.
+A \link{qc_issues} tibble with one \code{"fail"} row per column whose type does
+not match (\code{issue = "type_mismatch"}), or zero rows if all types are
+correct. These are column-level issues, so \code{row} is \code{NA} and \code{value}
+carries the observed R type.
 }
 \description{
 Validates that columns in a data frame match the expected SQL-style data
@@ -43,7 +41,8 @@ strings are also skipped with no error.
 
 A column that is entirely \code{NA} and stored as \code{logical} (a common artifact
 of \code{read_csv()} or \code{read_excel()} when no non-missing values are present)
-is treated as a warning rather than a failure for non-\code{BOOL} expected types.
+has no determinable type and is skipped for non-\code{BOOL} expected types — it
+is neither a mismatch nor a warning.
 }
 \examples{
 df <- data.frame(

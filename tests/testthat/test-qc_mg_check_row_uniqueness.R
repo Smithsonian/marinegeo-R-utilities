@@ -43,11 +43,10 @@ test_that("one duplicate group -> fail rows for both members", {
   expect_true(all(result$severity == "fail"))
 })
 
-test_that("duplicate identity key is recorded in value and message", {
+test_that("duplicate identity key is recorded in value", {
   result <- qc_check_row_uniqueness(.df_one_dup, .id_cols)
   expect_true(all(grepl("site_code=BIS-001", result$value)))
   expect_true(all(grepl("transect_id=1", result$value)))
-  expect_true(all(grepl("Duplicate identity", result$message)))
 })
 
 test_that("two duplicate groups -> four fail rows", {

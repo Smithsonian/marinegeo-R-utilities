@@ -66,7 +66,6 @@ qc_check_columns <- function(data, expected_columns) {
           check = "qc_check_columns",
           severity = "fail",
           issue = "missing_column",
-          message = paste0("Required column '", missing_cols, "' is missing."),
           column = missing_cols
         ))
       )
@@ -78,7 +77,6 @@ qc_check_columns <- function(data, expected_columns) {
           check = "qc_check_columns",
           severity = "fail",
           issue = "unexpected_column",
-          message = paste0("Unexpected column '", extra_cols, "' present."),
           column = extra_cols
         ))
       )
@@ -91,15 +89,6 @@ qc_check_columns <- function(data, expected_columns) {
         check = "qc_check_columns",
         severity = "warn",
         issue = "wrong_order",
-        message = paste0(
-          "Column '",
-          present_expected[mismatched],
-          "' expected at position ",
-          mismatched,
-          " but found '",
-          actual_order[mismatched],
-          "'."
-        ),
         column = present_expected[mismatched],
         col_index = mismatched
       ))

@@ -77,17 +77,11 @@ qc_check_missing_values <- function(data, rules) {
     }
 
     severity <- if (rule == "enforce") "fail" else "warn"
-    message <- if (rule == "enforce") {
-      paste0("Required value missing in column '", col, "'.")
-    } else {
-      paste0("Missing value in column '", col, "' where data is discouraged.")
-    }
 
     .qc_issue(
       check = "qc_check_missing_values",
       severity = severity,
       issue = "missing_value",
-      message = message,
       row = na_idx,
       column = col,
       col_index = col_pos

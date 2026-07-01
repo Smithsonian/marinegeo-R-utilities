@@ -12,12 +12,10 @@
 #'   `"DATE"`, or `"BOOL"`. Columns in `data` not present in `type_map` are
 #'   silently skipped.
 #'
-#' @return A [qc_issues] tibble with one row per column whose type does not
-#'   match (zero rows if all types are correct). True mismatches are `"fail"`
-#'   rows (`issue = "type_mismatch"`); a column that is entirely `NA` and stored
-#'   as `logical` (a read artifact) is a `"warn"` row
-#'   (`issue = "all_na_type"`). These are column-level issues, so `row` is `NA`
-#'   and `value` carries the observed R type.
+#' @return A [qc_issues] tibble with one `"fail"` row per column whose type does
+#'   not match (`issue = "type_mismatch"`), or zero rows if all types are
+#'   correct. These are column-level issues, so `row` is `NA` and `value`
+#'   carries the observed R type.
 #'
 #' @details
 #' SQL-style types map to R types as follows:
@@ -34,7 +32,8 @@
 #'
 #' A column that is entirely `NA` and stored as `logical` (a common artifact
 #' of `read_csv()` or `read_excel()` when no non-missing values are present)
-#' is treated as a warning rather than a failure for non-`BOOL` expected types.
+#' has no determinable type and is skipped for non-`BOOL` expected types — it
+#' is neither a mismatch nor a warning.
 #'
 #' @export
 #'
@@ -71,25 +70,12 @@ qc_check_data_types <- function(data, type_map) {
     actual_col <- data[[col]]
     col_pos <- which(colnames(data) == col)
 
-    # All-NA logical column — inferred-type artifact from read_csv/read_excel.
+    # All-NA logical column — an inferred-type artifact from read_csv/read_excel
+    # with no determinable type. Skip rather than flag.
     if (
       is.logical(actual_col) && all(is.na(actual_col)) && sql_type != "BOOL"
     ) {
-      return(.qc_issue(
-        check = "qc_check_data_types",
-        severity = "warn",
-        issue = "all_na_type",
-        message = paste0(
-          "Column '",
-          col,
-          "' is entirely NA (type inferred as logical); expected ",
-          sql_type,
-          "."
-        ),
-        column = col,
-        col_index = col_pos,
-        value = "logical (all NA)"
-      ))
+      return(NULL)
     }
 
     if (!isTRUE(.type_check(actual_col, sql_type))) {
@@ -98,15 +84,6 @@ qc_check_data_types <- function(data, type_map) {
         check = "qc_check_data_types",
         severity = "fail",
         issue = "type_mismatch",
-        message = paste0(
-          "Column '",
-          col,
-          "' expected ",
-          sql_type,
-          ", found ",
-          actual_label,
-          "."
-        ),
         column = col,
         col_index = col_pos,
         value = actual_label

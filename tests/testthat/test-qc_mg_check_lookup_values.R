@@ -36,12 +36,6 @@ test_that("unrecognized value -> fail row", {
   expect_equal(result$check, "qc_check_lookup_values")
 })
 
-test_that("registry source named in message for known columns", {
-  df <- data.frame(partner_code = "FAKE", stringsAsFactors = FALSE)
-  result <- qc_check_lookup_values(df, list(partner_code = c("USA-IRL")))
-  expect_match(result$message, "partner_codes")
-})
-
 test_that("NA values are not violations", {
   df <- data.frame(partner_code = c("USA-IRL", NA), stringsAsFactors = FALSE)
   result <- qc_check_lookup_values(

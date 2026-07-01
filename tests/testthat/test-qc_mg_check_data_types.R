@@ -84,12 +84,11 @@ test_that("unknown SQL type is silently skipped", {
   expect_equal(nrow(qc_check_data_types(df, c(a = "GEOMETRY"))), 0L)
 })
 
-test_that("all-NA logical column with non-BOOL expected -> warn row", {
+test_that("all-NA logical column with non-BOOL expected -> skipped (zero issues)", {
   df <- data.frame(site = NA) # logical NA — read_csv artifact
   result <- qc_check_data_types(df, c(site = "STRING"))
-  expect_equal(qc_status(result), "warn")
-  expect_equal(result$issue, "all_na_type")
-  expect_equal(result$severity, "warn")
+  expect_equal(nrow(result), 0L)
+  expect_equal(qc_status(result), "pass")
 })
 
 test_that("all-NA logical column with BOOL expected -> zero issues", {
@@ -99,12 +98,12 @@ test_that("all-NA logical column with BOOL expected -> zero issues", {
   expect_equal(qc_status(result), "pass")
 })
 
-test_that("all-NA warn column plus real mismatch -> fail overall, both rows present", {
+test_that("all-NA column is skipped but a real mismatch still fails", {
   df <- data.frame(site = NA, cover = "bad", stringsAsFactors = FALSE)
   result <- qc_check_data_types(df, c(site = "STRING", cover = "DOUBLE"))
   expect_equal(qc_status(result), "fail")
-  expect_equal(result$severity[result$column == "site"], "warn")
-  expect_equal(result$severity[result$column == "cover"], "fail")
+  expect_equal(result$column, "cover") # site (all-NA) produces no row
+  expect_equal(result$severity, "fail")
 })
 
 test_that("non-data-frame data stops with informative error", {

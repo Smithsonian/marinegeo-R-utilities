@@ -5,7 +5,6 @@ test_that(".qc_issue returns the canonical columns with correct types", {
     check = "qc_check_columns",
     severity = "fail",
     issue = "missing_column",
-    message = "x",
     column = c("a", "b")
   )
   expect_identical(names(rows), qc_issue_cols)
@@ -44,11 +43,11 @@ test_that("new_qc_issues() stores run metadata as attributes", {
 })
 
 test_that(".qc_status derives fail > warn > pass", {
-  expect_equal(.qc_status(.qc_issue("c", "warn", "i", "m")), "warn")
-  expect_equal(.qc_status(.qc_issue("c", "fail", "i", "m")), "fail")
+  expect_equal(.qc_status(.qc_issue("c", "warn", "i")), "warn")
+  expect_equal(.qc_status(.qc_issue("c", "fail", "i")), "fail")
   both <- dplyr::bind_rows(
-    .qc_issue("c", "warn", "i", "m"),
-    .qc_issue("c", "fail", "i", "m")
+    .qc_issue("c", "warn", "i"),
+    .qc_issue("c", "fail", "i")
   )
   expect_equal(.qc_status(both), "fail")
   expect_equal(.qc_status(.qc_issues_skeleton()), "pass")
@@ -56,8 +55,8 @@ test_that(".qc_status derives fail > warn > pass", {
 
 test_that("status attribute reflects the bound rows", {
   rows <- dplyr::bind_rows(
-    .qc_issue("c", "warn", "i", "m", row = 1L),
-    .qc_issue("c", "fail", "i", "m", row = 2L)
+    .qc_issue("c", "warn", "i", row = 1L),
+    .qc_issue("c", "fail", "i", row = 2L)
   )
   x <- new_qc_issues(rows, table_id = "demo", n_rows = 5L)
   expect_equal(attr(x, "status"), "fail")

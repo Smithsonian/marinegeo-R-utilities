@@ -18,7 +18,6 @@ for table- or column-level issues (e.g. a missing column).}
 \item{\code{col_index}}{Integer. 1-based column position, or \code{NA}.}
 \item{\code{value}}{Character. The offending value, or \code{NA}.}
 \item{\code{issue}}{Character. Machine-readable code, e.g. \code{"out_of_range"}.}
-\item{\code{message}}{Character. Human-readable description of the problem.}
 }
 
 Because it is an ordinary tibble, results are inspected and subset with

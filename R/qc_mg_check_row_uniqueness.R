@@ -79,7 +79,6 @@ qc_check_row_uniqueness <- function(data, id_cols) {
     check = "qc_check_row_uniqueness",
     severity = "fail",
     issue = "duplicate_row",
-    message = paste0("Duplicate identity (", keys, ")."),
     row = which(is_dup),
     value = keys
   )

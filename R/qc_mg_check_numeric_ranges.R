@@ -117,58 +117,25 @@ qc_check_numeric_ranges <- function(data, rules) {
     under_min_warn <- !is.na(rule$min_warn) & under(v, rule$min_warn)
     warn_mask <- (over_max_warn | under_min_warn) & !fail_mask
 
-    .range_issue <- function(
-      mask,
-      severity,
-      over_max,
-      under_min,
-      max_b,
-      min_b
-    ) {
+    .range_issue <- function(mask, severity) {
       if (!any(mask)) {
         return(NULL)
       }
       rows <- valid_idx[mask]
-      vals <- values[rows]
-      bound_label <- if (severity == "fail") {
-        c("max_fail", "min_fail")
-      } else {
-        c("max_warn", "min_warn")
-      }
-      msg <- ifelse(
-        over_max[mask],
-        paste0("Value ", vals, " above ", bound_label[1], " (", max_b, ")."),
-        paste0("Value ", vals, " below ", bound_label[2], " (", min_b, ").")
-      )
       .qc_issue(
         check = "qc_check_numeric_ranges",
         severity = severity,
         issue = "out_of_range",
-        message = msg,
         row = rows,
         column = col,
         col_index = col_pos,
-        value = as.character(vals)
+        value = as.character(values[rows])
       )
     }
 
     dplyr::bind_rows(
-      .range_issue(
-        fail_mask,
-        "fail",
-        over_max_fail,
-        under_min_fail,
-        rule$max_fail,
-        rule$min_fail
-      ),
-      .range_issue(
-        warn_mask,
-        "warn",
-        over_max_warn,
-        under_min_warn,
-        rule$max_warn,
-        rule$min_warn
-      )
+      .range_issue(fail_mask, "fail"),
+      .range_issue(warn_mask, "warn")
     )
   })
 

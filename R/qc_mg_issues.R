@@ -17,8 +17,7 @@
     column = character(0),
     col_index = integer(0),
     value = character(0),
-    issue = character(0),
-    message = character(0)
+    issue = character(0)
   )
 }
 
@@ -35,13 +34,12 @@
 }
 
 # Vectorized row builder used by each check. Scalar arguments are recycled
-# against any vector arguments by tibble(). Always returns the 8 canonical
+# against any vector arguments by tibble(). Always returns the 7 canonical
 # columns in canonical order with correct types.
 .qc_issue <- function(
   check,
   severity,
   issue,
-  message,
   row = NA_integer_,
   column = NA_character_,
   col_index = NA_integer_,
@@ -54,8 +52,7 @@
     column = as.character(column),
     col_index = as.integer(col_index),
     value = as.character(value),
-    issue = as.character(issue),
-    message = as.character(message)
+    issue = as.character(issue)
   )
 }
 
@@ -104,7 +101,6 @@ new_qc_issues <- function(
 #'   \item{`col_index`}{Integer. 1-based column position, or `NA`.}
 #'   \item{`value`}{Character. The offending value, or `NA`.}
 #'   \item{`issue`}{Character. Machine-readable code, e.g. `"out_of_range"`.}
-#'   \item{`message`}{Character. Human-readable description of the problem.}
 #' }
 #'
 #' Because it is an ordinary tibble, results are inspected and subset with

@@ -25,8 +25,7 @@ Example:
 \value{
 A \link{qc_issues} tibble with one \code{"fail"} row per offending cell
 (\code{issue = "unknown_lookup"}), or zero rows if every value is recognized.
-\code{row} and \code{col_index} are 1-based; the registry consulted is named in the
-row's \code{message}.
+\code{row} and \code{col_index} are 1-based and \code{value} holds the unrecognized entry.
 }
 \description{
 Validates that values in designated columns belong to MarineGEO's global
@@ -36,18 +35,9 @@ groups). This is a referential integrity check — semantically distinct from
 vocabularies. \code{NA} values are always ignored.
 }
 \details{
-The registry source named in each \code{message} is derived from a fixed internal
-mapping of column names to their source tables in \code{marinegeo_metadata}:
-\itemize{
-\item \code{partner_code} → \code{"partner_codes"}
-\item \code{site_name}    → \code{"site_codes"}
-\item \code{site_code}    → \code{"site_codes"}
-\item \code{scientific_name} → \code{"observation_lookup"}
-}
-Column names not in this mapping are described generically.
-
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} whenever \code{data}
-contains one or more of the columns listed above.
+contains one or more of the recognized lookup columns (\code{partner_code},
+\code{site_name}, \code{site_code}, \code{scientific_name}).
 }
 \examples{
 df <- data.frame(

@@ -75,13 +75,6 @@ qc_check_categorical_values <- function(data, rules) {
       check = "qc_check_categorical_values",
       severity = "fail",
       issue = "invalid_category",
-      message = paste0(
-        "Value '",
-        bad_vals,
-        "' in column '",
-        col,
-        "' is not an allowed category."
-      ),
       row = bad_idx,
       column = col,
       col_index = col_pos,
