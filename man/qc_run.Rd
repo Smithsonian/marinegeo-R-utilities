@@ -4,7 +4,7 @@
 \alias{qc_run}
 \title{Run all applicable QC tests on a MarineGEO data table}
 \usage{
-qc_run(x, table_id, detail = TRUE, sheet = 1L)
+qc_run(x, table_id, sheet = 1L)
 }
 \arguments{
 \item{x}{A data frame, tibble, file path (character string), Arrow Dataset,
@@ -14,26 +14,16 @@ or Arrow Table.}
 \code{marinegeo_metadata$data_index$table_id}). Used to look up expected
 columns, data types, and controlled vocabularies.}
 
-\item{detail}{Logical. If \code{TRUE} (default), failing rows are included in
-each test result's \code{failures} element. If \code{FALSE}, \code{failures} is \code{NULL}
-for all tests, reducing memory use in automated pipelines.}
-
 \item{sheet}{Integer or character. Only used when \code{x} is an \code{.xlsx} or
 \code{.xls} file path. Passed to \code{\link[readxl:read_excel]{readxl::read_excel()}}. Defaults to \code{1}.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{table_id}}{The \code{table_id} argument.}
-\item{\code{status}}{Character. The worst status across all tests:
-\code{"fail"} > \code{"warn"} > \code{"pass"}.}
-\item{\code{n_rows}}{Integer. Number of rows in the validated data.}
-\item{\code{tests}}{Named list of individual test result lists, one per test
-run. Each element has \code{test}, \code{status}, \code{message}, \code{summary}, and
-\code{failures} (see \code{\link[=qc_check_columns]{qc_check_columns()}}, \code{\link[=qc_check_data_types]{qc_check_data_types()}},
-\code{\link[=qc_check_categorical_values]{qc_check_categorical_values()}}, \code{\link[=qc_check_missing_values]{qc_check_missing_values()}},
-\code{\link[=qc_check_numeric_ranges]{qc_check_numeric_ranges()}}, \code{\link[=qc_check_lookup_values]{qc_check_lookup_values()}}).}
-}
+A \link{qc_issues} tibble: one row per detected problem across all
+applicable checks (zero rows if the data is clean), with the producing
+check in the \code{check} column. Run-level metadata rides along as attributes
+— \code{table_id}, \code{n_rows} (rows validated), \code{checks_run} (which checks
+executed), and \code{status} (the worst severity present: \code{"fail"} > \code{"warn"} >
+\code{"pass"}). See \link{qc_issues} for the full column description.
 }
 \description{
 Single entry point for the MarineGEO QA/QC test suite. Given a data object

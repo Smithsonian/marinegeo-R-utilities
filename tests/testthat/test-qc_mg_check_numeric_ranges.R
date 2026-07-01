@@ -1,256 +1,170 @@
-test_that("return value has all required elements", {
-  df    <- data.frame(x = c(1, 2, 3))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = 10,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "inclusive",
+make_range_rules <- function(
+  column_name = "x",
+  min_fail = 0,
+  max_fail = 10,
+  min_warn = NA_real_,
+  max_warn = NA_real_,
+  range_type = "inclusive"
+) {
+  data.frame(
+    column_name = column_name,
+    min_fail = min_fail,
+    max_fail = max_fail,
+    min_warn = min_warn,
+    max_warn = max_warn,
+    range_type = range_type,
     stringsAsFactors = FALSE
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_named(result, c("test", "status", "message", "summary", "failures"))
-  expect_equal(result$test, "qc_check_numeric_ranges")
-  expect_true(result$status %in% c("pass", "warn", "fail"))
-  expect_true(is.character(result$message))
-  expect_true(is.data.frame(result$summary))
-  expect_true(all(c("column_name", "n_fail", "n_warn") %in% colnames(result$summary)))
+}
+
+test_that("returns a well-formed qc_issues table", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(1, 2, 3)),
+    make_range_rules()
+  )
+  expect_qc_issues(result)
+  expect_equal(nrow(result), 0L)
+  expect_equal(qc_status(result), "pass")
 })
 
-test_that("all values in range -> pass", {
-  df    <- data.frame(x = c(1, 5, 10))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = 10,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+test_that("all values in range -> zero issues, pass", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(1, 5, 10)),
+    make_range_rules()
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "pass")
-  expect_null(result$failures)
-  expect_equal(result$summary$n_fail, 0)
-  expect_equal(result$summary$n_warn, 0)
+  expect_equal(nrow(result), 0L)
+  expect_equal(qc_status(result), "pass")
 })
 
-test_that("inclusive: value > max_fail -> fail", {
-  df    <- data.frame(x = c(5, 101))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = NA_real_,
-    max_fail    = 100,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+test_that("inclusive: value > max_fail -> fail row", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(5, 101)),
+    make_range_rules(min_fail = NA_real_, max_fail = 100)
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "fail")
-  expect_equal(result$summary$n_fail, 1)
-  expect_equal(result$failures$row_index, 2)
-  expect_equal(result$failures$severity, "fail")
+  expect_equal(qc_status(result), "fail")
+  expect_equal(result$row, 2L)
+  expect_equal(result$severity, "fail")
+  expect_equal(result$issue, "out_of_range")
+  expect_equal(result$check, "qc_check_numeric_ranges")
 })
 
-test_that("inclusive: value < min_fail -> fail", {
-  df    <- data.frame(x = c(-1, 5))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = NA_real_,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+test_that("inclusive: value < min_fail -> fail row", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(-1, 5)),
+    make_range_rules(min_fail = 0, max_fail = NA_real_)
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "fail")
-  expect_equal(result$summary$n_fail, 1)
-  expect_equal(result$failures$row_index, 1)
+  expect_equal(qc_status(result), "fail")
+  expect_equal(result$row, 1L)
 })
 
-test_that("exclusive: value >= max_fail -> fail", {
-  df    <- data.frame(x = c(5, 100))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = NA_real_,
-    max_fail    = 100,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "exclusive",
-    stringsAsFactors = FALSE
+test_that("exclusive: value >= max_fail -> fail row", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(5, 100)),
+    make_range_rules(
+      min_fail = NA_real_,
+      max_fail = 100,
+      range_type = "exclusive"
+    )
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "fail")
-  expect_equal(result$summary$n_fail, 1)
-  expect_equal(result$failures$row_index, 2)
+  expect_equal(qc_status(result), "fail")
+  expect_equal(result$row, 2L)
 })
 
-test_that("exclusive: value <= min_fail -> fail", {
-  df    <- data.frame(x = c(0, 5))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = NA_real_,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "exclusive",
-    stringsAsFactors = FALSE
+test_that("exclusive: value <= min_fail -> fail row", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(0, 5)),
+    make_range_rules(
+      min_fail = 0,
+      max_fail = NA_real_,
+      range_type = "exclusive"
+    )
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "fail")
-  expect_equal(result$summary$n_fail, 1)
-  expect_equal(result$failures$row_index, 1)
+  expect_equal(qc_status(result), "fail")
+  expect_equal(result$row, 1L)
 })
 
-test_that("warn threshold breached, fail not -> warn", {
-  df    <- data.frame(x = c(5, 85))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = 100,
-    min_warn    = NA_real_,
-    max_warn    = 80,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+test_that("warn threshold breached, fail not -> warn row", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(5, 85)),
+    make_range_rules(min_fail = 0, max_fail = 100, max_warn = 80)
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "warn")
-  expect_equal(result$summary$n_warn, 1)
-  expect_equal(result$summary$n_fail, 0)
-  expect_equal(result$failures$severity, "warn")
+  expect_equal(qc_status(result), "warn")
+  expect_equal(result$severity, "warn")
+  expect_equal(result$row, 2L)
 })
 
-test_that("both fail and warn violations -> fail status; failures contain both severities", {
-  df    <- data.frame(x = c(5, 85, 110))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = 100,
-    min_warn    = NA_real_,
-    max_warn    = 80,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+test_that("both fail and warn violations -> fail status, both severities present", {
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(5, 85, 110)),
+    make_range_rules(min_fail = 0, max_fail = 100, max_warn = 80)
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "fail")
-  expect_equal(result$summary$n_fail, 1)
-  expect_equal(result$summary$n_warn, 1)
-  expect_true("fail" %in% result$failures$severity)
-  expect_true("warn" %in% result$failures$severity)
+  expect_equal(qc_status(result), "fail")
+  expect_setequal(result$severity, c("warn", "fail"))
+  expect_equal(sum(result$severity == "fail"), 1L)
+  expect_equal(sum(result$severity == "warn"), 1L)
 })
 
 test_that("NA values in data column are ignored", {
-  df    <- data.frame(x = c(NA, 5, NA))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = 10,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(NA, 5, NA)),
+    make_range_rules(min_fail = 0, max_fail = 10)
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "pass")
-  expect_equal(result$summary$n_fail, 0)
+  expect_equal(nrow(result), 0L)
+  expect_equal(qc_status(result), "pass")
 })
 
 test_that("NA bound values -> only applicable bound checked", {
-  # Only max_fail is set; value below a hypothetical min_fail should not fail
-  df    <- data.frame(x = c(-999, 5, 200))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = NA_real_,
-    max_fail    = 100,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(-999, 5, 200)),
+    make_range_rules(min_fail = NA_real_, max_fail = 100)
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "fail")
-  expect_equal(result$summary$n_fail, 1)       # only 200 fails (> 100)
-  expect_equal(result$failures$row_index, 3)   # -999 not flagged
+  expect_equal(qc_status(result), "fail")
+  expect_equal(result$row, 3L) # only 200 fails; -999 not flagged
 })
 
 test_that("rows with NA range_type in rules are skipped", {
-  df    <- data.frame(x = c(200, 300))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = 100,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = NA_character_,
-    stringsAsFactors = FALSE
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(200, 300)),
+    make_range_rules(min_fail = 0, max_fail = 100, range_type = NA_character_)
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(result$status, "pass")
-  expect_equal(nrow(result$summary), 0)
+  expect_equal(nrow(result), 0L)
+  expect_equal(qc_status(result), "pass")
 })
 
 test_that("columns in rules not in data are skipped", {
-  df    <- data.frame(x = c(1, 2))
-  rules <- data.frame(
+  rules <- make_range_rules(
     column_name = c("x", "z"),
-    min_fail    = c(0, 0),
-    max_fail    = c(10, 10),
-    min_warn    = c(NA_real_, NA_real_),
-    max_warn    = c(NA_real_, NA_real_),
-    range_type  = c("inclusive", "inclusive"),
-    stringsAsFactors = FALSE
+    min_fail = c(0, 0),
+    max_fail = c(10, 10),
+    min_warn = c(NA_real_, NA_real_),
+    max_warn = c(NA_real_, NA_real_),
+    range_type = c("inclusive", "inclusive")
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(nrow(result$summary), 1)
-  expect_equal(result$summary$column_name, "x")
+  result <- qc_check_numeric_ranges(data.frame(x = c(1, 2)), rules)
+  expect_equal(nrow(result), 0L)
 })
 
-test_that("multi-column test: summary has one row per column", {
-  df    <- data.frame(x = c(1, 5), y = c(0.5, 1.5))
-  rules <- data.frame(
+test_that("multi-column: only offending column produces rows", {
+  rules <- make_range_rules(
     column_name = c("x", "y"),
-    min_fail    = c(0, 0),
-    max_fail    = c(10, 1),
-    min_warn    = c(NA_real_, NA_real_),
-    max_warn    = c(NA_real_, NA_real_),
-    range_type  = c("inclusive", "inclusive"),
-    stringsAsFactors = FALSE
+    min_fail = c(0, 0),
+    max_fail = c(10, 1),
+    min_warn = c(NA_real_, NA_real_),
+    max_warn = c(NA_real_, NA_real_),
+    range_type = c("inclusive", "inclusive")
   )
-  result <- qc_check_numeric_ranges(df, rules)
-  expect_equal(nrow(result$summary), 2)
-  # y row 2 (1.5 > 1) fails
-  expect_equal(result$status, "fail")
-  expect_equal(result$summary$n_fail[result$summary$column_name == "y"], 1)
-  expect_equal(result$summary$n_fail[result$summary$column_name == "x"], 0)
-})
-
-test_that("detail = FALSE -> failures is NULL even with violations", {
-  df    <- data.frame(x = c(200))
-  rules <- data.frame(
-    column_name = "x",
-    min_fail    = 0,
-    max_fail    = 100,
-    min_warn    = NA_real_,
-    max_warn    = NA_real_,
-    range_type  = "inclusive",
-    stringsAsFactors = FALSE
+  result <- qc_check_numeric_ranges(
+    data.frame(x = c(1, 5), y = c(0.5, 1.5)),
+    rules
   )
-  result <- qc_check_numeric_ranges(df, rules, detail = FALSE)
-  expect_equal(result$status, "fail")
-  expect_null(result$failures)
+  expect_equal(qc_status(result), "fail")
+  expect_equal(unique(result$column), "y")
+  expect_equal(result$row, 2L)
 })
 
 test_that("non-data-frame data throws error", {
-  rules <- data.frame(
-    column_name = "x", min_fail = 0, max_fail = 10,
-    min_warn = NA_real_, max_warn = NA_real_, range_type = "inclusive",
-    stringsAsFactors = FALSE
-  )
   expect_error(
-    qc_check_numeric_ranges("not a df", rules),
+    qc_check_numeric_ranges("not a df", make_range_rules()),
     "`data` must be a data frame"
   )
 })
@@ -269,17 +183,5 @@ test_that("rules missing required columns throws error", {
       data.frame(column_name = "x", max_fail = 10)
     ),
     "must have columns"
-  )
-})
-
-test_that("non-logical detail throws error", {
-  rules <- data.frame(
-    column_name = "x", min_fail = 0, max_fail = 10,
-    min_warn = NA_real_, max_warn = NA_real_, range_type = "inclusive",
-    stringsAsFactors = FALSE
-  )
-  expect_error(
-    qc_check_numeric_ranges(data.frame(x = 1), rules, detail = "yes"),
-    "`detail` must be a single logical"
   )
 })

@@ -4,7 +4,7 @@
 \alias{qc_check_missing_values}
 \title{Check for missing values against column-level rules}
 \usage{
-qc_check_missing_values(data, rules, detail = TRUE)
+qc_check_missing_values(data, rules)
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -17,26 +17,13 @@ Each row specifies the missing-value rule for one column:
 \item \code{"allow"} or \code{NA} — column is skipped (caller should pre-filter,
 but these rows are silently ignored if present).
 }}
-
-\item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element contains
-a data frame with the row and column indices of each \code{NA} cell. If
-\code{FALSE}, \code{failures} is \code{NULL}.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{test}}{Character. Always \code{"qc_check_missing_values"}.}
-\item{\code{status}}{Character. One of \code{"pass"}, \code{"warn"}, or \code{"fail"}.
-\code{"fail"} if any \code{"enforce"} column contains \code{NA}; \code{"warn"} if only
-\code{"warn"} columns contain \code{NA}; \code{"pass"} otherwise.}
-\item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with one row per validated column, showing
-\code{column_name}, \code{missing_rule}, and \code{n_missing}.}
-\item{\code{failures}}{Data frame with columns \code{row_index}, \code{col_index},
-\code{column_name}, and \code{severity} (\code{"fail"} for \code{"enforce"} columns,
-\code{"warn"} for \code{"warn"} columns), or \code{NULL} if \code{status == "pass"} or
-\code{detail == FALSE}. Indices are 1-based (R convention).}
-}
+A \link{qc_issues} tibble with one row per offending \code{NA} cell
+(\code{issue = "missing_value"}), or zero rows if no required values are
+missing. Cells in \code{"enforce"} columns are \code{"fail"} rows; cells in \code{"warn"}
+columns are \code{"warn"} rows. \code{row} and \code{col_index} are 1-based; \code{value} is
+\code{NA} (the cell is empty by definition).
 }
 \description{
 Validates that columns in a data frame do not contain \code{NA} values where
@@ -68,6 +55,6 @@ rules <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# site_name has an NA and is "enforce" -> fail
+# site_name has an NA and is "enforce" -> one fail row
 qc_check_missing_values(df, rules)
 }

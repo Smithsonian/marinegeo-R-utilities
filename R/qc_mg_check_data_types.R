@@ -11,25 +11,13 @@
 #'   SQL-style type strings: `"STRING"`, `"INT"`, `"TINYINT"`, `"DOUBLE"`,
 #'   `"DATE"`, or `"BOOL"`. Columns in `data` not present in `type_map` are
 #'   silently skipped.
-#' @param detail Logical. If `TRUE` (default), the `failures` element of the
-#'   returned list contains a data frame describing each type mismatch. If
-#'   `FALSE`, `failures` is `NULL`.
 #'
-#' @return A named list with the following elements:
-#'   \describe{
-#'     \item{`test`}{Character. Always `"qc_check_data_types"`.}
-#'     \item{`status`}{Character. One of `"pass"`, `"warn"`, or `"fail"`.
-#'       `"fail"` if any checked column has a true type mismatch; `"warn"` if
-#'       any column is entirely `NA` and stored as `logical` (a read artifact)
-#'       but no true mismatches exist; `"pass"` otherwise.}
-#'     \item{`message`}{Character. Human-readable summary.}
-#'     \item{`summary`}{Data frame with counts: `n_checked`,
-#'       `n_type_mismatches`, and `n_type_warnings`.}
-#'     \item{`failures`}{Data frame with columns `column_name`,
-#'       `expected_type`, `actual_type`, `issue`, and `severity`
-#'       (`"fail"` for true mismatches, `"warn"` for all-NA inferred-type
-#'       columns), or `NULL` if `status == "pass"` or `detail == FALSE`.}
-#'   }
+#' @return A [qc_issues] tibble with one row per column whose type does not
+#'   match (zero rows if all types are correct). True mismatches are `"fail"`
+#'   rows (`issue = "type_mismatch"`); a column that is entirely `NA` and stored
+#'   as `logical` (a read artifact) is a `"warn"` row
+#'   (`issue = "all_na_type"`). These are column-level issues, so `row` is `NA`
+#'   and `value` carries the observed R type.
 #'
 #' @details
 #' SQL-style types map to R types as follows:
@@ -47,8 +35,6 @@
 #' A column that is entirely `NA` and stored as `logical` (a common artifact
 #' of `read_csv()` or `read_excel()` when no non-missing values are present)
 #' is treated as a warning rather than a failure for non-`BOOL` expected types.
-#' The column appears in `$failures` with `severity = "warn"` and
-#' `issue = "all_na_inferred_type"`.
 #'
 #' @export
 #'
@@ -60,120 +46,114 @@
 #'   stringsAsFactors = FALSE
 #' )
 #'
-#' # All types match -> pass
+#' # All types match -> zero issues
 #' qc_check_data_types(df, c(site = "STRING", depth = "INT", cover = "DOUBLE"))
 #'
-#' # cover stored as character -> fail
+#' # cover stored as character -> one fail row
 #' df2 <- df
 #' df2$cover <- "0.75"
 #' qc_check_data_types(df2, c(site = "STRING", cover = "DOUBLE"))
-qc_check_data_types <- function(data, type_map, detail = TRUE) {
+qc_check_data_types <- function(data, type_map) {
   # --- Input validation -------------------------------------------------------
   if (!is.data.frame(data)) {
     stop("`data` must be a data frame.")
   }
   if (!is.character(type_map) || is.null(names(type_map))) {
-    stop("`type_map` must be a named character vector (column names -> SQL types).")
-  }
-  if (!is.logical(detail) || length(detail) != 1) {
-    stop("`detail` must be a single logical value (TRUE or FALSE).")
+    stop(
+      "`type_map` must be a named character vector (column names -> SQL types)."
+    )
   }
 
-  # Only check columns present in data
   cols_to_check <- intersect(names(type_map), colnames(data))
 
-  failures_list <- lapply(cols_to_check, function(col) {
-    sql_type   <- toupper(type_map[[col]])
+  chunks <- lapply(cols_to_check, function(col) {
+    sql_type <- toupper(type_map[[col]])
     actual_col <- data[[col]]
+    col_pos <- which(colnames(data) == col)
 
-    # All-NA logical column — inferred type artifact from read_csv/read_excel
-    if (is.logical(actual_col) && all(is.na(actual_col)) && sql_type != "BOOL") {
-      return(data.frame(
-        column_name      = col,
-        expected_type    = sql_type,
-        actual_type      = "logical (all NA)",
-        issue            = "all_na_inferred_type",
-        severity         = "warn",
-        stringsAsFactors = FALSE
+    # All-NA logical column — inferred-type artifact from read_csv/read_excel.
+    if (
+      is.logical(actual_col) && all(is.na(actual_col)) && sql_type != "BOOL"
+    ) {
+      return(.qc_issue(
+        check = "qc_check_data_types",
+        severity = "warn",
+        issue = "all_na_type",
+        message = paste0(
+          "Column '",
+          col,
+          "' is entirely NA (type inferred as logical); expected ",
+          sql_type,
+          "."
+        ),
+        column = col,
+        col_index = col_pos,
+        value = "logical (all NA)"
       ))
     }
 
-    ok <- .type_check(actual_col, sql_type)
-
-    if (!isTRUE(ok)) {
-      data.frame(
-        column_name      = col,
-        expected_type    = sql_type,
-        actual_type      = .r_type_label(actual_col),
-        issue            = "type_mismatch",
-        severity         = "fail",
-        stringsAsFactors = FALSE
-      )
-    } else {
-      NULL
+    if (!isTRUE(.type_check(actual_col, sql_type))) {
+      actual_label <- .r_type_label(actual_col)
+      return(.qc_issue(
+        check = "qc_check_data_types",
+        severity = "fail",
+        issue = "type_mismatch",
+        message = paste0(
+          "Column '",
+          col,
+          "' expected ",
+          sql_type,
+          ", found ",
+          actual_label,
+          "."
+        ),
+        column = col,
+        col_index = col_pos,
+        value = actual_label
+      ))
     }
+
+    NULL
   })
 
-  failures_df  <- do.call(rbind, Filter(Negate(is.null), failures_list))
-  n_checked    <- length(cols_to_check)
-  n_warn       <- if (is.null(failures_df)) 0L else sum(failures_df$severity == "warn")
-  n_mismatches <- if (is.null(failures_df)) 0L else sum(failures_df$severity == "fail")
-
-  if (n_mismatches > 0) {
-    status <- "fail"
-    fail_cols <- failures_df$column_name[failures_df$severity == "fail"]
-    msg <- paste0(
-      n_mismatches, " column(s) have unexpected data types: ",
-      paste(fail_cols, collapse = ", ")
-    )
-  } else if (n_warn > 0) {
-    status <- "warn"
-    warn_cols <- failures_df$column_name[failures_df$severity == "warn"]
-    msg <- paste0(
-      n_warn, " column(s) are entirely NA (type inferred as logical): ",
-      paste(warn_cols, collapse = ", ")
-    )
-  } else {
-    status      <- "pass"
-    msg         <- paste0("All ", n_checked, " checked column(s) have correct data types.")
-    failures_df <- NULL
-  }
-
-  list(
-    test     = "qc_check_data_types",
-    status   = status,
-    message  = msg,
-    summary  = data.frame(
-      n_checked         = n_checked,
-      n_type_mismatches = n_mismatches,
-      n_type_warnings   = n_warn,
-      stringsAsFactors  = FALSE
-    ),
-    failures = if (detail) failures_df else NULL
+  new_qc_issues(
+    dplyr::bind_rows(chunks),
+    n_rows = nrow(data),
+    checks_run = "qc_check_data_types"
   )
 }
 
 # Internal: returns TRUE if col matches sql_type, FALSE otherwise.
 .type_check <- function(col, sql_type) {
-  switch(sql_type,
-    "STRING"  = is.character(col),
-    "INT"     = ,
+  switch(
+    sql_type,
+    "STRING" = is.character(col),
+    "INT" = ,
     "TINYINT" = is.numeric(col) || is.integer(col),
-    "DOUBLE"  = is.numeric(col),
-    "DATE"    = inherits(col, c("Date", "POSIXct", "POSIXlt")),
-    "BOOL"    = is.logical(col),
-    TRUE  # unknown SQL type — skip (return pass)
+    "DOUBLE" = is.numeric(col),
+    "DATE" = inherits(col, c("Date", "POSIXct", "POSIXlt")),
+    "BOOL" = is.logical(col),
+    TRUE # unknown SQL type — skip (return pass)
   )
 }
 
 # Internal: return a readable R type label for a column vector.
 .r_type_label <- function(col) {
-  if (inherits(col, "Date"))          "Date"
-  else if (inherits(col, "POSIXct")) "POSIXct"
-  else if (inherits(col, "POSIXlt")) "POSIXlt"
-  else if (is.logical(col))          "logical"
-  else if (is.integer(col))          "integer"
-  else if (is.numeric(col))          "numeric"
-  else if (is.character(col))        "character"
-  else                                paste(class(col), collapse = "/")
+  if (inherits(col, "Date")) {
+    "Date"
+  } else if (inherits(col, "POSIXct")) {
+    "POSIXct"
+  } else if (inherits(col, "POSIXlt")) {
+    "POSIXlt"
+  } else if (is.logical(col)) {
+    "logical"
+  } else if (is.integer(col)) {
+    "integer"
+  } else if (is.numeric(col)) {
+    "numeric"
+  } else if (is.character(col)) {
+    "character"
+  } else {
+    paste(class(col), collapse = "/")
+  }
 }

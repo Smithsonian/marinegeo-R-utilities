@@ -4,33 +4,21 @@
 \alias{qc_check_columns}
 \title{Check column presence and order against expected schema}
 \usage{
-qc_check_columns(data, expected_columns, detail = TRUE)
+qc_check_columns(data, expected_columns)
 }
 \arguments{
 \item{data}{A data frame to validate.}
 
 \item{expected_columns}{Character vector of expected column names, in the
 expected order.}
-
-\item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element of the
-returned list contains a data frame describing each problem. If \code{FALSE},
-\code{failures} is \code{NULL}, which reduces memory use in automated pipelines.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{test}}{Character. Always \code{"qc_check_columns"}.}
-\item{\code{status}}{Character. One of \code{"pass"}, \code{"warn"}, or \code{"fail"}.
-\code{"fail"} if any expected columns are missing or any extra columns are
-present; \code{"warn"} if all expected columns are present (with no extras)
-but in the wrong order; \code{"pass"} otherwise.}
-\item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with counts: \code{n_expected}, \code{n_present},
-\code{n_missing}, \code{n_extra}, and a logical \code{order_correct} flag.}
-\item{\code{failures}}{Data frame with columns \code{column_name} and \code{issue}
-(values \code{"missing"} or \code{"extra"}), or \code{NULL} if \code{status == "pass"} or
-\code{detail == FALSE}.}
-}
+A \link{qc_issues} tibble with one row per problem (zero rows if the
+schema is correct). Missing or unexpected columns are reported as \code{"fail"}
+rows (\code{issue} of \code{"missing_column"} / \code{"unexpected_column"}); columns that
+are all present but out of order are reported as \code{"warn"} rows
+(\code{issue = "wrong_order"}, with the expected position in \code{col_index}). These
+are table/column-level issues, so \code{row} is \code{NA}.
 }
 \description{
 Validates that a data frame contains all expected columns and that those
@@ -39,8 +27,8 @@ pipelines and can be called directly or via \code{\link[=qc_run]{qc_run()}}.
 }
 \details{
 Columns in \code{data} that are not listed in \code{expected_columns} are treated as
-extra and produce a \code{"fail"} result. Order is evaluated only when all
-expected columns are present and no extra columns exist.
+extra and produce a \code{"fail"} row. Order is evaluated only when all expected
+columns are present and no extra columns exist.
 
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} when column metadata
 exists for the given \code{table_id}. It can also be called standalone with a
@@ -49,15 +37,15 @@ custom \code{expected_columns} vector.
 \examples{
 df <- data.frame(site = "A", date = "2024-01-01", cover = 0.5)
 
-# All columns present and in order -> pass
+# All columns present and in order -> zero issues
 qc_check_columns(df, c("site", "date", "cover"))
 
-# Missing column -> fail
+# Missing column -> one fail row
 qc_check_columns(df, c("site", "date", "cover", "species"))
 
-# Wrong order -> warn
+# Wrong order -> warn rows
 qc_check_columns(df, c("date", "site", "cover"))
 
-# Extra column -> fail
+# Extra column -> fail row
 qc_check_columns(df, c("site", "date"))
 }

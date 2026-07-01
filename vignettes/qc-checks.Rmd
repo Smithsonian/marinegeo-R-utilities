@@ -20,10 +20,27 @@ This vignette demonstrates the `marinegeo.utils` QC functions using
 `seagrass_cover_example`, a multi-year seagrass percent cover dataset from
 Indian River Lagoon, Florida (`partner_code = "USA-IRL"`).
 
-There are two ways to run QC checks:
+Every QC function returns the **same shape**: a `qc_issues` table with one row
+per detected problem (zero rows means the data passed).
+The columns are:
 
-1. **`qc_run()`** — single entry point that runs all applicable tests for a
-   known `table_id`, dispatching based on metadata.
+| column | meaning |
+|---|---|
+| `check` | the producing check, e.g. `"qc_check_numeric_ranges"` |
+| `severity` | `"fail"` or `"warn"` |
+| `row` | 1-based row number, or `NA` for table/column-level issues |
+| `column` | offending column name, or `NA` |
+| `col_index` | 1-based column position, or `NA` |
+| `value` | the offending value, or `NA` |
+| `issue` | machine-readable code, e.g. `"out_of_range"` |
+| `message` | human-readable description |
+
+Because it is just a tibble, you inspect and subset results with ordinary
+`dplyr`. There are two ways to produce one:
+
+1. **`qc_run()`** — single entry point that runs all applicable checks for a
+   known `table_id`, dispatching based on metadata, and binds their issues into
+   one table.
 2. **Individual check functions** — `qc_check_columns()`,
    `qc_check_data_types()`, `qc_check_categorical_values()`,
    `qc_check_missing_values()`, `qc_check_numeric_ranges()`, and
@@ -36,7 +53,7 @@ There are two ways to run QC checks:
 `qc_run()` accepts a data frame (or file path) and a `table_id`. It queries
 the internal `marinegeo_metadata` object to determine which columns are
 expected, what data types they should have, and which columns have controlled
-vocabularies — then runs all applicable tests.
+vocabularies — then runs all applicable checks.
 
 ```{r load-data}
 data(seagrass_cover_example)
@@ -49,135 +66,86 @@ result <- qc_run(
 )
 ```
 
-The return value is a named list with four top-level elements:
+The result prints as an ordinary tibble — one row per detected problem:
 
-```{r result-structure}
-names(result)
+```{r print-result}
+result
 ```
 
-`status` is the worst status across all tests (`"fail"` > `"warn"` > `"pass"`).
-`n_rows` is the number of rows validated. `tests` is a named list with one
-entry per test that was run.
+Run-level metadata is attached as attributes:
 
 ```{r top-level}
-cat("Overall status:", result$status, "\n")
-cat("Rows validated:", result$n_rows, "\n")
-cat("Tests run:", paste(names(result$tests), collapse = ", "), "\n")
+cat("Overall status:", attr(result, "status"), "\n")
+cat("Rows validated:", attr(result, "n_rows"), "\n")
+cat("Checks run:", paste(attr(result, "checks_run"), collapse = ", "), "\n")
+```
+
+`status` is the worst severity present (`"fail"` > `"warn"` > `"pass"`),
+`n_rows` is the number of rows validated, and `checks_run` lists the checks
+that executed for this `table_id`.
+
+---
+
+## Working with the issues table
+
+Since the result is a tibble, summarising and filtering are plain `dplyr`.
+A count by check and severity gives a quick overview:
+
+```{r tally}
+result |>
+  count(check, severity) |>
+  knitr::kable()
+```
+
+Filter to the rows for a single check to inspect them:
+
+```{r filter-one-check}
+result |>
+  filter(check == "qc_check_categorical_values")
+```
+
+Or pull every fail-level issue across all checks:
+
+```{r filter-fails}
+result |>
+  filter(severity == "fail") |>
+  select(check, row, column, value, message)
 ```
 
 ---
 
-## Summarizing results with `utl_qc_summarize()`
+## Inspecting individual checks within a run
 
-The nested list returned by `qc_run()` is well-structured for programmatic
-use but can be hard to scan. `utl_qc_summarize()` flattens it into two tidy
-data frames: a one-row-per-test **summary** and a combined **failures** table.
-
-```{r summarize-both}
-summary_out <- utl_qc_summarize(result)
-names(summary_out)
-```
-
-### Summary table
-
-One row per test with columns `test`, `status`, `message`, and `n_failures`.
-`n_failures` is `0L` for passing tests, the row count of `$failures` for
-non-passing tests, or `NA_integer_` when `detail = FALSE` was used.
-
-```{r summarize-summary}
-knitr::kable(summary_out$summary)
-```
-
-### Failures table
-
-All per-test failure rows bound into a single data frame with a leading `test`
-column identifying the source check. Columns not present in a given test's
-failures are filled with `NA`. Returns a zero-row data frame when all tests
-pass.
-
-```{r summarize-failures}
-knitr::kable(summary_out$failures)
-```
-
-Use `type` to request only one of the two outputs:
-
-```{r summarize-type}
-# summary only
-utl_qc_summarize(result, type = "summary")$summary |>
-  knitr::kable()
-```
-
-### With `detail = FALSE`
-
-When `qc_run()` is called with `detail = FALSE`, `$failures` is `NULL` for
-every test. `utl_qc_summarize()` handles this gracefully — `n_failures` is
-`NA_integer_` for any non-passing test, and the failures table is zero-row.
-
-```{r summarize-no-detail}
-result_nd <- qc_run(
-  seagrass_cover_example,
-  table_id = "seagrass-cover-monitoring-v1",
-  detail = FALSE
-)
-
-utl_qc_summarize(result_nd, type = "summary")$summary |>
-  knitr::kable()
-```
-
----
-
-## Inspecting individual test results
-
-Each element of `result$tests` has the same structure: `test`, `status`,
-`message`, `summary`, and `failures`.
+Each check contributes rows tagged with its name in `check`.
 
 ### Column check
 
 ```{r column-check}
-col_result <- result$tests$qc_check_columns
-
-cat("Status:", col_result$status, "\n")
-cat("Message:", col_result$message, "\n")
-```
-
-```{r column-failures}
-col_result$failures
+result |>
+  filter(check == "qc_check_columns") |>
+  select(severity, column, issue, message)
 ```
 
 The example dataset is missing the `taxonomic_id` column. This column is
 optional in practice (it is populated after a taxonomy join), but the schema
-defines it as expected, so the check flags it as a failure.
+defines it as expected, so the check flags it as a `"fail"` with
+`issue = "missing_column"`. Column-level issues have `row = NA`.
 
 ### Data type check
 
 ```{r type-check}
-type_result <- result$tests$qc_check_data_types
-
-cat("Status:", type_result$status, "\n")
-cat("Message:", type_result$message, "\n")
-knitr::kable(type_result$summary)
+result |>
+  filter(check == "qc_check_data_types")
 ```
 
-All 16 present columns have the expected data types.
+A zero-row result means all present columns have the expected data types.
 
 ### Categorical values check
 
 ```{r cat-check}
-cat_result <- result$tests$qc_check_categorical_values
-
-cat("Status:", cat_result$status, "\n")
-cat("Message:", cat_result$message, "\n")
-knitr::kable(cat_result$summary)
-```
-
-The `summary` shows how many invalid values were found per column. Use
-`failures` to see the specific rows:
-
-```{r cat-failures-cover-code}
-# Unique invalid values in cover_code
-cat_result$failures |>
-  filter(column_name == "cover_code") |>
-  distinct(value)
+result |>
+  filter(check == "qc_check_categorical_values") |>
+  distinct(column, value)
 ```
 
 `cover_code` has a value of `5`, which is not in the Braun-Blanquet scale
@@ -195,25 +163,15 @@ schema prohibits or discourages it. Each column has one of three rules:
 - **`"allow"`** (or no rule) — `NA` is acceptable; column is not checked.
 
 ```{r miss-check}
-miss_result <- result$tests$qc_check_missing_values
-
-cat("Status:", miss_result$status, "\n")
-cat("Message:", miss_result$message, "\n")
-```
-
-```{r miss-summary}
-knitr::kable(miss_result$summary)
+result |>
+  filter(check == "qc_check_missing_values")
 ```
 
 Row 167 has a missing `percent_cover` value. Because `percent_cover` is a
 `"warn"` column (cover is expected but `NA` is acceptable when a different
-cover method is used), this produces a `warn` rather than a `fail`. The eight
-`"enforce"` columns — including `site_name`, `scientific_name`, and
-`sample_collection_date` — are fully populated in this dataset.
-
-```{r miss-failures}
-miss_result$failures
-```
+cover method is used), this produces a `"warn"` row rather than a `"fail"`.
+The `"enforce"` columns — including `site_name`, `scientific_name`, and
+`sample_collection_date` — are fully populated, so they produce no rows.
 
 ### Numeric ranges check
 
@@ -222,25 +180,15 @@ defined in `marinegeo_metadata$numeric_ranges`. Bounds can be set independently
 for **fail** (hard limit) and **warn** (soft limit), and each column uses either
 `"inclusive"` (`<`, `>`) or `"exclusive"` (`<=`, `>=`) comparisons.
 
-For `seagrass-cover-monitoring-v1`, three columns have range rules:
-
-| Column | `min_fail` | `max_fail` | `min_warn` | `max_warn` | `range_type` |
-|---|---|---|---|---|---|
-| `transect` | — | — | 1 | 3 | inclusive |
-| `quadrat` | 0 | — | 0 | 50 | inclusive |
-| `point_count` | 10 | — | — | 81 | inclusive |
-
 ```{r range-check}
-range_result <- result$tests$qc_check_numeric_ranges
-
-cat("Status:", range_result$status, "\n")
-cat("Message:", range_result$message, "\n")
-knitr::kable(range_result$summary)
+result |>
+  filter(check == "qc_check_numeric_ranges")
 ```
 
-All values in this dataset are within range. `point_count` is all `NA` (the
-dataset uses Braun-Blanquet codes rather than point counts), so there are no
-values to evaluate — `NA` cells are silently skipped.
+All values in this dataset are within range, so the check contributes no rows.
+`point_count` is all `NA` (the dataset uses Braun-Blanquet codes rather than
+point counts), so there are no values to evaluate — `NA` cells are silently
+skipped.
 
 ### Lookup values check
 
@@ -252,11 +200,8 @@ automatically whenever any of these columns are present in `data` — it is not
 gated by `table_id`.
 
 ```{r lookup-check}
-lookup_result <- result$tests$qc_check_lookup_values
-
-cat("Status:", lookup_result$status, "\n")
-cat("Message:", lookup_result$message, "\n")
-knitr::kable(lookup_result$summary)
+result |>
+  filter(check == "qc_check_lookup_values")
 ```
 
 All `partner_code`, `site_name`, and `scientific_name` values in
@@ -264,11 +209,11 @@ All `partner_code`, `site_name`, and `scientific_name` values in
 
 ---
 
-## Extracting `[row, col]` coordinates from categorical failures
+## Extracting `[row, col]` coordinates
 
-The `failures` data frame returned by `qc_check_categorical_values()` includes
-both `row_index` and `col_index` — the exact `[row, col]` position of each
-violating cell in the original data frame. Both are 1-based (R convention).
+Cell-level issues carry both `row` and `col_index` — the exact `[row, col]`
+position of each violating cell in the original data frame. Both are 1-based
+(R convention).
 
 ```{r row-col-coords}
 df_bad <- data.frame(
@@ -284,31 +229,31 @@ rules_demo <- data.frame(
 )
 
 result_demo <- qc_check_categorical_values(df_bad, rules_demo)
-
-knitr::kable(result_demo$failures)
+result_demo
 ```
 
 `col_index` is the column's position in the original data frame
-(`which(colnames(data) == column_name)`), so it remains correct when `data`
-contains columns that are not covered by any rules.
-
-To format these as compact `[row, col]` coordinate strings:
+(`which(colnames(data) == column)`), so it remains correct when `data`
+contains columns that are not covered by any rules. To format these as compact
+`[row, col]` coordinate strings:
 
 ```{r row-col-format}
-result_demo$failures |>
-  mutate(coordinate = paste0("[", row_index, ", ", col_index, "]")) |>
-  select(coordinate, column_name, value)
+result_demo |>
+  mutate(coordinate = paste0("[", row, ", ", col_index, "]")) |>
+  select(coordinate, column, value)
 ```
+
+---
 
 ## Running individual checks
 
 The individual check functions can be called directly with a custom schema,
-without needing a registered `table_id`.
+without needing a registered `table_id`. Each returns a `qc_issues` table.
 
 ### `qc_check_columns()`
 
 ```{r check-columns-standalone}
-result_cols <- qc_check_columns(
+qc_check_columns(
   data = seagrass_cover_example,
   expected_columns = c(
     "partner_code",
@@ -318,15 +263,12 @@ result_cols <- qc_check_columns(
     "percent_cover"
   )
 )
-
-cat("Status:", result_cols$status, "\n")
-cat("Message:", result_cols$message, "\n")
 ```
 
 ### `qc_check_data_types()`
 
 ```{r check-types-standalone}
-result_types <- qc_check_data_types(
+qc_check_data_types(
   data = seagrass_cover_example,
   type_map = c(
     partner_code = "STRING",
@@ -335,27 +277,6 @@ result_types <- qc_check_data_types(
     percent_cover = "DOUBLE"
   )
 )
-
-cat("Status:", result_types$status, "\n")
-cat("Message:", result_types$message, "\n")
-```
-
-### `qc_check_categorical_values()`
-
-```{r check-cat-standalone}
-rules <- data.frame(
-  column_name = c("cover_method", "cover_method", "cover_method"),
-  value = c("Braun-Blanquet", "point count", "percent bins")
-)
-
-result_cat <- qc_check_categorical_values(
-  data = seagrass_cover_example,
-  rules = rules
-)
-
-cat("Status:", result_cat$status, "\n")
-cat("Message:", result_cat$message, "\n")
-knitr::kable(result_cat$summary)
 ```
 
 ### `qc_check_missing_values()`
@@ -378,21 +299,13 @@ miss_rules <- data.frame(
   stringsAsFactors = FALSE
 )
 
-result_miss <- qc_check_missing_values(df_survey, miss_rules)
-
-cat("Status:", result_miss$status, "\n")
-cat("Message:", result_miss$message, "\n")
-knitr::kable(result_miss$summary)
+qc_check_missing_values(df_survey, miss_rules)
 ```
 
-`site_name` is `"enforce"` and has an `NA` in row 2, so the check fails.
-`percent_cover` is `"warn"` and also has an `NA`, but because a fail-level
-violation was found first, the overall status is `"fail"`. The `notes` column
-is `"allow"` and is not evaluated at all.
-
-```{r check-miss-failures}
-knitr::kable(result_miss$failures)
-```
+`site_name` is `"enforce"` and has an `NA` in row 2 (a `"fail"` row);
+`percent_cover` is `"warn"` and its `NA` produces a `"warn"` row. The `notes`
+column is `"allow"` and is not evaluated. The overall status is `"fail"`
+because a fail-level row is present.
 
 ### `qc_check_numeric_ranges()`
 
@@ -415,25 +328,14 @@ range_rules <- data.frame(
   stringsAsFactors = FALSE
 )
 
-result_range <- qc_check_numeric_ranges(df_obs, range_rules)
-
-cat("Status:", result_range$status, "\n")
-cat("Message:", result_range$message, "\n")
-knitr::kable(result_range$summary)
+qc_check_numeric_ranges(df_obs, range_rules)
 ```
 
-Two `percent_cover` values breach the fail threshold (`105 > 100`,
-`-3 < 0`). One value (`55`) exceeds the warn threshold (`> 80`) but is within
-the fail bounds, so it is recorded as `"warn"`. `depth_m` has no fail
-thresholds — only a warn upper bound of 20 m — and row 3 (28.0 m) triggers it.
-
-```{r check-range-failures}
-knitr::kable(result_range$failures)
-```
-
-`severity` distinguishes fail-level breaches from warn-level ones. Fail takes
-priority: a row that breaches a fail threshold is not additionally flagged as
-a warn, even if it also exceeds the warn bound.
+Two `percent_cover` values breach the fail threshold (`105 > 100`, `-3 < 0`).
+One value (`55`) exceeds the warn threshold (`> 80`) but is within the fail
+bounds, so it is recorded as `"warn"`. `depth_m` has only a warn upper bound of
+20 m, and row 3 (28.0 m) triggers it. Fail takes priority: a row that breaches
+a fail threshold is not additionally flagged as a warn.
 
 ### `qc_check_lookup_values()`
 
@@ -457,51 +359,19 @@ scientific_name_registry <- c(
   "Cymodocea nodosa"
 )
 
-lookup_result_standalone <- qc_check_lookup_values(
+qc_check_lookup_values(
   data = df_lookup,
   lookups = list(
     partner_code = partner_codes_registry,
     scientific_name = scientific_name_registry
   )
 )
-
-cat("Status:", lookup_result_standalone$status, "\n")
-cat("Message:", lookup_result_standalone$message, "\n")
-knitr::kable(lookup_result_standalone$summary)
-```
-
-```{r check-lookup-failures}
-knitr::kable(lookup_result_standalone$failures)
 ```
 
 `"UNKNOWN-XYZ"` is not in the partner codes registry and `"Fake species"` is
-not in the species registry, so both rows are flagged. `lookup_source`
-identifies which registry was checked for each column. When called via
-`qc_run()`, the full registries from `marinegeo_metadata` are used
-automatically.
-
----
-
-## Using `detail = FALSE` in automated pipelines
-
-In automated pipelines where row-level detail is unnecessary (and memory use
-matters), pass `detail = FALSE`. All tests still run and statuses are still
-reported, but `failures` is `NULL` for every test.
-
-```{r detail-false}
-result_pipeline <- qc_run(
-  seagrass_cover_example,
-  table_id = "seagrass-cover-monitoring-v1",
-  detail = FALSE
-)
-
-cat("Overall status:", result_pipeline$status, "\n")
-
-# failures are suppressed
-lapply(result_pipeline$tests, function(t) {
-  cat(t$test, "-", t$status, "| failures:", is.null(t$failures), "\n")
-})
-```
+not in the species registry, so both rows are flagged; each row's `message`
+names the registry consulted. When called via `qc_run()`, the full registries
+from `marinegeo_metadata` are used automatically.
 
 ---
 

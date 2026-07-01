@@ -4,7 +4,7 @@
 \alias{qc_check_numeric_ranges}
 \title{Check numeric column values against expected ranges}
 \usage{
-qc_check_numeric_ranges(data, rules, detail = TRUE)
+qc_check_numeric_ranges(data, rules)
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -21,26 +21,13 @@ the range rule for one column:
 }
 Bound columns (\code{max_fail}, \code{min_fail}, \code{max_warn}, \code{min_warn}) may be \code{NA}
 individually — only non-\code{NA} bounds are applied.}
-
-\item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element contains
-a data frame with the row and column indices of each out-of-range value.
-If \code{FALSE}, \code{failures} is \code{NULL}.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{test}}{Character. Always \code{"qc_check_numeric_ranges"}.}
-\item{\code{status}}{Character. One of \code{"pass"}, \code{"warn"}, or \code{"fail"}.
-\code{"fail"} if any fail threshold is breached; \code{"warn"} if only warn
-thresholds are breached; \code{"pass"} otherwise.}
-\item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with one row per validated column, showing
-\code{column_name}, \code{n_fail}, and \code{n_warn}.}
-\item{\code{failures}}{Data frame with columns \code{row_index}, \code{col_index},
-\code{column_name}, \code{value}, and \code{severity} (\code{"fail"} or \code{"warn"}), or
-\code{NULL} if \code{status == "pass"} or \code{detail == FALSE}. Indices are
-1-based (R convention).}
-}
+A \link{qc_issues} tibble with one row per out-of-range value
+(\code{issue = "out_of_range"}), or zero rows if all values are within range.
+Values breaching a fail threshold are \code{"fail"} rows; values breaching only
+a warn threshold are \code{"warn"} rows. \code{row} and \code{col_index} are 1-based, and
+\code{value} holds the offending number.
 }
 \description{
 Validates that numeric columns in a data frame fall within expected bounds
@@ -57,10 +44,10 @@ validated; other columns are silently skipped. Rows in \code{rules} with
 \code{NA} values in the data column being evaluated are silently ignored and not
 counted as violations.
 
-Fail thresholds are evaluated first. A row that breaches a fail threshold is
-recorded as \code{"fail"} and is not additionally evaluated for warn. A row that
-does not breach any fail threshold but breaches a warn threshold is recorded
-as \code{"warn"}.
+Fail thresholds are evaluated first. A value that breaches a fail threshold
+is recorded as \code{"fail"} and not additionally evaluated for warn. A value
+that does not breach any fail threshold but breaches a warn threshold is
+recorded as \code{"warn"}.
 
 \code{col_index} reflects the column's position in the original \code{data} argument,
 not its rank among only the validated columns.
