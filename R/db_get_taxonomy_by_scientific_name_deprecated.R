@@ -21,7 +21,7 @@ db_get_taxonomy_by_scientific_name_deprecated <- function(scientific_names,
 
     taxonomy_subset <- marinegeo_metadata$legacy_taxonomic_ids |>
       dplyr::filter(scientific_name %in% scientific_names) |>
-      dplyr::left_join(marinegeo_resources$taxonomic_classifications, by = "taxonomic_id")
+      dplyr::left_join(marinegeo_metadata$legacy_taxonomic_ids, by = "taxonomic_id")
 
     no_matches <- scientific_names[!scientific_names %in% taxonomy_subset$scientific_name]
 
