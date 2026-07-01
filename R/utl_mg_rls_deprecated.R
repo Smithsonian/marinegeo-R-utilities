@@ -330,7 +330,7 @@ utl_rls_fill_missing_metadata_deprecated <- function(df){
       ))
   }
 
-  fill_options <- marinegeo.utils::db_marinegeo_L2("reef-life-survey-data-marinegeo-v1") %>%
+  fill_options <- marinegeo.utils::db_arrow_marinegeo("reef-life-survey-data-marinegeo-v1") %>%
     filter(sample_event_id %in% ids) %>%
     select(all_of(columns)) %>%
     distinct() %>%
