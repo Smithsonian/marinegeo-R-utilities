@@ -4,7 +4,7 @@
 \alias{qc_check_lookup_values}
 \title{Check column values against system-wide entity registries}
 \usage{
-qc_check_lookup_values(data, lookups, detail = TRUE)
+qc_check_lookup_values(data, lookups)
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -21,27 +21,11 @@ Example:
   scientific_name = c("Zostera marina", ...)
 )
 }\if{html}{\out{</div>}}}
-
-\item{detail}{Logical. If \code{TRUE} (default), the \code{failures} element contains
-a data frame with one row per offending cell. If \code{FALSE}, \code{failures} is
-\code{NULL} even when violations exist, reducing memory use in automated
-pipelines.}
 }
 \value{
-A named list with the following elements:
-\describe{
-\item{\code{test}}{Character. Always \code{"qc_check_lookup_values"}.}
-\item{\code{status}}{Character. \code{"fail"} if any unrecognized values are
-found; \code{"pass"} otherwise.}
-\item{\code{message}}{Character. Human-readable summary.}
-\item{\code{summary}}{Data frame with one row per validated column, showing
-\code{column_name}, \code{lookup_source}, and \code{n_violations}. \code{lookup_source}
-identifies the registry used (e.g., \code{"partner_codes"},
-\code{"site_names"}, \code{"observation_lookup"}).}
-\item{\code{failures}}{Data frame with columns \code{row_index}, \code{col_index},
-\code{column_name}, and \code{value}, or \code{NULL} if \code{status == "pass"} or
-\code{detail == FALSE}. Indices are 1-based (R convention).}
-}
+A \link{qc_issues} tibble with one \code{"fail"} row per offending cell
+(\code{issue = "unknown_lookup"}), or zero rows if every value is recognized.
+\code{row} and \code{col_index} are 1-based and \code{value} holds the unrecognized entry.
 }
 \description{
 Validates that values in designated columns belong to MarineGEO's global
@@ -51,18 +35,9 @@ groups). This is a referential integrity check — semantically distinct from
 vocabularies. \code{NA} values are always ignored.
 }
 \details{
-The \code{lookup_source} shown in \code{summary} is derived from a fixed internal
-mapping of column names to their source tables in \code{marinegeo_metadata}:
-\itemize{
-\item \code{partner_code} → \code{"partner_codes"}
-\item \code{site_name}    → \code{"site_codes"}
-\item \code{site_code}    → \code{"site_codes"}
-\item \code{scientific_name} → \code{"observation_lookup"}
-}
-Any column name not in this mapping will have \code{lookup_source = NA}.
-
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} whenever \code{data}
-contains one or more of the columns listed above.
+contains one or more of the recognized lookup columns (\code{partner_code},
+\code{site_name}, \code{site_code}, \code{scientific_name}).
 }
 \examples{
 df <- data.frame(

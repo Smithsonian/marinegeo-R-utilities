@@ -4,12 +4,18 @@
 \alias{utl_mg_get_taxonomic_classifications}
 \title{Get wide-form taxonomic classifications for a set of scientific IDs}
 \usage{
-utl_mg_get_taxonomic_classifications(scientific_ids)
+utl_mg_get_taxonomic_classifications(scientific_ids, ranks = NULL)
 }
 \arguments{
 \item{scientific_ids}{Character vector of \code{scientific_id} values to look up
 (e.g. \code{c("APHIA:495077", "APHIA:374534")}). \code{NA} values are removed with
 a message.}
+
+\item{ranks}{Optional character vector of taxonomic ranks to keep in the
+output. Must be a subset of \code{"Kingdom"}, \code{"Phylum"}, \code{"Class"}, \code{"Order"},
+\code{"Family"}, \code{"Genus"}, \code{"Species"}. When supplied, the returned rank columns
+are restricted to these (and ordered as given); \code{scientific_id} and \code{rank}
+are always retained. Defaults to \code{NULL} (all standard ranks).}
 }
 \value{
 A data frame with one row per matched \code{scientific_id}. Columns:
@@ -18,29 +24,33 @@ A data frame with one row per matched \code{scientific_id}. Columns:
 \item{rank}{Taxonomic rank of the input ID itself (e.g. \code{"Species"}).}
 \item{Kingdom, Phylum, Class, Order, Family, Genus, Species}{Taxon name
 at each standard rank. A column is present only when at least one
-matched row has a value for that rank; missing ranks for a given row
-are \code{NA}.}
+matched row has a value for that rank (or, when \code{ranks} is supplied,
+only the requested ranks); missing ranks for a given row are \code{NA}.}
 }
-Returns a zero-row data frame with columns \code{scientific_id} and \code{rank} (no
-rank columns) if no IDs are matched or if \code{scientific_ids} is empty after
-NA removal.
+Returns a zero-row data frame if no IDs are matched or if \code{scientific_ids}
+is empty after NA removal.
 }
 \description{
-Returns precomputed taxonomic classifications for the supplied
-\code{scientific_ids} by filtering the wide-form
-\code{marinegeo_metadata$taxonomic_classifications} table. Each row in the
-result corresponds to one matched \code{scientific_id}, with one column per
-standard taxonomic rank.
+Reconstructs taxonomic classifications for the supplied \code{scientific_ids} by
+walking the MarineGEO \code{taxonomic_lookup} adjacency table at call time. Each
+row in the result corresponds to one matched \code{scientific_id}, with one column
+per standard taxonomic rank.
 
-IDs that are not present in the classifications table produce zero rows,
-not an error. Only \code{"APHIA:X"} identifiers are present in the table;
+\code{taxonomic_lookup} is resolved through the live registry (with a bundled
+fallback), so the classifications always reflect the current lookup table
+rather than a precomputed snapshot.
+
+IDs that are not present in \code{taxonomic_lookup} produce zero rows, not an
+error. Only \code{"APHIA:X"} identifiers are present in the table;
 \code{"FUNCTIONAL:X"} IDs will never match and are silently excluded.
 }
 \details{
-Classifications are precomputed at package build time by
-\code{.get_taxonomic_classifications()} and stored in
-\code{marinegeo_metadata$taxonomic_classifications}. This function performs a
-single filter — no tree traversal occurs at runtime.
+Classifications are reconstructed at call time by
+\code{.get_taxonomic_classifications()}, which walks the \code{taxonomic_lookup}
+adjacency table from each matched node up to the root. \code{Phylum (Division)} —
+the WoRMS rank name used for some plant and algae lineages — is mapped to
+\code{Phylum}, and intermediate ranks (Tribe, Forma, and super-/sub-/infra- etc.
+prefixed ranks) are dropped.
 }
 \examples{
 # Single species lookup
@@ -48,6 +58,12 @@ utl_mg_get_taxonomic_classifications("APHIA:495077")
 
 # Batch lookup
 utl_mg_get_taxonomic_classifications(c("APHIA:495077", "APHIA:374534"))
+
+# Restrict the output to a custom set of taxonomic levels
+utl_mg_get_taxonomic_classifications(
+  "APHIA:495077",
+  ranks = c("Family", "Genus", "Species")
+)
 
 # Unknown or FUNCTIONAL: IDs produce zero rows (no error)
 utl_mg_get_taxonomic_classifications("APHIA:99999999")

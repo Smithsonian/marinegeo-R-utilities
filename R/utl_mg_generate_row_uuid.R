@@ -68,7 +68,7 @@ utl_mg_generate_row_uuid <- function(data, table_id) {
   }
 
   # --- Metadata lookup --------------------------------------------------------
-  tbl_struct <- marinegeo_metadata$database_structure |>
+  tbl_struct <- .mg_get_registry_table("database_structure") |>
     dplyr::filter(table_id == !!table_id)
 
   if (nrow(tbl_struct) == 0L) {

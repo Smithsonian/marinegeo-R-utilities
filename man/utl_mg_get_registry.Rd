@@ -10,8 +10,10 @@ utl_mg_get_registry(table, ...)
 \item{table}{Character scalar. The registry table to retrieve. Must be one
 of \code{"partner_codes"}, \code{"site_codes"}, \code{"observation_lookup"},
 \code{"taxonomic_lookup"}, \code{"functional_group_lookup"}, \code{"data_index"},
-\code{"database_structure"}, \code{"categorical_values"}, \code{"numeric_ranges"}, or
-\code{"taxonomic_classifications"}.}
+\code{"database_structure"}, \code{"categorical_values"}, or \code{"numeric_ranges"}.
+
+Wide-form taxonomic classifications are no longer a registry table; use
+\code{\link[=utl_mg_get_taxonomic_classifications]{utl_mg_get_taxonomic_classifications()}} instead.}
 
 \item{...}{Named filter arguments. Each name must match a column in the
 requested table, and each value is matched with \code{\%in\%}, so character
@@ -112,14 +114,6 @@ Additional columns may be present (e.g., data level, storage location).
 \item \code{max_warn} — Upper bound that triggers a warning (may be \code{NA}).
 \item \code{range_type} — \code{"inclusive"} or \code{"exclusive"} boundary evaluation; \code{NA}
 rows are skipped by QC functions.
-}
-
-\strong{\code{taxonomic_classifications}}
-\itemize{
-\item \code{scientific_id} — Aphia-based identifier (e.g., \code{"APHIA:374534"}).
-\item \code{rank} — Taxonomic rank of the entry itself.
-\item \code{Kingdom}, \code{Phylum}, \code{Class}, \code{Order}, \code{Family}, \code{Genus}, \code{Species} —
-Taxon name at each standard rank (\code{NA} where not applicable).
 }
 }
 

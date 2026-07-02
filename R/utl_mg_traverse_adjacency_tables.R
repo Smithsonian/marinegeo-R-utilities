@@ -1,8 +1,8 @@
-# Internal helpers for traversing MarineGEO taxonomic
-# adjacency table at sysdata build time.
+# Internal helpers for traversing the MarineGEO taxonomic adjacency table.
 #
-# All functions in this file are internal (not exported). They are called from
-# data-raw/assemble_marinegeo_metadata_sysdata.R via devtools::load_all().
+# All functions in this file are internal (not exported). They are called at
+# runtime by utl_mg_get_taxonomic_classifications() to reconstruct wide-form
+# classifications from the `taxonomic_lookup` table.
 
 # ---------------------------------------------------------------------------
 # Taxonomic adjacency table traversal
@@ -57,7 +57,7 @@
 #' For each Aphia-based `scientific_id` supplied, walks the MarineGEO
 #' `taxonomic_lookup` adjacency table to reconstruct the full taxonomic
 #' hierarchy and returns the result as a wide data frame with one column per
-#' standard rank. Called at sysdata build time to precompute classifications.
+#' standard rank. Called at runtime by [utl_mg_get_taxonomic_classifications()].
 #'
 #' Only IDs that begin with `"APHIA:"` are present in `taxonomic_lookup`.
 #' Functional group IDs (`"FUNCTIONAL:"`) will not be matched and are silently

@@ -8,8 +8,10 @@
 #' @param table Character scalar. The registry table to retrieve. Must be one
 #'   of `"partner_codes"`, `"site_codes"`, `"observation_lookup"`,
 #'   `"taxonomic_lookup"`, `"functional_group_lookup"`, `"data_index"`,
-#'   `"database_structure"`, `"categorical_values"`, `"numeric_ranges"`, or
-#'   `"taxonomic_classifications"`.
+#'   `"database_structure"`, `"categorical_values"`, or `"numeric_ranges"`.
+#'
+#'   Wide-form taxonomic classifications are no longer a registry table; use
+#'   [utl_mg_get_taxonomic_classifications()] instead.
 #' @param ... Named filter arguments. Each name must match a column in the
 #'   requested table, and each value is matched with `%in%`, so character
 #'   vectors can be supplied to match multiple values (e.g.,
@@ -87,12 +89,6 @@
 #' - `range_type` — `"inclusive"` or `"exclusive"` boundary evaluation; `NA`
 #'   rows are skipped by QC functions.
 #'
-#' **`taxonomic_classifications`**
-#' - `scientific_id` — Aphia-based identifier (e.g., `"APHIA:374534"`).
-#' - `rank` — Taxonomic rank of the entry itself.
-#' - `Kingdom`, `Phylum`, `Class`, `Order`, `Family`, `Genus`, `Species` —
-#'   Taxon name at each standard rank (`NA` where not applicable).
-#'
 #' ## Filtering
 #' Filter values are matched with `%in%`, so a character vector matches any of
 #' the supplied values. All filter conditions must be satisfied simultaneously
@@ -135,8 +131,7 @@ utl_mg_get_registry <- function(table, ...) {
     "data_index",
     "database_structure",
     "categorical_values",
-    "numeric_ranges",
-    "taxonomic_classifications"
+    "numeric_ranges"
   )
 
   if (!is.character(table) || length(table) != 1L || is.na(table)) {
@@ -145,13 +140,16 @@ utl_mg_get_registry <- function(table, ...) {
 
   if (!table %in% valid_tables) {
     stop(
-      "'", table, "' is not a recognized registry table. ",
+      "'",
+      table,
+      "' is not a recognized registry table. ",
       "Valid options are: ",
-      paste(paste0('"', valid_tables, '"'), collapse = ", "), "."
+      paste(paste0('"', valid_tables, '"'), collapse = ", "),
+      "."
     )
   }
 
-  tbl <- marinegeo_metadata[[table]]
+  tbl <- .mg_get_registry_table(table)
 
   filters <- list(...)
 
@@ -159,10 +157,14 @@ utl_mg_get_registry <- function(table, ...) {
     unknown_cols <- setdiff(names(filters), colnames(tbl))
     if (length(unknown_cols) > 0) {
       stop(
-        "Unknown filter column(s) for table '", table, "': ",
-        paste(paste0('"', unknown_cols, '"'), collapse = ", "), ". ",
+        "Unknown filter column(s) for table '",
+        table,
+        "': ",
+        paste(paste0('"', unknown_cols, '"'), collapse = ", "),
+        ". ",
         "Valid columns are: ",
-        paste(paste0('"', colnames(tbl), '"'), collapse = ", "), "."
+        paste(paste0('"', colnames(tbl), '"'), collapse = ", "),
+        "."
       )
     }
 

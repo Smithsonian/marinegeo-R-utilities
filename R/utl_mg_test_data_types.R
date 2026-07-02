@@ -67,40 +67,58 @@ utl_mg_test_data_types <- function(df, table_id) {
   }
 
   # --- Metadata lookup --------------------------------------------------------
-  schema <- marinegeo_metadata$database_structure |>
+  schema <- .mg_get_registry_table("database_structure") |>
     dplyr::filter(table_id == !!table_id) |>
     dplyr::select(column_name, data_type)
 
   if (nrow(schema) == 0L) {
     stop(
-      "`table_id` '", table_id, "' was not found in ",
+      "`table_id` '",
+      table_id,
+      "' was not found in ",
       "`marinegeo_metadata$database_structure`."
     )
   }
 
   # --- Type checking ----------------------------------------------------------
   cols_to_check <- intersect(names(df), schema$column_name)
-  known_types   <- c("STRING", "DOUBLE", "INT", "TINYINT", "DATE", "BOOL", "BOOLEAN")
+  known_types <- c(
+    "STRING",
+    "DOUBLE",
+    "INT",
+    "TINYINT",
+    "DATE",
+    "BOOL",
+    "BOOLEAN"
+  )
   failure_messages <- list()
 
   for (col in cols_to_check) {
-    sql_type   <- toupper(schema$data_type[schema$column_name == col][1])
+    sql_type <- toupper(schema$data_type[schema$column_name == col][1])
     actual_col <- df[[col]]
 
     # All-NA logical column: emit message and skip (not a hard error)
-    if (is.logical(actual_col) && all(is.na(actual_col)) && sql_type != "BOOL") {
+    if (
+      is.logical(actual_col) && all(is.na(actual_col)) && sql_type != "BOOL"
+    ) {
       message(
-        "Column '", col, "' is entirely NA (stored as logical). ",
+        "Column '",
+        col,
+        "' is entirely NA (stored as logical). ",
         "This is usually a read_csv/read_excel artifact. Skipping type check."
       )
       next
     }
 
     # Unknown SQL types: skip silently
-    if (!sql_type %in% known_types) next
+    if (!sql_type %in% known_types) {
+      next
+    }
 
     # STRING: Arrow coerces anything to string
-    if (sql_type == "STRING") next
+    if (sql_type == "STRING") {
+      next
+    }
 
     # INT / TINYINT: stricter than .type_check() — numeric must be whole numbers
     if (sql_type %in% c("INT", "TINYINT")) {
@@ -108,19 +126,30 @@ utl_mg_test_data_types <- function(df, table_id) {
         next
       } else if (is.numeric(actual_col)) {
         non_na_vals <- actual_col[!is.na(actual_col)]
-        if (length(non_na_vals) == 0L || all(non_na_vals == round(non_na_vals, 0))) {
+        if (
+          length(non_na_vals) == 0L || all(non_na_vals == round(non_na_vals, 0))
+        ) {
           next
         } else {
           failure_messages[[col]] <- paste0(
-            "'", col, "' (", sql_type, "): ",
+            "'",
+            col,
+            "' (",
+            sql_type,
+            "): ",
             "column is numeric but contains non-integer values"
           )
         }
       } else {
         failure_messages[[col]] <- paste0(
-          "'", col, "' (", sql_type, "): ",
+          "'",
+          col,
+          "' (",
+          sql_type,
+          "): ",
           "expected integer, numeric (whole numbers only), or logical ",
-          "but got ", .r_type_label(actual_col)
+          "but got ",
+          .r_type_label(actual_col)
         )
       }
       next
@@ -132,16 +161,24 @@ utl_mg_test_data_types <- function(df, table_id) {
     ok <- .type_check(actual_col, check_type)
 
     if (!isTRUE(ok)) {
-      expected_label <- switch(sql_type,
-        "DOUBLE"  = "numeric, integer, or logical",
-        "DATE"    = "Date, POSIXct, or POSIXlt",
-        "BOOL"    = ,
+      expected_label <- switch(
+        sql_type,
+        "DOUBLE" = "numeric, integer, or logical",
+        "DATE" = "Date, POSIXct, or POSIXlt",
+        "BOOL" = ,
         "BOOLEAN" = "logical",
         sql_type
       )
       failure_messages[[col]] <- paste0(
-        "'", col, "' (", sql_type, "): ",
-        "expected ", expected_label, " but got ", .r_type_label(actual_col)
+        "'",
+        col,
+        "' (",
+        sql_type,
+        "): ",
+        "expected ",
+        expected_label,
+        " but got ",
+        .r_type_label(actual_col)
       )
     }
   }
@@ -149,7 +186,9 @@ utl_mg_test_data_types <- function(df, table_id) {
   # --- Single stop() after all columns are checked ---------------------------
   if (length(failure_messages) > 0L) {
     stop(
-      "Data type validation failed for table '", table_id, "'.\n",
+      "Data type validation failed for table '",
+      table_id,
+      "'.\n",
       "The following column(s) have incorrect types:\n",
       paste0("  - ", unlist(failure_messages), collapse = "\n")
     )
