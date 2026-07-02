@@ -106,7 +106,28 @@ marinegeo_metadata <- list(
       ),
       full.names = T
     )
+  ),
+
+  legacy_taxonomic_ids = readr::read_csv(
+    list.files(
+      paste0(
+        Sys.getenv("repository_filepath"),
+        "marinegeo-R-utilities/data-raw/legacy_taxonomic_data_rls/legacy-taxonomic-ids/"
+      ),
+      full.names = T
+    )
+  ),
+
+  legacy_taxonomic_classifications = readr::read_csv(
+    list.files(
+      paste0(
+        Sys.getenv("repository_filepath"),
+        "marinegeo-R-utilities/data-raw/legacy_taxonomic_data_rls/legacy-taxonomic-classifications/"
+      ),
+      full.names = T
+    )
   )
+
 )
 
 usethis::use_data(marinegeo_metadata, internal = TRUE, overwrite = TRUE)
