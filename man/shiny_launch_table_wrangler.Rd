@@ -6,6 +6,27 @@
 \usage{
 shiny_launch_table_wrangler()
 }
+\value{
+Called for its side effect (launching a Shiny app). Returns the value
+of \code{\link[shiny:runApp]{shiny::runApp()}} invisibly.
+}
 \description{
-Launch the MarineGEO Table Wrangler Shiny application
+Opens the Table Wrangler Shiny application bundled with the \code{marinegeo.utils}
+package. The app provides an interactive interface for inspecting, filtering,
+and reshaping tabular ecological data without writing code.
+}
+\details{
+The app is located in \verb{inst/table-wrangler/} and is resolved at runtime via
+\code{\link[=system.file]{system.file()}}, so it works regardless of where the package is installed.
+The function calls \code{\link[shiny:runApp]{shiny::runApp()}}, which blocks the R session until the
+browser window is closed.
+
+This function is intended for interactive use only. Do not call it from
+automated pipelines or Shiny modules, as it will block execution.
+}
+\examples{
+\dontrun{
+shiny_launch_table_wrangler()
+}
+
 }

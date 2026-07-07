@@ -13,24 +13,22 @@ sample_event_server <- function(id, input_list) {
     function(input, output, session) {
       
       output$sample_event_summary <- renderUI({
-        
-        ns <- NS(id)
-        
+
         if(input_list$output_table_id == "reef-life-survey-data-marinegeo-v1"){
-          
+
           div(
             card("Check that sample events (dives) in this file are defined in the roster. If one or more divers are listed in the Initials or Diver column (depending on project), then the dive in the data matches the roster",
-                 DTOutput(ns("file_sample_events")),
+                 DTOutput(session$ns("file_sample_events")),
                  full_screen = TRUE),
-            
+
             card("Check that all Method - Block combinations are represented. This table pulls in L2 data derived from other input files, if it exists. You can also review all metadata values for visibility, direction, time, and photoquadrat status across all files.",
-                 DTOutput(ns("all_sample_events")),
+                 DTOutput(session$ns("all_sample_events")),
                  full_screen = TRUE)
           )
         } else if(str_starts(input_list$output_table_id, "oyster-2025")){
           div(
             card("Check that sample events in this file are defined in the roster. If the partner code, site name and reef code match the roster, then values for the status columns will be present",
-                 DTOutput(ns("oyster_2025_roster")),
+                 DTOutput(session$ns("oyster_2025_roster")),
                  full_screen = TRUE),
           )
         } else if(input_list$output_table_id %in%  c("seagrass-biomass-monitoring-v1",
@@ -43,22 +41,52 @@ sample_event_server <- function(id, input_list) {
                                                      "seagrass-macroalgae-monitoring-v1",
                                                      "seagrass-leaf-monitoring-v1",
                                                      "sheath-and-epibiont-monitoring-v1")){
-          
-          layout_column_wrap(
-            width = "500px",
-            card("Check that sample events in this file are defined in the roster. If the partner code, site name and sample collection date match the roster, then other column values will be present",
-                 DTOutput(ns("seagrass_monitoring_roster")),
-                 full_screen = TRUE),
+
+          navset_card_pill(
             
-            card("Check that number of unique quadrats per transect",
-                 DTOutput(ns("num_uniq_quadrats")),
-                 full_screen = TRUE), 
-            
-            card("Check quadrat - transect relationships between tables",
-                 DTOutput(ns("quadrat_relationships")),
-                 full_screen = TRUE)
-            
+            nav_panel(
+             title = "Unique Quadrats", 
+             card("Verify the number of unique quadrats per transect matches the protocol. If the table contains scientific IDs, separate columns show the number of unique quadrat values per ID.",
+                  DTOutput(session$ns("num_uniq_quadrats")),
+                  full_screen = TRUE)
+            ),
+            nav_panel(
+              title = "Transect - Quadrat Cross Table", 
+              card("Verify that quadrat - transect relationships between tables match protocol expectations.",
+                   DTOutput(session$ns("quadrat_relationships")),
+                   full_screen = TRUE)
+            ),
+            nav_panel(
+              title = "Functional Groups",
+              card("Check functional group enrollment",
+                   DTOutput(session$ns("sav_functional_groups")),
+                   full_screen = TRUE)
+            )
           )
+        } else if(str_starts(input_list$output_table_id, "oyster")){
+          
+          navset_card_pill(
+            
+            nav_panel(
+              title = "Unique Quadrats", 
+              card("Verify the number of unique quadrats per transect matches the protocol. If the table contains scientific IDs, separate columns show the number of unique quadrat values per ID.",
+                   DTOutput(session$ns("num_uniq_quadrats")),
+                   full_screen = TRUE)
+            ),
+            # nav_panel(
+            #   title = "Transect - Quadrat Cross Table", 
+            #   card("Verify that quadrat - transect relationships between tables match protocol expectations.",
+            #        DTOutput(session$ns("quadrat_relationships")),
+            #        full_screen = TRUE)
+            # ),
+            nav_panel(
+              title = "Functional Groups",
+              card("Check functional group enrollment",
+                   DTOutput(session$ns("oyster_functional_groups")),
+                   full_screen = TRUE)
+            )
+          )
+          
         }
       })
       
@@ -71,9 +99,23 @@ sample_event_server <- function(id, input_list) {
         } else {
           
           df <- input_list$out_df |>
-            dplyr::group_by(site_name, transect) |>
-            dplyr::summarize(number_quadrats_per_transect = dplyr::n_distinct(quadrat)) 
+            dplyr::group_by(sample_event_id, site_name, transect) |>
+            dplyr::summarize(`unique quadrats` = dplyr::n_distinct(quadrat),
+                             replicates = n()) 
           
+          if("scientific_name" %in% colnames(input_list$out_df)){
+            
+            df <- input_list$out_df |>
+              dplyr::group_by(sample_event_id, site_name, transect, scientific_name) |>
+              dplyr::summarize(n = dplyr::n_distinct(quadrat)) |>
+              dplyr::ungroup() |>
+              tidyr::pivot_wider(names_from = scientific_name,
+                                 values_from = n,
+                                 values_fill = 0) |>
+              dplyr::right_join(df) |>
+              dplyr::relocate(`unique quadrats`, replicates, .after = "transect")
+    
+          }
         }
         
         df %>%
@@ -114,15 +156,15 @@ sample_event_server <- function(id, input_list) {
                 # use the loaded table instead
                 if(x == input_list$output_table_id){
                   input_list$out_df %>%
-                    select(site_name, transect, quadrat) %>%
+                    select(sample_event_id, site_name, transect, quadrat) %>%
                     distinct() %>%
                     mutate(table = x,
                            status = T)
                   
                 } else {
-                  marinegeo.utils::db_marinegeo_L2(x) %>%
+                  marinegeo.utils::db_arrow_marinegeo(x) %>%
                     filter(sample_event_id %in% sample_events) %>%
-                    select(site_name, transect, quadrat) %>%
+                    select(sample_event_id, site_name, transect, quadrat) %>%
                     distinct() %>%
                     collect() %>%
                     mutate(table = x,
@@ -238,7 +280,7 @@ sample_event_server <- function(id, input_list) {
         
         req_cols <- c("sample_event_id", "site_name", "site_code", "date", "depth", "method", "block", "vis", "direction", "time", "photoquadrats","input_filename")
         
-        rls_l2_data <- marinegeo.utils::db_marinegeo_L2("reef-life-survey-data-marinegeo-v1") %>%
+        rls_l2_data <- marinegeo.utils::db_arrow_marinegeo("reef-life-survey-data-marinegeo-v1") %>%
           select(all_of(req_cols)) %>%
           distinct()
         
@@ -266,7 +308,7 @@ sample_event_server <- function(id, input_list) {
             select(any_of(req_cols)) %>%
             distinct()
           
-          rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data) %>%
+          rls_sample_events <- utl_rls_sample_event_summary(rls_data) %>%
             select(sample_event_id, site_name, date, depth)
           
           df <- left_join(rls_sample_events, load_rls_roster(get_rls_project()), 
@@ -334,7 +376,7 @@ sample_event_server <- function(id, input_list) {
               collect()
           )
           
-          rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data)
+          rls_sample_events <- utl_rls_sample_event_summary(rls_data)
           
           rls_dive_metadata <- rls_data %>%
             group_by(sample_event_id, site_name) %>% 
@@ -356,44 +398,108 @@ sample_event_server <- function(id, input_list) {
           )
       })
       
-      ## Seagrass Monitoring ####
-      output$seagrass_monitoring_roster <- renderDT({
+      utl_rls_sample_event_summary <- function(df){
         
-        req(input_list$selected_flag)
+        missing_columns <- dplyr::setdiff(c("site_name", "date", "depth", "method","block"), colnames(df))
         
-        if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
-          df_out <- tibble(status = "add sample event ID column!")
+        tryCatch({
           
-        } else {
+          # Define a function to check each method-block combination
+          check_combination <- function(df, method_val, block_val) {
+            any(df$method == method_val & df$block == block_val)
+          }
           
-          roster_files <- list.files(
-            paste0(Sys.getenv("repository_filepath"), "marinegeo-seagrass-monitoring/L1-data/seagrass-roster"), 
-            full.names = T
+          # Filtering dives where all four conditions are met
+          summary_df <- df |>
+            dplyr::group_by(site_name, date, depth) |>
+            dplyr::summarize(
+              M1B1 = check_combination(pick(method, block), 1, 1),
+              M1B2 = check_combination(pick(method, block), 1, 2),
+              M2B1 = check_combination(pick(method, block), 2, 1),
+              M2B2 = check_combination(pick(method, block), 2, 2)
+            ) |>
+            dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name),
+                                                  "RLS", date, depth, sep = "_")) |>
+            dplyr::select(sample_event_id, everything()) |>
+            dplyr::arrange(sample_event_id)
+          
+        }, error = function(e) {
+          message(paste("Error Creating Summary Table", e$message))
+        })
+        
+        
+        return(summary_df)
+        
+      }
+      
+      # ## Seagrass Monitoring ####
+      
+      output$sav_functional_groups <- renderDT({
+        
+        if(!"scientific_name" %in% colnames(input_list$out_df)){
+          return(NULL)
+        }
+        
+        input_list$out_df %>%
+          count(scientific_name) %>%
+          mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
+          mutate(
+            functional_group = utl_mg_assign_functional_groups(
+              fg_tree = "vegetation",
+              fg_labels = c("Seagrass", "Algae"),
+              scientific_name
+            )
+          ) %>%
+          select(scientific_name, scientific_id, functional_group, n) %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
           )
-          
-          roster <- readr::read_csv(roster_files)
+      })
+      
+      # ## Oyster Monitoring ####
+      
+      output$oyster_functional_groups <- renderDT({
+        
+        if("cover_type" %in% colnames(input_list$out_df)){
           
           df <- input_list$out_df %>%
-            select(partner_code, site_name, sample_collection_date) %>%
-            distinct()
-          
-          roster_columns <- roster %>%
-            mutate(sample_collection_date = ymd(paste(Year, Month, Day, sep = "-"))) %>%
-            select(-`GitHub Tracker`, -Year, -Month, -Day, -method_id) %>%
-            distinct()
-          
-          df_out <- left_join(
-            df, roster_columns, by = c("partner_code", "site_name", "sample_collection_date")
-          )
+            count(scientific_name, cover_type) %>%
+            mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
+            mutate(
+              functional_group = utl_mg_assign_functional_groups(
+                fg_tree = "oyster_composition",
+                fg_labels = c("Algae", "Barnacles", "Bivalves",
+                              "Ascidians", "Sponges", "Sediment",
+                              "Rock", "Oysters"),
+                cover_type
+              )
+            ) %>%
+            select(cover_type, functional_group, scientific_name, scientific_id, n)
           
         }
         
-        df_out %>%
-          DT::datatable(
-            style = "default"
-          )
+        if(!"scientific_name" %in% colnames(input_list$out_df)){
+          df <- input_list$out_df %>%
+            count(scientific_name) %>%
+            mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
+            mutate(
+              functional_group = utl_mg_assign_functional_groups(
+                fg_tree = "vegetation",
+                fg_labels = c("Seagrass", "Algae"),
+                scientific_name
+              )
+            ) %>%
+            select(scientific_name, scientific_id, functional_group, n)
+        }
         
+        df %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
+          )
       })
+      
       
       ## Oyster Network Project 2025 ####
       output$oyster_2025_roster <- renderDT({

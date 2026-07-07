@@ -1,0 +1,35 @@
+                                                   levelName                            node_name                    rank
+1   FUNCTIONAL:MACROPHYTES                                                                                               
+2    ¦--FUNCTIONAL:SAV                                               Submerged Aquatic Vegetation                        
+3    ¦   ¦--FUNCTIONAL:NONMARINESAV                                                Non-marine SAV                        
+4    ¦   ¦   ¦--APHIA:196239                                                     Potamogetonaceae                  Family
+5    ¦   ¦   ¦   ¦--APHIA:416210                                                      Potamogeton                   Genus
+6    ¦   ¦   ¦   ¦   °--APHIA:416212                                      Potamogeton perfoliatus                 Species
+7    ¦   ¦   ¦   ¦--APHIA:416221                                                     Zannichellia                   Genus
+8    ¦   ¦   ¦   ¦   ¦--APHIA:416222                                       Zannichellia palustris                 Species
+9    ¦   ¦   ¦   ¦   °--APHIA:715997                                           Zannichellia major                 Species
+10   ¦   ¦   ¦   °--APHIA:588572                                                        Stuckenia                   Genus
+11   ¦   ¦   ¦       °--APHIA:588573                                          Stuckenia pectinata                 Species
+12   ¦   ¦   °--APHIA:234029                                                           Ruppiaceae                  Family
+13   ¦   ¦       °--APHIA:234030                                                           Ruppia                   Genus
+14   ¦   ¦           ¦--APHIA:234031                                              Ruppia maritima                 Species
+15   ¦   ¦           °--APHIA:416218                                              Ruppia cirrhosa                 Species
+16   ¦   °--FUNCTIONAL:SEAGRASS                                                          Seagrass                        
+17   ¦       ¦--APHIA:143768                                                        Cymodoceaceae                  Family
+18   ¦       ¦   ¦--APHIA:144231                                                        Cymodocea                   Genus
+19   ¦       ¦   ¦   ¦--APHIA:145793                                             Cymodocea nodosa                 Species
+20   ¦       ¦   ¦   °--APHIA:208921                                          Cymodocea rotundata                 Species
+21   ¦       ¦   ¦--APHIA:206309                                                      Syringodium                   Genus
+22   ¦       ¦   ¦   ¦--APHIA:374715                                        Syringodium filiforme                 Species
+23   ¦       ¦   ¦   °--APHIA:374716                                     Syringodium isoetifolium                 Species
+24   ¦       ¦   ¦--APHIA:205141                                                         Halodule                   Genus
+25   ¦       ¦   ¦   ¦--APHIA:208924                                           Halodule uninervis                 Species
+26   ¦       ¦   ¦   ¦--APHIA:208925                                            Halodule wrightii                 Species
+27   ¦       ¦   ¦   ¦--APHIA:626404                                           Halodule pinifolia                 Species
+28   ¦       ¦   ¦   °--APHIA:1533045                                         Halodule emarginata                 Species
+29   ¦       ¦   ¦--APHIA:205656                                                  Thalassodendron                   Genus
+30   ¦       ¦   ¦   °--APHIA:220228                                     Thalassodendron ciliatum                 Species
+31   ¦       ¦   °--APHIA:1473916                                                          Oceana                   Genus
+32   ¦       ¦       °--APHIA:1473917                                            Oceana serrulata                 Species
+33   ¦       ¦--APHIA:143751                                                     Hydrocharitaceae                  Family
+34   ¦       ¦   ¦--APHIA:144192                                                        Halophila                   Genus

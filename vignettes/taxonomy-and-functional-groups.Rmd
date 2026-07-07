@@ -1,0 +1,142 @@
+---
+title: "Working with MarineGEO scientific IDs, taxonomy and functional groups"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Working with MarineGEO scientific IDs, taxonomy and functional groups}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+library(marinegeo.utils)
+```
+
+This vignette demonstrates how to interact with taxonomic and functional group functions using `seagrass_cover_example`, a multi-year seagrass percent-cover dataset from Indian River Lagoon, Florida (`partner_code = "USA-IRL"`). Load the dataset, which is included in the R package `marinegeo.utils`:
+
+```{r load-data}
+data(seagrass_cover_example)
+
+knitr::kable(head(
+  seagrass_cover_example |>
+    dplyr::select(
+      site_name,
+      sample_collection_date,
+      transect,
+      quadrat,
+      scientific_name,
+      percent_cover
+    )
+))
+
+```
+
+The dataset contains observations recorded at either a species- or functional group level, which is indicated by the column `scientific_name`. Each `scientific_name` value is associated with a standardized identifier, `scientific_id`. `scientific_id` is the primary identifier linking observations across MarineGEO taxonomic and functional group metadata tables. It is either an Aphia ID (e.g. `"urn:lsid:marinespecies.org:taxname:123"`) for species/taxonomic rank observations, a functional group ID (e.g. `"FUNCTIONAL:SEAGRASS"`) for observations recorded at a functional group level, or a temporary undefined label (`"UNDEFINED:SOMETHINGNOVEL"``). 
+
+The identifier allows scientific names such as "Gastropoda sp A", "Gastropoda sp B", and "Gastropoda sp C" to all be linked to the same `scientific_id`, "urn:lsid:marinespecies.org:taxname:101", and thus any taxonomic or functional group relationships associated with that ID, while preserving the original abbreviations in the `scientific_name` column.
+
+The functions below retrieves `scientific_id` values.
+
+---
+
+## Review `scientific_id` for each observation
+
+`utl_mg_get_scientific_id()` matches each provided `scientific_name` value against the
+`observation_lookup` table bundled with the package and returns a `scientific_id`
+value. Input values that are not in the lookup receive `NA` and trigger a
+warning.
+
+```{r join-id}
+
+# Run the function with a vector of strings 
+utl_mg_get_scientific_id("Thalassia testudinum")
+
+# Here "Gastropoda C" doesn't follow guidance on formatting: an sp or sp. is required between the species identifier and "Gastropoda" for proper matching to a scientific ID. 
+utl_mg_get_scientific_id(c("Gastropoda sp A", "Gastropoda sp. B", "Gastropoda", "Gastropoda C"))
+
+# Use the function within a `mutate()` call
+# How many distinct names were matched?
+knitr::kable(
+  seagrass_cover_example |>
+    dplyr::mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) |>
+    dplyr::distinct(scientific_name, scientific_id) |>
+    dplyr::arrange(scientific_name)
+)
+
+```
+
+## Retrieve functional group memberships
+
+MarineGEO maintains nested functional group and taxonomic lookup tables. Taxa and functional/morphological groups are arranged hierarchically, allowing child elements to inherit all of the groups above them. `utl_mg_get_functional_groups()` returns every parent from the broadest group (e.g. "Biota") down for each queried ID. Here we see what groups are associated with Halodule wrightii (APHIA:208925) and Caulerpa sertularioides (APHIA:144474).
+
+```{r functional-groups}
+species_ids <- c("urn:lsid:marinespecies.org:taxname:208925", "urn:lsid:marinespecies.org:taxname:144474")
+
+fg <- utl_mg_get_functional_groups(
+  species_ids,
+  functional_group_tree = "vegetation"
+)
+knitr::kable(fg)
+```
+
+The result is a long-format data frame with one row per
+(`scientific_id`, group) pair. The columns are:
+
+| Column | Description |
+|---|---|
+| `scientific_id` | The queried identifier |
+| `group_id` | ID of the group (parent node) |
+| `group_name` | Display name of the group (parent node) |
+
+You can also use the function on functional groups, as well:
+
+```{r fg-functional-input}
+
+# Find the parent groups of "Seagrass"
+seagrass_id <- "FUNCTIONAL:SEAGRASS"
+utl_mg_get_functional_groups(seagrass_id, "vegetation")
+
+```
+
+---
+
+## Assign functional groups to data
+While you could filter and join the table above to a data table in order to group by functional groups to do some type of calculation, the `utl_mg_assign_functional_group()` function allows to you to assign functional groups of your choice within a mutate call. For instance, let's create a new column, `functional_group`, and assign observations to either "Seagrass" or "Algae". Then we'll generate a timeseries plot based on those groups and the percent cover variable. 
+
+```{r summary, fig.width = 8}
+
+df_functional_groups <- seagrass_cover_example |>
+  dplyr::mutate(
+    functional_group = utl_mg_assign_functional_groups(
+      fg_tree = "vegetation",
+      fg_labels = c("Seagrass", "Algae"),
+      scientific_names = scientific_name
+    )
+  )
+
+knitr::kable(
+  df_functional_groups |>
+    dplyr::select(
+      scientific_name,
+      functional_group
+    ) |>
+    dplyr::distinct()
+)
+
+df_functional_groups |>
+  dplyr::mutate(year = lubridate::year(sample_collection_date)) |>
+  dplyr::filter(!is.na(functional_group)) |>
+  dplyr::group_by(site_name, year, functional_group) |>
+  dplyr::summarize(percent_cover = mean(percent_cover, na.rm = T)) |>
+  ggplot2::ggplot(ggplot2::aes(
+    x = year,
+    y = percent_cover,
+    color = site_name
+  )) +
+  ggplot2::geom_line() +
+  ggplot2::facet_wrap(ggplot2::vars(functional_group))
+
+```

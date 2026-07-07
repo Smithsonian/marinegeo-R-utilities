@@ -15,29 +15,29 @@ build_mutate_case_when_template <- function(selected_points_matrix,
                                             df){
   
   selected_column_index <- selected_points_matrix[1,2]
-  selected_column <- colnames(df[selected_column_index])
-  
+  selected_column <- selected_columns[1]
+
   mutate_template_text <- paste("df %>%",
                                 paste0("\tmutate(", selected_column, " = case_when("),
                                 sep = "\n")
-  
+
   if(!expand_selected_values){
     unique_value_indices <- as_tibble(selected_points_matrix) %>%
       filter(V2 == selected_column_index) %>%
       count(V1) %>%
       pull(V1)
-    
+
     unique_values <- unique(df[[selected_column]][unique_value_indices])
-    
+
   } else {
     unique_values <- unique(df[[selected_column]])
-    
+
   }
-  
+
   if(length(selected_columns) > 1){
-    
+
     additional_column_indices <- setdiff(selected_points_matrix[,2], selected_column_index)
-    additional_columns <- colnames(df)[additional_column_indices]
+    additional_columns <- selected_columns[-1]
     additional_column_string <- c()
     
     for(i in 1:length(additional_columns)){
@@ -123,22 +123,22 @@ mutate_x_for_all_y_case_when_template <- function(selected_points_matrix,
                                                   df){
   
   selected_column_index <- selected_points_matrix[1,2]
-  selected_column <- colnames(df[selected_column_index])
-  
+  selected_column <- selected_columns[1]
+
   mutate_template_text <- paste("df %>%",
                                 paste0("\tmutate(", selected_column, " = case_when("),
                                 sep = "\n")
-  
+
   # Get unique values associated with the selected column
   unique_value_indices <- as_tibble(selected_points_matrix) %>%
     filter(V2 == selected_column_index) %>%
     count(V1) %>%
     pull(V1)
-  
+
   unique_values <- unique(df[[selected_column]][unique_value_indices])
-  
+
   additional_column_indices <- setdiff(selected_points_matrix[,2], selected_column_index)
-  additional_columns <- colnames(df)[additional_column_indices]
+  additional_columns <- selected_columns[-1]
   
   # Subset df to the selected value and extract all unique combinations of data based on all columns
   df_subset <- df %>%
@@ -193,7 +193,8 @@ mutate_x_for_all_y_case_when_template <- function(selected_points_matrix,
 }
 
 
-build_filter_template <- function(selected_points_matrix, 
+build_filter_template <- function(selected_points_matrix,
+                                  selected_columns,
                                   df){
   
   filter_template_text <- "df %>%\n\tfilter("
@@ -209,8 +210,8 @@ build_filter_template <- function(selected_points_matrix,
   for(i in 1:length(unique_column_indices)){
     
     column_index <- unique_column_indices[i]
-    
-    column_name <- colnames(df)[column_index]
+
+    column_name <- selected_columns[i]
     
     unique_value_indices <- selected_points_tibble %>%
       filter(column_index == !!column_index) %>%

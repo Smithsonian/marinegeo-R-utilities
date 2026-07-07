@@ -26,7 +26,10 @@ mod_run_processing_script_server <- function(id, input_list) {
           
           script_excerpt <- script_lines[(start_line+1):(end_line - 1)]
           
-          df <- input_list$in_df
+          # df <- input_list$in_df
+          input_file_path <- input_list$data_filepath
+          req_cols <- input_list$output_req_cols
+          table_out <- input_list$output_table_id
           
           # Convert the escape sequences to their actual characters
           parsed_text <- parse(text = script_excerpt)

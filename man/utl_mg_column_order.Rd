@@ -2,16 +2,39 @@
 % Please edit documentation in R/utl_mg_data_resources.R
 \name{utl_mg_column_order}
 \alias{utl_mg_column_order}
-\title{Return the column order for a MarineGEO table}
+\title{Return the expected column order for a MarineGEO table}
 \usage{
 utl_mg_column_order(table_id)
 }
 \arguments{
-\item{table_id}{}
+\item{table_id}{Character scalar. A MarineGEO table identifier (e.g.,
+\code{"sav_cover_v1"}). Must match a \code{table_id} present in the
+\code{database_structure} registry. Use \code{\link[=utl_mg_list_tables]{utl_mg_list_tables()}} to
+browse valid table identifiers.}
 }
 \value{
-a character vector representing column names
+A character vector of column names in the expected order for the
+given table. Returns an empty character vector if the table has no column
+metadata (with a warning).
 }
 \description{
-Return the column order for a MarineGEO table
+Looks up the expected column names for a given MarineGEO table identifier
+from the internal \code{database_structure} metadata. The returned vector defines
+the canonical column order for that table and can be used to reorder or
+validate columns in a data frame.
+}
+\details{
+Column order is determined by the row order of the \code{database_structure}
+metadata for the given \code{table_id}. This matches the order enforced by
+\code{\link[=qc_check_columns]{qc_check_columns()}}.
+
+If \code{table_id} is not found in \code{database_structure}, the function stops with
+an informative error. Call \code{\link[=utl_mg_list_tables]{utl_mg_list_tables()}} to see all valid table
+identifiers with their protocol and name.
+}
+\examples{
+# utl_mg_column_order("sav_cover_v1")
+
+# Browse available table IDs first:
+# utl_mg_list_tables()
 }

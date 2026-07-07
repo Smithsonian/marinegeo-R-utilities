@@ -52,17 +52,17 @@ suggest_code_server <- function(id, input_list) {
       ## Data Type-specific dynamic UI for Mutate/Filter Action ####
       output$data_type_specific_options <- renderUI({
         
-        req(input_list$input_table_id)
+        # req(input_list$input_table_id)
         req(input_list$output_table_id)
         
-        if(input_list$input_table_id == "reef-life-survey-data-marinegeo-input"){
+        # if(input_list$input_table_id == "reef-life-survey-data-marinegeo-input"){
+        #   
+        #   div(
+        #     actionButton(session$ns("add_rls_metadata"), "Add sample event ID column"),
+        #     actionButton(session$ns("fill_metadata"), "Fill missing RLS metadata")
+        #   )
           
-          div(
-            actionButton(session$ns("add_rls_metadata"), "Add sample event ID column"),
-            actionButton(session$ns("fill_metadata"), "Fill missing RLS metadata")
-          )
-          
-        } else if(input_list$output_table_id == "seagrass-cover-monitoring-v1"){
+        if(input_list$output_table_id == "seagrass-cover-monitoring-v1"){
           
           div(
             actionButton(session$ns("bb_conversion"), "Convert Braun-Blanquet to percent"),
@@ -81,25 +81,26 @@ suggest_code_server <- function(id, input_list) {
         req(input_list$selected_flag)
         
         if(input_list$selected_flag %in% c("all", "no_flags")){
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             select(-row_num, -flag)
-          
+
         } else {
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             filter(!is.na(flag)) %>%
             select(-row_num, -flag)
-          
+
         }
-        
-        mutate_template_text <- build_mutate_case_when_template(input_list$table_selections$selected_cells, 
+
+
+        mutate_template_text <- build_mutate_case_when_template(input_list$table_selections$selected_cells,
                                                                 input_list$table_selections$selected_columns,
                                                                 expand_selected_values = TRUE,
                                                                 df)
@@ -117,25 +118,26 @@ suggest_code_server <- function(id, input_list) {
         req(input_list$selected_flag)
         
         if(input_list$selected_flag %in% c("all", "no_flags")){
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             select(-row_num, -flag)
-          
+
         } else {
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             filter(!is.na(flag)) %>%
             select(-row_num, -flag)
-          
+
         }
-        
-        mutate_template_text <- build_mutate_case_when_template(input_list$table_selections$selected_cells, 
+
+
+        mutate_template_text <- build_mutate_case_when_template(input_list$table_selections$selected_cells,
                                                                 input_list$table_selections$selected_columns,
                                                                 expand_selected_values = FALSE,
                                                                 df)
@@ -153,25 +155,26 @@ suggest_code_server <- function(id, input_list) {
         req(input_list$selected_flag)
         
         if(input_list$selected_flag %in% c("all", "no_flags")){
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             select(-row_num, -flag)
-          
+
         } else {
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             filter(!is.na(flag)) %>%
             select(-row_num, -flag)
-          
+
         }
-        
-        mutate_template_text <- mutate_x_for_all_y_case_when_template(input_list$table_selections$selected_cells, 
+
+
+        mutate_template_text <- mutate_x_for_all_y_case_when_template(input_list$table_selections$selected_cells,
                                                                       input_list$table_selections$selected_columns,
                                                                       df)
         
@@ -190,25 +193,27 @@ suggest_code_server <- function(id, input_list) {
         req(input_list$selected_flag)
         
         if(input_list$selected_flag %in% c("all", "no_flags")){
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             select(-row_num, -flag)
-          
+
         } else {
-          
+
           df <- input_list$out_df %>%
             rownames_to_column("row_num") %>%
             mutate(row_num = as.numeric(row_num)) %>%
             left_join(input_list$flag_df, by = "row_num") %>%
             filter(!is.na(flag)) %>%
             select(-row_num, -flag)
-          
+
         }
-        
-        filter_template_text <- build_filter_template(input_list$table_selections$selected_cells, 
+
+
+        filter_template_text <- build_filter_template(input_list$table_selections$selected_cells,
+                                                      input_list$table_selections$selected_columns,
                                                       df)
         
         shiny::updateTextAreaInput(session,
