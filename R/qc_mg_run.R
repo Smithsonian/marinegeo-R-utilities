@@ -278,12 +278,13 @@ qc_run <- function(x, table_id, sheet = 1L) {
   }
   
   # --- Test 8: point count validity ----------------------------------------------
-  if("points_in_quadrat" %in% colnames(tbl_struct & "point_count" %in% colnames(tbl_struct))) {
+  if (
+    all(c("points_in_quadrat", "point_count") %in% colnames(tbl_struct))
+  ) {
     results$qc_check_point_counts <- qc_check_point_counts(
-      data = data,
+      data = data
     )
   }
-
   # --- Combine into a single issues table ------------------------------------
   # Each check returns a qc_issues tibble; bind them and re-wrap with run-level
   # metadata. `status` is derived from the combined rows (fail > warn > pass).
