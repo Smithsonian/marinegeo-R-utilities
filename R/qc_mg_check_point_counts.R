@@ -16,10 +16,10 @@
 #'
 #' @examples
 #' data <- data.frame(
-#'   transect = c(1,1,1,1,1),
-#'   quadrat = c(5,5,5,5,5),
-#'   point_count = c(9,13,20,34,4),
-#'   points_in_quadrat= c(81,81,81,81,81)
+#'   transect = c(1,1,1,1,1,2,2,2,2,2),
+#'   quadrat = c(5,5,5,5,5,5,5,5,5,5),
+#'   point_count = c(9,13,20,34,4,9,13,20,34,5),
+#'   points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
 #' )
 #'
 #' qc_mg_check_point_counts(data)
