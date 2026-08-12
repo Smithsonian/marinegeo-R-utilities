@@ -15,16 +15,16 @@
 #' @export
 #'
 #' @examples
-#' data <- data.frame(
-#'   transect = c(1,1,1,1,1,2,2,2,2,2),
-#'   quadrat = c(5,5,5,5,5,5,5,5,5,5),
-#'   point_count = c(9,13,20,34,4,9,13,20,34,5),
-#'   points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
-#' )
-#'
-#' qc_mg_check_point_counts(data)
-#' 
-#' 
+# data <- data.frame(
+#   transect = c(1,1,1,1,1,2,2,2,2,2),
+#   quadrat = c(5,5,5,5,5,5,5,5,5,5),
+#   point_count = c(9,13,20,34,4,9,13,20,34,5),
+#   points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
+# )
+# 
+# qc_check_point_counts(data)
+
+
   
 qc_check_point_counts <- function(data) {
   if (!is.data.frame(data)) {
@@ -50,18 +50,17 @@ qc_check_point_counts <- function(data) {
     ) |>
     dplyr::filter(total_point_count != points_in_quadrat)
   
-  data_fail <- merge(
-    data,
-    invalid_pointcount_summary_df,
-    by = c("transect", "quadrat")
-  )
   
   if (nrow(data_fail) == 0) {
     chunks <- NULL
   } else {
-    row_ids <- match(
-      paste(data_fail$transect, data_fail$quadrat),
-      paste(data$transect, data$quadrat)
+    invalid_keys <- paste(
+      invalid_pointcount_summary_df$transect,
+      invalid_pointcount_summary_df$quadrat
+    )
+    
+    row_ids <- which(
+      paste(data$transect, data$quadrat) %in% invalid_keys
     )
     
     chunks <- .qc_issue(
