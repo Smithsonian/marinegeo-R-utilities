@@ -35,7 +35,9 @@ qc_check_point_counts <- function(data) {
     "transect",
     "quadrat",
     "point_count",
-    "points_in_quadrat"
+    "points_in_quadrat",
+    "row_uuid",
+    "partner_code",
   )
   
   if (all(required_cols %in% colnames(data))) {
