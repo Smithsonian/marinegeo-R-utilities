@@ -36,8 +36,7 @@ qc_check_point_counts <- function(data) {
     "quadrat",
     "point_count",
     "points_in_quadrat",
-    "row_uuid",
-    "partner_code",
+    "site_name"
   )
   
   if (all(required_cols %in% colnames(data))) {
@@ -58,7 +57,7 @@ qc_check_point_counts <- function(data) {
     chunks <- NULL
   } else {
     row_ids <- which(
-      df_point_count$total_point_count != df_point_count$points_in_quadrat
+      df_primary_point_count$total_point_count != df_primary_point_count$points_in_quadrat
     )
     
     chunks <- .qc_issue(
@@ -68,7 +67,7 @@ qc_check_point_counts <- function(data) {
       row = row_ids,
       column = "point_count",
       col_index = which(names(data) == "point_count"),
-      value = as.character(df_point_count$total_point_count[row_ids])
+      value = as.character(df_primary_point_count$total_point_count[row_ids])
     )
   }
   }
