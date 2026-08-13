@@ -15,14 +15,15 @@
 #' @export
 #'
 #' @examples
-# data <- data.frame(
-#   transect = c(1,1,1,1,1,2,2,2,2,2),
-#   quadrat = c(5,5,5,5,5,5,5,5,5,5),
-#   point_count = c(9,13,20,34,4,9,13,20,34,5),
-#   points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
-# )
-# 
-# qc_check_point_counts(data)
+data <- data.frame(
+  transect = c(1,1,1,1,1,2,2,2,2,2),
+  cover_type = c("live_oyster", "box_oyster", "cultch","hash","sediment","live_oyster", "box_oyster", "cultch","hash","sediment" ),
+  quadrat = c(5,5,5,5,5,5,5,5,5,5),
+  point_count = c(9,13,20,34,4,9,13,20,34,5),
+  points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
+)
+
+output_2 <- qc_check_point_counts(data)
 
 
   
@@ -39,28 +40,23 @@ qc_check_point_counts <- function(data) {
   )
   
   if (all(required_cols %in% colnames(data))) {
+    
+    df_point_count <- data |>
+      dplyr::group_by(transect, quadrat) |>
+      dplyr::mutate(
+        total_point_count = sum(point_count, na.rm = TRUE)
+      )|>
+      dplyr::ungroup()
+      
+    df_invalid_point_count <- df_point_count |>
+      dplyr::filter(total_point_count != points_in_quadrat)
+    
 
-  
-  invalid_pointcount_summary_df <- data |>
-    dplyr::group_by(transect, quadrat) |>
-    dplyr::summarise(
-      total_point_count = sum(point_count, na.rm = TRUE),
-      points_in_quadrat = dplyr::first(points_in_quadrat),
-      .groups = "drop"
-    ) |>
-    dplyr::filter(total_point_count != points_in_quadrat)
-  
-  
-  if (nrow(data_fail) == 0) {
+  if (nrow(df_invalid_point_count) == 0) {
     chunks <- NULL
   } else {
-    invalid_keys <- paste(
-      invalid_pointcount_summary_df$transect,
-      invalid_pointcount_summary_df$quadrat
-    )
-    
     row_ids <- which(
-      paste(data$transect, data$quadrat) %in% invalid_keys
+      df_point_count$total_point_count != df_point_count$points_in_quadrat
     )
     
     chunks <- .qc_issue(
@@ -70,7 +66,7 @@ qc_check_point_counts <- function(data) {
       row = row_ids,
       column = "point_count",
       col_index = which(names(data) == "point_count"),
-      value = as.character(data_fail$total_point_count)
+      value = as.character(df_point_count$total_point_count[row_ids])
     )
   }
   }
