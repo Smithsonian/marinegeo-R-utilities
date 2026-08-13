@@ -10,20 +10,19 @@
 #'
 #' @return A [qc_issues] tibble with one row per quadrat-transect combination that violates the point-count rules. 
 #'
-#' @details
 #'
 #' @export
 #'
 #' @examples
-# data <- data.frame(
-#   transect = c(1,1,1,1,1,2,2,2,2,2),
-#   cover_type = c("live_oyster", "box_oyster", "cultch","hash","sediment","live_oyster", "box_oyster", "cultch","hash","sediment" ),
-#   quadrat = c(5,5,5,5,5,5,5,5,5,5),
-#   point_count = c(9,13,20,34,4,9,13,20,34,5),
-#   points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
-# )
-# 
-# output_2 <- qc_check_point_counts(df_out)
+#' data <- data.frame(
+#'  transect = c(1,1,1,1,1,2,2,2,2,2),
+#'   cover_type = c("live_oyster", "box_oyster", "cultch","hash","sediment","live_oyster", "box_oyster", "cultch","hash","sediment" ),
+#'   quadrat = c(5,5,5,5,5,5,5,5,5,5),
+#'   point_count = c(9,13,20,34,4,9,13,20,34,5),
+#'   points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
+#' )
+#' 
+#' output_2 <- qc_check_point_counts(df_out)
 
 
   

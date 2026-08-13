@@ -278,9 +278,7 @@ qc_run <- function(x, table_id, sheet = 1L) {
   }
   
   # --- Test 8: point count validity ----------------------------------------------
-  if (
-    all(c("points_in_quadrat", "point_count") %in% colnames(tbl_struct))
-  ) {
+  if (all(c("points_in_quadrat", "point_count") %in% tbl_struct$column_name)) {
     results$qc_check_point_counts <- qc_check_point_counts(
       data = data
     )
