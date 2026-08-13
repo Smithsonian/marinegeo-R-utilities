@@ -23,7 +23,7 @@
 #   points_in_quadrat= c(81,81,81,81,81,81,81,81,81,81)
 # )
 # 
-# output_2 <- qc_check_point_counts(data)
+# output_2 <- qc_check_point_counts(df_out)
 
 
   
@@ -42,7 +42,7 @@ qc_check_point_counts <- function(data) {
   if (all(required_cols %in% colnames(data))) {
     
     df_point_count <- data |>
-      dplyr::group_by(transect, quadrat) |>
+      dplyr::group_by(site_name, transect, quadrat) |>
       dplyr::mutate(
         total_point_count = sum(point_count, na.rm = TRUE)
       )|>
