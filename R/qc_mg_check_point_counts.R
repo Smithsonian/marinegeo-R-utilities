@@ -40,14 +40,15 @@ qc_check_point_counts <- function(data) {
   
   if (all(required_cols %in% colnames(data))) {
     
-    df_point_count <- data |>
+    df_primary_point_count <- data |>
+      dplyr::filter(cover_type != "canopy taxa")|>
       dplyr::group_by(site_name, transect, quadrat) |>
       dplyr::mutate(
         total_point_count = sum(point_count, na.rm = TRUE)
       )|>
       dplyr::ungroup()
       
-    df_invalid_point_count <- df_point_count |>
+    df_invalid_point_count <- df_primary_point_count |>
       dplyr::filter(total_point_count != points_in_quadrat)
     
 
