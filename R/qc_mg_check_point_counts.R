@@ -70,6 +70,8 @@ qc_check_point_counts <- function(data) {
       value = as.character(df_primary_point_count$total_point_count[row_ids])
     )
   }
+  }else {
+    chunks <- NULL
   }
   
   new_qc_issues(
