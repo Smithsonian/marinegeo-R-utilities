@@ -63,7 +63,12 @@ sample_event_server <- function(id, input_list) {
                    full_screen = TRUE)
             )
           )
-        } else if(str_starts(input_list$output_table_id, "oyster")){
+        } else if(input_list$output_table_id %in%  c("oyster-count-monitoring-v1",
+                                                      "oyster-habitat-complexity-monitoring-v1",
+                                                      "oyster-length-monitoring-v1",
+                                                      #"oyster_biobox_monitoring_v1",
+                                                      # "oyster-transect-metadata-monitoring-v1",
+                                                      "oyster-substrate-composition-monitoring-v1")){
           
           navset_card_pill(
             
@@ -73,12 +78,12 @@ sample_event_server <- function(id, input_list) {
                    DTOutput(session$ns("num_uniq_quadrats")),
                    full_screen = TRUE)
             ),
-            # nav_panel(
-            #   title = "Transect - Quadrat Cross Table", 
-            #   card("Verify that quadrat - transect relationships between tables match protocol expectations.",
-            #        DTOutput(session$ns("quadrat_relationships")),
-            #        full_screen = TRUE)
-            # ),
+            nav_panel(
+              title = "Transect - Quadrat Cross Table",
+              card("Verify that quadrat - transect relationships between tables match protocol expectations. Note that if you are currently working on a composition tab, only the composition quadrats that you are currently processing will be visible.",
+                   DTOutput(session$ns("quadrat_relationships")),
+                   full_screen = TRUE)
+            ),
             nav_panel(
               title = "Functional Groups",
               card("Check functional group enrollment",
@@ -86,6 +91,7 @@ sample_event_server <- function(id, input_list) {
                    full_screen = TRUE)
             )
           )
+          
           
         }
       })
@@ -143,7 +149,11 @@ sample_event_server <- function(id, input_list) {
             "seagrass-leaf-monitoring-v1",
             "sheath-and-epibiont-monitoring-v1",
             "seagrass-biomass-monitoring-v1",
-            "seagrass-macroalgae-monitoring-v1"
+            "seagrass-macroalgae-monitoring-v1",
+            "oyster-count-monitoring-v1",
+            "oyster-habitat-complexity-monitoring-v1",
+            "oyster-length-monitoring-v1",
+            "oyster-substrate-composition-monitoring-v1"
           )
           
           sample_events <- unique(input_list$out_df$sample_event_id)
@@ -280,7 +290,7 @@ sample_event_server <- function(id, input_list) {
         
         req_cols <- c("sample_event_id", "site_name", "site_code", "date", "depth", "method", "block", "vis", "direction", "time", "photoquadrats","input_filename")
         
-        rls_l2_data <- marinegeo.utils::db_arrow_marinegeo("reef-life-survey-data-marinegeo-v1") %>%
+        rls_l2_data <- marinegeo.utils::db_marinegeo_L2("reef-life-survey-data-marinegeo-v1") %>%
           select(all_of(req_cols)) %>%
           distinct()
         
@@ -308,7 +318,7 @@ sample_event_server <- function(id, input_list) {
             select(any_of(req_cols)) %>%
             distinct()
           
-          rls_sample_events <- utl_rls_sample_event_summary(rls_data) %>%
+          rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data) %>%
             select(sample_event_id, site_name, date, depth)
           
           df <- left_join(rls_sample_events, load_rls_roster(get_rls_project()), 
@@ -376,7 +386,7 @@ sample_event_server <- function(id, input_list) {
               collect()
           )
           
-          rls_sample_events <- utl_rls_sample_event_summary(rls_data)
+          rls_sample_events <- marinegeo.utils::utl_rls_sample_event_summary(rls_data)
           
           rls_dive_metadata <- rls_data %>%
             group_by(sample_event_id, site_name) %>% 
@@ -397,40 +407,6 @@ sample_event_server <- function(id, input_list) {
             style = "default"
           )
       })
-      
-      utl_rls_sample_event_summary <- function(df){
-        
-        missing_columns <- dplyr::setdiff(c("site_name", "date", "depth", "method","block"), colnames(df))
-        
-        tryCatch({
-          
-          # Define a function to check each method-block combination
-          check_combination <- function(df, method_val, block_val) {
-            any(df$method == method_val & df$block == block_val)
-          }
-          
-          # Filtering dives where all four conditions are met
-          summary_df <- df |>
-            dplyr::group_by(site_name, date, depth) |>
-            dplyr::summarize(
-              M1B1 = check_combination(pick(method, block), 1, 1),
-              M1B2 = check_combination(pick(method, block), 1, 2),
-              M2B1 = check_combination(pick(method, block), 2, 1),
-              M2B2 = check_combination(pick(method, block), 2, 2)
-            ) |>
-            dplyr::mutate(sample_event_id = paste(gsub(" ", "_", site_name),
-                                                  "RLS", date, depth, sep = "_")) |>
-            dplyr::select(sample_event_id, everything()) |>
-            dplyr::arrange(sample_event_id)
-          
-        }, error = function(e) {
-          message(paste("Error Creating Summary Table", e$message))
-        })
-        
-        
-        return(summary_df)
-        
-      }
       
       # ## Seagrass Monitoring ####
       
@@ -461,37 +437,48 @@ sample_event_server <- function(id, input_list) {
       
       output$oyster_functional_groups <- renderDT({
         
-        if("cover_type" %in% colnames(input_list$out_df)){
+        if(!"scientific_name" %in% colnames(input_list$out_df)){
+          return(NULL)
+        }else if("cover_type" %in% colnames(input_list$out_df)){
           
           df <- input_list$out_df %>%
+            mutate(cover_type = case_when(
+              cover_type == "other primary" | cover_type == "canopy taxa" ~ scientific_name,
+              T~ cover_type
+            ))%>%
             count(scientific_name, cover_type) %>%
+            mutate(scientific_id = utl_mg_get_scientific_id(cover_type)) %>%
+            mutate(
+              functional_group = utl_mg_assign_functional_groups(
+                fg_tree = "oyster_composition",
+                fg_labels = c("Algae", "Barnacles", "Bivalves",
+                              "Ascidians", "Sponges", "Sediment",
+                              "Rock", "Cultch", "Live Oyster",
+                              "Box Oyster", "Shell Hash", "Large Shell Material"),
+                cover_type
+              )
+            ) %>%
+            select(cover_type, functional_group, scientific_name, scientific_id, n)
+          
+        }else{
+          
+          df <- input_list$out_df %>%
+            count(scientific_name) %>%
             mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
             mutate(
               functional_group = utl_mg_assign_functional_groups(
                 fg_tree = "oyster_composition",
                 fg_labels = c("Algae", "Barnacles", "Bivalves",
                               "Ascidians", "Sponges", "Sediment",
-                              "Rock", "Oysters"),
-                cover_type
-              )
-            ) %>%
-            select(cover_type, functional_group, scientific_name, scientific_id, n)
-          
-        }
-        
-        if(!"scientific_name" %in% colnames(input_list$out_df)){
-          df <- input_list$out_df %>%
-            count(scientific_name) %>%
-            mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
-            mutate(
-              functional_group = utl_mg_assign_functional_groups(
-                fg_tree = "vegetation",
-                fg_labels = c("Seagrass", "Algae"),
+                              "Rock", "Cultch", "Live Oyster",
+                              "Box Oyster", "Shell Hash", "Large Shell Material"),
                 scientific_name
               )
             ) %>%
             select(scientific_name, scientific_id, functional_group, n)
+          
         }
+        
         
         df %>%
           DT::datatable(
