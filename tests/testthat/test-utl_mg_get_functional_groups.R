@@ -18,10 +18,15 @@
 #   "FUNCTIONAL:1"  -> group_id: FUNCTIONAL:1 (self, Biota) — 1 row
 
 mock_fg_lookup <- data.frame(
-  from         = c("Biota",       "Macrophytes",  "Zosteraceae",  "Zostera marina"),
-  to           = c("Life",        "Biota",        "Macrophytes",  "Zosteraceae"),
-  scientific_id = c("FUNCTIONAL:1", "FUNCTIONAL:2", "APHIA:143770", "APHIA:495077"),
-  tree_name    = rep("test_tree", 4),
+  from = c("Biota", "Macrophytes", "Zosteraceae", "Zostera marina"),
+  to = c("Life", "Biota", "Macrophytes", "Zosteraceae"),
+  scientific_id = c(
+    "FUNCTIONAL:1",
+    "FUNCTIONAL:2",
+    "APHIA:143770",
+    "APHIA:495077"
+  ),
+  tree_name = rep("test_tree", 4),
   stringsAsFactors = FALSE
 )
 
@@ -189,7 +194,7 @@ test_that("each scientific_id receives the correct group memberships", {
   )
 
   aphia_groups <- result$group_id[result$scientific_id == "APHIA:495077"]
-  fg1_groups   <- result$group_id[result$scientific_id == "FUNCTIONAL:1"]
+  fg1_groups <- result$group_id[result$scientific_id == "FUNCTIONAL:1"]
 
   expect_setequal(aphia_groups, c("FUNCTIONAL:1", "FUNCTIONAL:2"))
   expect_equal(fg1_groups, "FUNCTIONAL:1")
@@ -270,6 +275,56 @@ test_that("NAs mixed with valid ID: NAs removed with message, valid ID processed
   expect_s3_class(result, "data.frame")
   expect_gt(nrow(result), 0)
   expect_true(all(result$scientific_id == "APHIA:495077"))
+})
+
+# ---------------------------------------------------------------------------
+# Group-level nodes labeled with an Aphia ID (type == "primary")
+#
+# Mirrors real data (the oyster_density tree), where the group label
+# "Gastropods" is given an Aphia ID rather than a synthetic "FUNCTIONAL:" id,
+# but is still flagged as a group node via `type == "primary"`.
+#
+#   Life (root, no scientific_id)
+#     Biota (FUNCTIONAL:1)
+#       Gastropods (APHIA:101, type = "primary")  <- group labeled with an Aphia ID
+#         Gastropoda (APHIA:102, type = NA)          <- ordinary taxonomic node, not a group
+#           Crepidula atrasolea (APHIA:103, type = NA) <- enrolled species
+# ---------------------------------------------------------------------------
+
+mock_fg_lookup_aphia_group <- data.frame(
+  from = c("Biota", "Gastropods", "Gastropoda", "Crepidula atrasolea"),
+  to = c("Life", "Biota", "Gastropods", "Gastropoda"),
+  scientific_id = c("FUNCTIONAL:1", "APHIA:101", "APHIA:102", "APHIA:103"),
+  type = c(NA, "primary", NA, NA),
+  tree_name = rep("aphia_group_tree", 4),
+  stringsAsFactors = FALSE
+)
+
+mock_metadata_aphia_group <- list(
+  functional_group_lookup = mock_fg_lookup_aphia_group
+)
+
+test_that("Aphia-ID group node (type == primary) is returned as an ancestor", {
+  local_mocked_bindings(
+    marinegeo_metadata = mock_metadata_aphia_group,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("APHIA:103", "aphia_group_tree")
+
+  expect_setequal(result$group_id, c("FUNCTIONAL:1", "APHIA:101"))
+  expect_setequal(result$group_name, c("Biota", "Gastropods"))
+})
+
+test_that("non-primary Aphia-ID ancestor (type == NA) is not returned", {
+  local_mocked_bindings(
+    marinegeo_metadata = mock_metadata_aphia_group,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_functional_groups("APHIA:103", "aphia_group_tree")
+
+  expect_false("APHIA:102" %in% result$group_id)
 })
 
 # ---------------------------------------------------------------------------

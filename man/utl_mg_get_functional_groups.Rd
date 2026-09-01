@@ -16,12 +16,13 @@ tree to query (e.g. \code{"vegetation"}). Used to filter rows in
 \code{marinegeo_metadata$functional_group_lookup} by the \code{tree_name} column.}
 }
 \value{
-A data frame with one row per (\code{scientific_id}, \verb{FUNCTIONAL:} ancestor)
+A data frame with one row per (\code{scientific_id}, group-level ancestor)
 pair. Columns:
 \describe{
 \item{scientific_id}{The supplied identifier.}
-\item{group_id}{\code{scientific_id} of the ancestor \verb{FUNCTIONAL:} node
-(e.g. \code{"FUNCTIONAL:SAV"}).}
+\item{group_id}{\code{scientific_id} of the ancestor group-level node
+(e.g. \code{"FUNCTIONAL:SAV"}, or an Aphia ID when the group is labeled
+with one instead — see Details).}
 \item{group_name}{Display name of the ancestor node (e.g. \code{"Seagrass"}).}
 }
 Returns a zero-row data frame with the above columns if no IDs are matched
@@ -31,7 +32,7 @@ or if \code{scientific_ids} is empty after NA removal.
 Returns all functional group memberships for the supplied \code{scientific_ids}
 by traversing the \code{functional_group_lookup} edge-list stored in
 \code{marinegeo_metadata} using the \code{data.tree} package. Each row in the result
-represents one \verb{FUNCTIONAL:} ancestor node that the queried ID belongs to.
+represents one group-level ancestor node that the queried ID belongs to.
 
 Both \code{"APHIA:X"} species IDs and \code{"FUNCTIONAL:X"} group IDs are accepted as
 input. IDs that do not appear in the tree produce zero rows, not an error.
@@ -39,15 +40,22 @@ input. IDs that do not appear in the tree produce zero rows, not an error.
 \details{
 The \code{functional_group_lookup} table in \code{marinegeo_metadata} is an edge-list
 data frame with columns \code{from} (child node display name), \code{to} (parent node
-display name), \code{scientific_id} (the child node's scientific identifier), and
-\code{tree_name}. At query time the relevant tree is built from this table, the
-node corresponding to the supplied \code{scientific_id} is located via
-\code{data.tree::FindNode()}, and all \verb{FUNCTIONAL:}-prefixed ancestor nodes on
-the path from root to that node are returned.
+display name), \code{scientific_id} (the child node's scientific identifier),
+\code{type}, and \code{tree_name}. At query time the relevant tree is built from this
+table, the node corresponding to the supplied \code{scientific_id} is located
+via \code{data.tree::FindNode()}, and all group-level ancestor nodes on the path
+from root to that node are returned.
+
+A node counts as "group-level" if its \code{scientific_id} is \verb{FUNCTIONAL:}-
+prefixed \emph{or} its \code{type} column is \code{"primary"}. Most trees label every
+group with a synthetic \code{"FUNCTIONAL:X"} id, but some (e.g. \code{oyster_density})
+label a group with a real Aphia ID instead (e.g. \code{"Gastropods"}) — \code{type == "primary"} flags those group nodes so they are still returned as ancestors
+even though their \code{scientific_id} isn't \verb{FUNCTIONAL:}-prefixed.
 
 When a \code{"FUNCTIONAL:X"} ID is supplied, that node itself is included in
 the results alongside its ancestors. \code{"APHIA:X"} IDs (species or taxonomic
-anchor nodes) return only their \verb{FUNCTIONAL:} ancestors, not themselves.
+anchor nodes) return only their group-level ancestors, not themselves —
+unless the queried ID itself is a group-level (\code{type == "primary"}) node.
 }
 \examples{
 # Species lookup — returns all FUNCTIONAL: ancestor nodes
