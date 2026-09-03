@@ -59,9 +59,9 @@ Adding a new table type requires only updating the metadata CSVs and
 rebuilding sysdata — no R code changes required.
 
 \strong{Arrow support:} Arrow Datasets and Tables are collected into memory via
-\code{\link[dplyr:compute]{dplyr::collect()}} before testing. This requires the \code{arrow} package.
+\code{\link[dplyr:collect]{dplyr::collect()}} before testing. This requires the \code{arrow} package.
 
-\strong{File path support:} CSV files are read with \code{\link[readr:read_delim]{readr::read_csv()}}; XLSX/XLS
+\strong{File path support:} CSV files are read with \code{\link[readr:read_csv]{readr::read_csv()}}; XLSX/XLS
 files with \code{\link[readxl:read_excel]{readxl::read_excel()}}; Parquet files with
 \code{\link[arrow:read_parquet]{arrow::read_parquet()}} (requires \code{arrow}).
 }

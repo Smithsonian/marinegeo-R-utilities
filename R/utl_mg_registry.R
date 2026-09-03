@@ -43,22 +43,37 @@
 #' **`observation_lookup`**
 #' - `scientific_name` — Species or functional group name as entered in
 #'   MarineGEO datasets.
-#' - `scientific_id` — Unique identifier (Aphia ID or functional group ID).
-#'   Additional columns may be present depending on the version of the metadata.
+#' - `scientific_id` — Unique identifier: an Aphia LSID (e.g.,
+#'   `"urn:lsid:marinespecies.org:taxname:495077"`), a functional group ID
+#'   (e.g., `"FUNCTIONAL:SEAGRASS"`), or an `"UNDEFINED:"` placeholder.
 #'
 #' **`taxonomic_lookup`**
 #' - `id` — Raw adjacency-table key.
-#' - `scientific_id` — Unique identifier for this node (e.g., `"APHIA:374534"`).
+#' - `scientific_id` — Unique identifier for this node (e.g.,
+#'   `"urn:lsid:marinespecies.org:taxname:374534"`).
 #' - `parent_id` — `scientific_id` of the parent taxonomic node (`NA` at root).
 #' - `rank` — Taxonomic rank label (e.g., `"Species"`, `"Genus"`).
 #' - `name` — Taxon name at this rank.
 #'
 #' **`functional_group_lookup`**
-#' - `scientific_id` — Unique identifier for this functional group or taxon.
-#' - `parent_id` — `scientific_id` of the parent node (`NA` at root).
-#' - `functional_group_name` — Human-readable functional group label.
-#' - `enroll_all_lower_ranks` — Logical. If `TRUE`, all lower taxonomic ranks
-#'   under this node are automatically enrolled as members.
+#'
+#' An edge list holding several independent trees, one per `tree_name`. Each
+#' row describes a single child node and the parent it hangs from, so a tree's
+#' root has no row of its own and appears only in the `to` column.
+#' - `from` — Display label of the child node (e.g., `"Marine Seagrass"`).
+#' - `to` — Display label of that node's parent.
+#' - `scientific_id` — Identifier of the child node: an Aphia LSID (e.g.,
+#'   `"urn:lsid:marinespecies.org:taxname:143770"`) for taxonomic nodes, or a
+#'   synthetic functional group ID (e.g., `"FUNCTIONAL:SEAGRASS"`).
+#' - `type` — `"primary"` on curated group-level nodes, otherwise `NA`. Flags
+#'   group nodes that carry a real Aphia ID rather than a `FUNCTIONAL:` one.
+#' - `code` — Short protocol code for the node, where one exists (currently
+#'   only in the `fouling` tree), otherwise `NA`.
+#' - `rank` — Taxonomic rank of the node (e.g., `"Family"`, `"Genus"`).
+#'   `NA` on `FUNCTIONAL:` group nodes.
+#' - `definition` — Prose definition of the group, where one exists.
+#' - `tree_name` — Which tree this edge belongs to (e.g., `"vegetation"`,
+#'   `"fouling"`, `"oyster_density"`, `"oyster_composition"`).
 #'
 #' **`data_index`**
 #' - `table_id` — Versioned table identifier used across MarineGEO metadata

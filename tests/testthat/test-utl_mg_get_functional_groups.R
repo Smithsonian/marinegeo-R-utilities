@@ -344,3 +344,20 @@ test_that("logical input stops with an informative error", {
     "`scientific_ids` must be a character vector"
   )
 })
+
+# ---------------------------------------------------------------------------
+# Unknown tree
+# ---------------------------------------------------------------------------
+
+test_that("an unknown functional_group_tree stops and lists the available trees", {
+  local_mocked_bindings(
+    marinegeo_metadata = mock_metadata,
+    .mg_fetch_registry = function(url) mock_obs_lookup,
+    .package = "marinegeo.utils"
+  )
+
+  expect_error(
+    utl_mg_get_functional_groups("APHIA:495077", "no_such_tree"),
+    "Available trees: test_tree"
+  )
+})
