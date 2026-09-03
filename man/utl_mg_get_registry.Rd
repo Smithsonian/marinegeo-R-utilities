@@ -57,26 +57,41 @@ optionally filtered to a subset of rows. All data frame tables stored in
 \itemize{
 \item \code{scientific_name} — Species or functional group name as entered in
 MarineGEO datasets.
-\item \code{scientific_id} — Unique identifier (Aphia ID or functional group ID).
-Additional columns may be present depending on the version of the metadata.
+\item \code{scientific_id} — Unique identifier: an Aphia LSID (e.g.,
+\code{"urn:lsid:marinespecies.org:taxname:495077"}), a functional group ID
+(e.g., \code{"FUNCTIONAL:SEAGRASS"}), or an \code{"UNDEFINED:"} placeholder.
 }
 
 \strong{\code{taxonomic_lookup}}
 \itemize{
 \item \code{id} — Raw adjacency-table key.
-\item \code{scientific_id} — Unique identifier for this node (e.g., \code{"APHIA:374534"}).
+\item \code{scientific_id} — Unique identifier for this node (e.g.,
+\code{"urn:lsid:marinespecies.org:taxname:374534"}).
 \item \code{parent_id} — \code{scientific_id} of the parent taxonomic node (\code{NA} at root).
 \item \code{rank} — Taxonomic rank label (e.g., \code{"Species"}, \code{"Genus"}).
 \item \code{name} — Taxon name at this rank.
 }
 
 \strong{\code{functional_group_lookup}}
+
+An edge list holding several independent trees, one per \code{tree_name}. Each
+row describes a single child node and the parent it hangs from, so a tree's
+root has no row of its own and appears only in the \code{to} column.
 \itemize{
-\item \code{scientific_id} — Unique identifier for this functional group or taxon.
-\item \code{parent_id} — \code{scientific_id} of the parent node (\code{NA} at root).
-\item \code{functional_group_name} — Human-readable functional group label.
-\item \code{enroll_all_lower_ranks} — Logical. If \code{TRUE}, all lower taxonomic ranks
-under this node are automatically enrolled as members.
+\item \code{from} — Display label of the child node (e.g., \code{"Marine Seagrass"}).
+\item \code{to} — Display label of that node's parent.
+\item \code{scientific_id} — Identifier of the child node: an Aphia LSID (e.g.,
+\code{"urn:lsid:marinespecies.org:taxname:143770"}) for taxonomic nodes, or a
+synthetic functional group ID (e.g., \code{"FUNCTIONAL:SEAGRASS"}).
+\item \code{type} — \code{"primary"} on curated group-level nodes, otherwise \code{NA}. Flags
+group nodes that carry a real Aphia ID rather than a \verb{FUNCTIONAL:} one.
+\item \code{code} — Short protocol code for the node, where one exists (currently
+only in the \code{fouling} tree), otherwise \code{NA}.
+\item \code{rank} — Taxonomic rank of the node (e.g., \code{"Family"}, \code{"Genus"}).
+\code{NA} on \verb{FUNCTIONAL:} group nodes.
+\item \code{definition} — Prose definition of the group, where one exists.
+\item \code{tree_name} — Which tree this edge belongs to (e.g., \code{"vegetation"},
+\code{"fouling"}, \code{"oyster_density"}, \code{"oyster_composition"}).
 }
 
 \strong{\code{data_index}}

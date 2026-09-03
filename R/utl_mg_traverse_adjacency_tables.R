@@ -158,3 +158,74 @@
     dplyr::left_join(ranks_df, by = "scientific_id") |>
     dplyr::select("scientific_id", "rank", dplyr::everything())
 }
+
+
+# ---------------------------------------------------------------------------
+# Functional group tree construction
+# ---------------------------------------------------------------------------
+
+#' Build a `data.tree` object for one functional group tree
+#'
+#' @description
+#' Fetches `functional_group_lookup`, restricts it to a single tree, and builds
+#' the corresponding [data.tree::Node] object. Shared by
+#' [utl_mg_get_functional_groups()] and [utl_mg_assign_ancestor_labels()].
+#'
+#' @param functional_group_tree Character scalar. Value of the `tree_name`
+#'   column identifying the tree to build (e.g. `"vegetation"`).
+#'
+#' @return A list with two elements:
+#'   \describe{
+#'     \item{fg}{The edge-list data frame filtered to `functional_group_tree`,
+#'       in its original `from` = child / `to` = parent orientation, with a
+#'       `type` column guaranteed to be present.}
+#'     \item{tree}{The `data.tree` root node.}
+#'   }
+#'
+#' @details
+#' The lookup table stores edges as `from` = child, `to` = parent, which is the
+#' opposite of the `from` = parent, `to` = child convention
+#' [data.tree::FromDataFrameNetwork()] expects. The two columns are therefore
+#' swapped with [dplyr::select()] rather than [dplyr::rename()], because
+#' `FromDataFrameNetwork()` reads the first two columns *by position*.
+#'
+#' A `type` column is added as all-`NA` when absent, so downstream callers can
+#' reference it unconditionally.
+#'
+#' @keywords internal
+.mg_build_fg_tree <- function(functional_group_tree) {
+  fg <- .mg_get_registry_table("functional_group_lookup") |>
+    dplyr::filter(.data$tree_name == functional_group_tree)
+
+  if (nrow(fg) == 0) {
+    available <- sort(unique(
+      .mg_get_registry_table("functional_group_lookup")$tree_name
+    ))
+    stop(
+      "No rows in `functional_group_lookup` for tree_name '",
+      functional_group_tree,
+      "'. Available trees: ",
+      paste(available, collapse = ", "),
+      "."
+    )
+  }
+
+  # Some trees label a group-level node with a real Aphia ID instead of a
+  # synthetic "FUNCTIONAL:" id (e.g. "Gastropods" in the oyster_density
+  # tree), so callers use `type == "primary"` alongside the "FUNCTIONAL:"
+  # prefix to identify group-level nodes. Default to NA if `type` is absent
+  # from the table entirely.
+  if (!"type" %in% names(fg)) {
+    fg$type <- NA_character_
+  }
+
+  # CSV uses from=child, to=parent; swap to match data.tree's from=parent, to=child convention
+  # dplyr::select (not rename) is required to also reorder columns — data.tree reads by position
+  tree <- fg |>
+    dplyr::select(from = "to", to = "from", dplyr::everything()) |>
+    data.tree::FromDataFrameNetwork(
+      check = c("check", "no-warn", "no-check")
+    )
+
+  list(fg = fg, tree = tree)
+}

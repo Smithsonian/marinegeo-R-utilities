@@ -91,25 +91,9 @@ utl_mg_get_functional_groups <- function(
     return(empty_result)
   }
 
-  fg <- .mg_get_registry_table("functional_group_lookup") |>
-    dplyr::filter(tree_name == functional_group_tree)
-
-  # Some trees label a group-level node with a real Aphia ID instead of a
-  # synthetic "FUNCTIONAL:" id (e.g. "Gastropods" in the oyster_density
-  # tree), so `type == "primary"` is used alongside the "FUNCTIONAL:" prefix
-  # to identify group-level ancestors below. Default to NA if `type` is
-  # absent from the table entirely.
-  if (!"type" %in% names(fg)) {
-    fg$type <- NA_character_
-  }
-
-  # CSV uses from=child, to=parent; swap to match data.tree's from=parent, to=child convention
-  # dplyr::select (not rename) is required to also reorder columns — data.tree reads by position
-  fg_tree <- fg |>
-    dplyr::select(from = to, to = from, dplyr::everything()) |>
-    data.tree::FromDataFrameNetwork(
-      check = c("check", "no-warn", "no-check")
-    )
+  built <- .mg_build_fg_tree(functional_group_tree)
+  fg <- built$fg
+  fg_tree <- built$tree
 
   rows <- dplyr::bind_rows(lapply(scientific_ids, function(id) {
     node_display_name <- fg$from[fg$scientific_id == id]

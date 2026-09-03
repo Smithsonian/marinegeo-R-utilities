@@ -26,8 +26,23 @@ database by scientific name. If the sample is identified by a column not named "
 it should be defined in the \code{identification_column_name} argument.
 }
 \examples{
-df <- utl_rls_load_excel_deprecated("inst/extdata/test_rls_data_EPA.xlsx", sheet = "DATA") |>
- dplyr::filter(Method == "1" | Method == "2")
-utl_join_taxonomy_by_scientific_name_deprecated(df, identification_column_name = "Species")
-utl_join_taxonomy_by_scientific_name+_deprecated(df, identification_column_name = "Species", "phylum")
+\dontrun{
+df <- utl_mg_load_excel_deprecated(
+  "inst/extdata/test_rls_data_EPA_one_header_row.xlsx",
+  "reef-life-survey-data-marinegeo-v1",
+  "DATA"
+) |>
+  dplyr::filter(Method == "1" | Method == "2")
+
+utl_join_taxonomy_by_scientific_name_deprecated(
+  df,
+  identification_column_name = "Species"
+)
+
+utl_join_taxonomy_by_scientific_name_deprecated(
+  df,
+  identification_column_name = "Species",
+  taxonomic_levels = "phylum"
+)
+}
 }

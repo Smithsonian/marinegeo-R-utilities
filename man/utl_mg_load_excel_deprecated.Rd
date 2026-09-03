@@ -21,6 +21,11 @@ Load one or more sheets from a MarineGEO Excel file into R.The \code{output_tabl
 argument is used to select the correct sheet from the Excel file.
 }
 \examples{
-
-utl_mg_load_excel_deprecated('L1/rls_example.xlsx',"reef-life-survey-data-marinegeo-v1", 'DATA')
+\dontrun{
+utl_mg_load_excel_deprecated(
+  "L1/rls_example.xlsx",
+  "reef-life-survey-data-marinegeo-v1",
+  "DATA"
+)
+}
 }

@@ -21,7 +21,16 @@ dataframe of taxonomic classifications and taxonomic ID (usually Aphia ID)
 Get taxonomic classifications by scientific name
 }
 \examples{
-utl_get_taxonomy_by_scientific_name(c("Gastropoda", "Dardanus venosus"))
-utl_get_taxonomy_by_scientific_name("Dardanus venosus", taxonomic_levels = "phylum")
-utl_get_taxonomy_by_scientific_name("Dardanus venosus", taxonomic_levels = "pilum") # misspelling
+db_get_taxonomy_by_scientific_name_deprecated(c("Gastropoda", "Dardanus venosus"))
+
+db_get_taxonomy_by_scientific_name_deprecated(
+  "Dardanus venosus",
+  taxonomic_levels = "phylum"
+)
+
+# A misspelled level is reported rather than silently dropped
+db_get_taxonomy_by_scientific_name_deprecated(
+  "Dardanus venosus",
+  taxonomic_levels = "pilum"
+)
 }
