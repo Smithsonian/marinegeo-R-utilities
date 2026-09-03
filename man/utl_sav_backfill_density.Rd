@@ -56,10 +56,10 @@ re-appended to the output without modification.
 
 Within each sample event the function:
 \enumerate{
-\item Uses \code{\link[tidyr:expand]{tidyr::expand()}} with \code{\link[tidyr:expand]{tidyr::nesting()}} to produce all
+\item Uses \code{\link[tidyr:expand]{tidyr::expand()}} with \code{\link[tidyr:nesting]{tidyr::nesting()}} to produce all
 combinations of \code{transect} × \code{quadrat} × \code{scientific_name} within the
 event's existing transect–quadrat pairs.
-\item Uses \code{\link[dplyr:filter-joins]{dplyr::anti_join()}} to identify combinations absent from the
+\item Uses \code{\link[dplyr:anti_join]{dplyr::anti_join()}} to identify combinations absent from the
 original data and inserts them with \code{shoot_count = 0} and
 \code{shoot_density_m2 = 0}.
 }

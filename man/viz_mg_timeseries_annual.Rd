@@ -25,12 +25,12 @@ y-axis (the response variable).}
 
 \item{x_var}{Character scalar. Name of the column in \code{df} to map to the
 x-axis. Defaults to \code{"year"}. The column is treated as a discrete axis
-via \code{\link[ggplot2:scale_discrete]{ggplot2::scale_x_discrete()}}.}
+via \code{\link[ggplot2:scale_x_discrete]{ggplot2::scale_x_discrete()}}.}
 
 \item{y_label}{Character scalar. Label to display on the y-axis.}
 
 \item{y_limits}{Numeric vector of length 2, \code{c(min, max)}, passed to
-\code{\link[ggplot2:lims]{ggplot2::ylim()}}. If \code{NULL} (default), axis limits are determined
+\code{\link[ggplot2:ylim]{ggplot2::ylim()}}. If \code{NULL} (default), axis limits are determined
 automatically. \strong{Note:} data points outside the specified range are
 silently dropped by ggplot2.}
 
@@ -68,7 +68,7 @@ The x-axis is rendered as a discrete scale so that years with no
 observations are not interpolated. If \code{x_var} holds a numeric year column,
 convert it to a factor or character before passing to this function.
 
-\code{y_limits} is applied via \code{\link[ggplot2:lims]{ggplot2::ylim()}}, which drops data points
+\code{y_limits} is applied via \code{\link[ggplot2:ylim]{ggplot2::ylim()}}, which drops data points
 outside the specified range. Use \code{\link[ggplot2:coord_cartesian]{ggplot2::coord_cartesian()}} directly on
 the returned object if you need to zoom without dropping data.
 }

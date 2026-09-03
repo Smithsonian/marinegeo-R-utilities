@@ -21,7 +21,7 @@ allowing the function to be used in a pipe chain without interrupting flow.
 A pipe-friendly guardrail that validates column types in a data frame against
 the MarineGEO schema for a given table, then throws a hard error if any
 column violates what Apache Arrow expects. Place this function in a pipe
-chain before a write operation (e.g., \code{\link[readr:write_delim]{readr::write_csv()}}) to block
+chain before a write operation (e.g., \code{\link[readr:write_csv]{readr::write_csv()}}) to block
 incorrect data from being written.
 
 Unlike \code{\link[=qc_check_data_types]{qc_check_data_types()}}, which returns a structured result list for
