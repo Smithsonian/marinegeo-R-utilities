@@ -419,11 +419,18 @@ sample_event_server <- function(id, input_list) {
         input_list$out_df %>%
           count(scientific_name) %>%
           mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
+          # mutate(
+          #   functional_group = utl_mg_assign_functional_groups(
+          #     fg_tree = "vegetation",
+          #     fg_labels = c("Seagrass", "Algae"),
+          #     scientific_name
+          #   )
+          # ) %>%
           mutate(
-            functional_group = utl_mg_assign_functional_groups(
+            functional_group = utl_mg_assign_ancestor_labels(
               fg_tree = "vegetation",
-              fg_labels = c("Seagrass", "Algae"),
-              scientific_name
+              scientific_names = scientific_name,
+              type = "primary"
             )
           ) %>%
           select(scientific_name, scientific_id, functional_group, n) %>%
@@ -447,18 +454,25 @@ sample_event_server <- function(id, input_list) {
               T~ cover_type
             ))%>%
             count(scientific_name, cover_type) %>%
-            mutate(scientific_id = utl_mg_get_scientific_id(cover_type)) %>%
+            mutate(cover_scientific_id = utl_mg_get_scientific_id(cover_type)) %>%
+            mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
+            
             mutate(
-              functional_group = utl_mg_assign_functional_groups(
+              cover_type_functional_group = utl_mg_assign_ancestor_labels(
                 fg_tree = "oyster_composition",
-                fg_labels = c("Algae", "Barnacles", "Bivalves",
-                              "Ascidians", "Sponges", "Sediment",
-                              "Rock", "Cultch", "Live Oyster",
-                              "Box Oyster", "Shell Hash", "Large Shell Material"),
-                cover_type
+                scientific_names = cover_type,
+                type = "primary"
               )
             ) %>%
-            select(cover_type, functional_group, scientific_name, scientific_id, n)
+            mutate(
+              functional_group = utl_mg_assign_ancestor_labels(
+                fg_tree = "oyster_density",
+                scientific_names = scientific_name,
+                type = "primary"
+              )
+            ) %>%
+            
+            select(scientific_name, scientific_id, functional_group, cover_type, cover_scientific_id, cover_type_functional_group)
           
         }else{
           
@@ -466,13 +480,10 @@ sample_event_server <- function(id, input_list) {
             count(scientific_name) %>%
             mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
             mutate(
-              functional_group = utl_mg_assign_functional_groups(
-                fg_tree = "oyster_composition",
-                fg_labels = c("Algae", "Barnacles", "Bivalves",
-                              "Ascidians", "Sponges", "Sediment",
-                              "Rock", "Cultch", "Live Oyster",
-                              "Box Oyster", "Shell Hash", "Large Shell Material"),
-                scientific_name
+              functional_group = utl_mg_assign_ancestor_labels(
+                fg_tree = "oyster_density",
+                scientific_names = scientific_name,
+                type = "primary"
               )
             ) %>%
             select(scientific_name, scientific_id, functional_group, n)
