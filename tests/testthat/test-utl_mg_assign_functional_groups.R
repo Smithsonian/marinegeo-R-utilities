@@ -20,21 +20,45 @@
 #   "unidentified macroalgae"  -> FUNCTIONAL:2  (is Macrophytes)
 
 mock_fg_lookup <- data.frame(
-  from         = c("Biota",       "Macrophytes",  "Fish",        "Zosteraceae",  "Zostera marina", "Labridae"),
-  to           = c("Life",        "Biota",        "Biota",       "Macrophytes",  "Zosteraceae",    "Fish"),
-  scientific_id = c("FUNCTIONAL:1","FUNCTIONAL:2","FUNCTIONAL:3","APHIA:143770", "APHIA:495077",   "APHIA:111111"),
-  tree_name    = rep("test_tree", 6),
+  from = c(
+    "Biota",
+    "Macrophytes",
+    "Fish",
+    "Zosteraceae",
+    "Zostera marina",
+    "Labridae"
+  ),
+  to = c("Life", "Biota", "Biota", "Macrophytes", "Zosteraceae", "Fish"),
+  scientific_id = c(
+    "FUNCTIONAL:1",
+    "FUNCTIONAL:2",
+    "FUNCTIONAL:3",
+    "APHIA:143770",
+    "APHIA:495077",
+    "APHIA:111111"
+  ),
+  tree_name = rep("test_tree", 6),
   stringsAsFactors = FALSE
 )
 
 mock_obs_lookup <- data.frame(
-  scientific_name = c("Zostera marina", "Labridae", "Unknown", "unidentified macroalgae"),
-  scientific_id   = c("APHIA:495077",   "APHIA:111111", "APHIA:999999", "FUNCTIONAL:2"),
+  scientific_name = c(
+    "Zostera marina",
+    "Labridae",
+    "Unknown",
+    "unidentified macroalgae"
+  ),
+  scientific_id = c(
+    "APHIA:495077",
+    "APHIA:111111",
+    "APHIA:999999",
+    "FUNCTIONAL:2"
+  ),
   stringsAsFactors = FALSE
 )
 
 mock_metadata <- list(
-  observation_lookup     = mock_obs_lookup,
+  observation_lookup = mock_obs_lookup,
   functional_group_lookup = mock_fg_lookup
 )
 
@@ -51,8 +75,8 @@ test_that("returns a character vector of the same length as scientific_names", {
 
   result <- suppressMessages(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes", "Fish"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes", "Fish"),
       scientific_names = c("Zostera marina", "Labridae spp.", NA)
     )
   )
@@ -74,8 +98,8 @@ test_that("name belonging to exactly one candidate group returns that group", {
 
   result <- suppressMessages(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes", "Fish"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes", "Fish"),
       scientific_names = c("Zostera marina", "Labridae spp.")
     )
   )
@@ -94,8 +118,8 @@ test_that("FUNCTIONAL: scientific_id that IS a candidate group is correctly assi
   # "unidentified macroalgae" maps to FUNCTIONAL:2 ("Macrophytes"), which IS
   # the candidate group — should match itself, not just ancestors
   result <- utl_mg_assign_functional_groups(
-    fg_tree          = "test_tree",
-    fg_labels        = c("Macrophytes"),
+    fg_tree = "test_tree",
+    fg_labels = c("Macrophytes"),
     scientific_names = "unidentified macroalgae"
   )
 
@@ -111,8 +135,8 @@ test_that("repeated names in scientific_names are all assigned correctly", {
 
   result <- suppressMessages(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes", "Fish"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes", "Fish"),
       scientific_names = c("Zostera marina", "Zostera marina", "Labridae spp.")
     )
   )
@@ -133,8 +157,8 @@ test_that("NA scientific names are returned as NA without a message", {
 
   expect_no_message(
     result <- utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes"),
       scientific_names = c(NA_character_, NA_character_)
     )
   )
@@ -151,8 +175,8 @@ test_that("NA values in a mixed vector are NA in output, valid names are assigne
 
   result <- suppressMessages(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes", "Fish"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes", "Fish"),
       scientific_names = c(NA_character_, "Zostera marina")
     )
   )
@@ -174,8 +198,8 @@ test_that("name with no fg match returns NA with a message", {
 
   expect_message(
     result <- utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes"),
       scientific_names = "Unknown sp."
     ),
     "did not match any of the provided functional groups"
@@ -193,8 +217,8 @@ test_that("no-match message lists the affected scientific name", {
 
   expect_message(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes"),
       scientific_names = "Unknown sp."
     ),
     "Unknown sp\\."
@@ -215,8 +239,8 @@ test_that("name matching multiple candidate groups returns NA with a message", {
   # Zostera marina (APHIA:495077) belongs to both Macrophytes and Biota
   expect_message(
     result <- utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes", "Biota"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes", "Biota"),
       scientific_names = "Zostera marina"
     ),
     "matched multiple functional groups"
@@ -234,8 +258,8 @@ test_that("multi-match message lists the affected name", {
 
   expect_message(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes", "Biota"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes", "Biota"),
       scientific_names = "Zostera marina"
     ),
     "Zostera marina"
@@ -255,8 +279,8 @@ test_that("name absent from observation_lookup returns NA with a warning", {
 
   expect_warning(
     result <- utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes"),
       scientific_names = "Nonexistent species"
     ),
     "could not be matched"
@@ -274,8 +298,8 @@ test_that("unresolved-name warning lists the affected name", {
 
   expect_warning(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes"),
       scientific_names = "Nonexistent species"
     ),
     "Nonexistent species"
@@ -295,15 +319,15 @@ test_that("mix of matched, unmatched, and unresolved names all handled in one ca
 
   result <- suppressWarnings(suppressMessages(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes", "Fish"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes", "Fish"),
       scientific_names = c("Zostera marina", "Unknown sp.", "Not in lookup")
     )
   ))
 
   expect_equal(result[1], "Macrophytes")
-  expect_true(is.na(result[2]))   # in lookup, but not enrolled in candidate groups
-  expect_true(is.na(result[3]))   # not in lookup at all
+  expect_true(is.na(result[2])) # in lookup, but not enrolled in candidate groups
+  expect_true(is.na(result[3])) # not in lookup at all
 })
 
 # ---------------------------------------------------------------------------
@@ -319,13 +343,57 @@ test_that("all-NA scientific_names returns all-NA character vector with no messa
 
   expect_no_message(
     result <- utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = c("Macrophytes"),
+      fg_tree = "test_tree",
+      fg_labels = c("Macrophytes"),
       scientific_names = c(NA_character_, NA_character_, NA_character_)
     )
   )
 
   expect_equal(result, rep(NA_character_, 3))
+})
+
+# ---------------------------------------------------------------------------
+# Group-level node labeled with an Aphia ID (type == "primary")
+#
+# Mirrors real data (the oyster_density tree "Gastropods" label), where a
+# candidate functional group is identified by an Aphia ID rather than a
+# synthetic "FUNCTIONAL:" id.
+# ---------------------------------------------------------------------------
+
+mock_fg_lookup_aphia_group <- data.frame(
+  from = c("Biota", "Gastropods", "Crepidula atrasolea"),
+  to = c("Life", "Biota", "Gastropods"),
+  scientific_id = c("FUNCTIONAL:1", "APHIA:101", "APHIA:103"),
+  type = c(NA, "primary", NA),
+  tree_name = rep("aphia_group_tree", 3),
+  stringsAsFactors = FALSE
+)
+
+mock_obs_lookup_aphia_group <- data.frame(
+  scientific_name = "Crepidula atrasolea",
+  scientific_id = "APHIA:103",
+  stringsAsFactors = FALSE
+)
+
+mock_metadata_aphia_group <- list(
+  observation_lookup = mock_obs_lookup_aphia_group,
+  functional_group_lookup = mock_fg_lookup_aphia_group
+)
+
+test_that("name matching an Aphia-ID-labeled candidate group is assigned that group", {
+  local_mocked_bindings(
+    marinegeo_metadata = mock_metadata_aphia_group,
+    .mg_fetch_registry = function(url) mock_obs_lookup_aphia_group,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_assign_functional_groups(
+    fg_tree = "aphia_group_tree",
+    fg_labels = c("Gastropods"),
+    scientific_names = "Crepidula atrasolea"
+  )
+
+  expect_equal(result, "Gastropods")
 })
 
 # ---------------------------------------------------------------------------
@@ -335,8 +403,8 @@ test_that("all-NA scientific_names returns all-NA character vector with no messa
 test_that("non-character fg_labels stops with an informative error", {
   expect_error(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = 1:3,
+      fg_tree = "test_tree",
+      fg_labels = 1:3,
       scientific_names = "Zostera marina"
     ),
     "`fg_labels` must be a non-empty character vector"
@@ -346,8 +414,8 @@ test_that("non-character fg_labels stops with an informative error", {
 test_that("empty fg_labels vector stops with an informative error", {
   expect_error(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = character(0),
+      fg_tree = "test_tree",
+      fg_labels = character(0),
       scientific_names = "Zostera marina"
     ),
     "`fg_labels` must be a non-empty character vector"
@@ -357,8 +425,8 @@ test_that("empty fg_labels vector stops with an informative error", {
 test_that("non-character scientific_names stops with an informative error", {
   expect_error(
     utl_mg_assign_functional_groups(
-      fg_tree          = "test_tree",
-      fg_labels        = "Macrophytes",
+      fg_tree = "test_tree",
+      fg_labels = "Macrophytes",
       scientific_names = 123
     ),
     "`scientific_names` must be a character vector"

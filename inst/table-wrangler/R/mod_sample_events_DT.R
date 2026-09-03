@@ -65,7 +65,7 @@ sample_event_server <- function(id, input_list) {
           )
         } else if(input_list$output_table_id %in%  c("oyster-count-monitoring-v1",
                                                       "oyster-habitat-complexity-monitoring-v1",
-                                                      "oyster-length-monitoring-v1",
+                                                      "oyster-height-monitoring-v1",
                                                       #"oyster_biobox_monitoring_v1",
                                                       # "oyster-transect-metadata-monitoring-v1",
                                                       "oyster-substrate-composition-monitoring-v1")){
@@ -152,7 +152,7 @@ sample_event_server <- function(id, input_list) {
             "seagrass-macroalgae-monitoring-v1",
             "oyster-count-monitoring-v1",
             "oyster-habitat-complexity-monitoring-v1",
-            "oyster-length-monitoring-v1",
+            "oyster-height-monitoring-v1",
             "oyster-substrate-composition-monitoring-v1"
           )
           
