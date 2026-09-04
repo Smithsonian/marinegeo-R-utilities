@@ -1,21 +1,21 @@
 ### template UI and server functions for a visualization of a specific data type
 
 
-fouling_sessile_v1_vis_UI <- function(id) {
+fouling_cover_v1_vis_UI <- function(id) {
   ns <- NS(id)
   
   tagList(
     uiOutput(ns("year_select_ui")),
     layout_column_wrap(
       card(
-        card_header("Sessile Species Richness Barplot"),
+        card_header("Morpho-functional Group Cover Barplot"),
         full_screen = TRUE,
-        plotOutput(ns("fouling_sessile_barplot"))
+        plotOutput(ns("fouling_cover_barplot"))
       ),
       card(
-        card_header("Sessile Species Richness Timeseries Line Plot"),
+        card_header("Morpho-functional Group Cover Timeseries"),
         full_screen = TRUE,
-        plotlyOutput(ns("fouling_sessile_timeseries_lineplot"))
+        plotlyOutput(ns("fouling_cover_timeseries_lineplot"))
       )
     )
   )
@@ -23,7 +23,7 @@ fouling_sessile_v1_vis_UI <- function(id) {
 
 
 
-fouling_sessile_v1_vis_server <- function(id, input_list) {
+fouling_cover_v1_vis_server <- function(id, input_list) {
   moduleServer(id, function(input, output, session) {
     
     groups <- c("Amphipod tubes", "Anemone", "Arborescent bryozoan", "Barnacles", 
@@ -67,44 +67,41 @@ fouling_sessile_v1_vis_server <- function(id, input_list) {
       input_list$out_df %>% filter(year(retrieval_date) == selected)
     })
     
-    output$fouling_sessile_barplot <- renderPlot({
+    output$fouling_cover_barplot <- renderPlot({
       
       barplot_data() %>%
         left_join(species_lookup, by = "scientific_name") %>%
-        group_by(site_name, panel_id, group) %>%
-        summarize(richness = n_distinct(scientific_name)) %>%
-        ggplot(aes(panel_id, richness, fill = group)) +
+        ggplot(aes(panel_id, point_count, fill = group)) +
         geom_col() +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
       
     })
     
-    output$fouling_sessile_timeseries_lineplot <- renderPlotly({
+    output$fouling_cover_timeseries_lineplot <- renderPlotly({
       
       df_viz <- load_additional_fouling() %>%
+        distinct() %>%
         left_join(species_lookup, by = "scientific_name") %>%
-        group_by(year, site_name, panel_id, group) %>%
-        summarize(richness = n_distinct(scientific_name)) %>%
-        ungroup() %>%
-        group_by(year, site_name, group) %>%
-        summarize(richness = mean(richness, na.rm = T))
+        filter(!is.na(group)) %>%
+        group_by(site_name, year, group) %>%
+        summarize(percent_cover = mean(percent_cover, na.rm = T))
       
       top_groups <- df_viz %>%
-        ungroup() %>% 
+        ungroup() %>%
         group_by(group) %>%
-        summarize(richness = max(richness, na.rm = T)) %>%
-        arrange(desc(richness)) %>%
+        summarize(percent_cover = max(percent_cover, na.rm = T)) %>%
+        arrange(desc(percent_cover)) %>%
         pull(group)
       
       top_groups <- top_groups[1:5]
       
       plot <- marinegeo.utils::viz_mg_timeseries_annual(
         df = df_viz,
-        y_var = "richness",
+        y_var = "percent_cover",
         x_var = "year",
-        y_label = "Mean Species Richness",
+        y_label = "Mean Percent Cover",
         y_grouping_var = "group",
-        facet_var = "site_name", 
+        facet_var = "site_name",
         facet_num_cols = 1
       )
       

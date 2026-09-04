@@ -91,9 +91,27 @@ sample_event_server <- function(id, input_list) {
                    full_screen = TRUE)
             )
           )
+        
+        } else if(str_starts(input_list$output_table_id, "fouling")){
           
-          
+          navset_card_pill(
+            
+            nav_panel(
+              title = "Unique Panels", 
+              card("Verify the number of unique panels per site.",
+                   DTOutput(session$ns("num_uniq_panels")),
+                   full_screen = TRUE)
+            ),
+            
+            nav_panel(
+              title = "Panel ID Relationships",
+              card(DTOutput(session$ns("panel_relationships")),
+                   full_screen = T)
+            )
+            
+          )
         }
+        
       })
       
       ## Cross-Habitats ####
@@ -498,6 +516,85 @@ sample_event_server <- function(id, input_list) {
           )
       })
       
+      ## Fouling Monitoring ####
+      output$num_uniq_panels <- renderDT({
+        
+        df <- input_list$out_df %>%
+          filter(deployment_period == "90 day") %>%
+          group_by(site_name) %>%
+          summarize(`Number of Panels` = n_distinct(panel_id),
+                    `Earliest Retrieval Date` = min(retrieval_date),
+                    `Latest Retrieval Date` = max(retrieval_date))
+        
+        df %>%
+          DT::datatable(
+            style = "default"
+          )
+        
+      })
+      
+      output$panel_relationships <- renderDT({
+        
+        if(!("panel_id" %in% colnames(input_list$out_df))){
+          df <- tibble(status = "Panel ID column not in table")
+          
+        } else if(!"sample_event_id" %in% colnames(input_list$out_df)){ 
+          df <- tibble(status = "add sample event ID column!")
+          
+        } else {
+          
+          panel_tables <- c(
+            "fouling-panel-metadata-v1",
+            "fouling-sessile-v1",
+            "fouling-cover-v1",
+            "fouling-biomass-v1"
+          )
+          
+          sample_events <- unique(input_list$out_df$sample_event_id)
+          
+          df <- compact(
+            lapply(panel_tables, function(x){
+              
+              tryCatch({
+                # Don't load L2 table for the current target table, 
+                # use the loaded table instead
+                if(x == input_list$output_table_id){
+                  input_list$out_df %>%
+                    select(sample_event_id, site_name, panel_id) %>%
+                    distinct() %>%
+                    mutate(table = x,
+                           status = T)
+                  
+                } else {
+                  marinegeo.utils::db_arrow_marinegeo(x) %>%
+                    filter(sample_event_id %in% sample_events) %>%
+                    select(sample_event_id, site_name, panel_id) %>%
+                    distinct() %>%
+                    collect() %>%
+                    mutate(table = x,
+                           status = T)
+                  
+                }
+              }, error = function(e){
+                NULL
+                
+              })
+            })
+          ) %>%
+            bind_rows() %>%
+            pivot_wider(names_from = table, 
+                        values_from = status) %>%
+            arrange(site_name, panel_id)
+          
+        }
+        
+        df %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
+          )
+        
+      })
       
       ## Oyster Network Project 2025 ####
       output$oyster_2025_roster <- renderDT({
