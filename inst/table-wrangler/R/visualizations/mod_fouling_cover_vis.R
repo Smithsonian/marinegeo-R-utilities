@@ -26,14 +26,6 @@ fouling_cover_v1_vis_UI <- function(id) {
 fouling_cover_v1_vis_server <- function(id, input_list) {
   moduleServer(id, function(input, output, session) {
     
-    groups <- c("Amphipod tubes", "Anemone", "Arborescent bryozoan", "Barnacles", 
-                "Colonial ascidian", "Crepidula", "Encrusting bryozoan", "Fish eggs", 
-                "Hydroid", "Kamptozoa", "Mobile", "Mussel", "Other", "Other bivalves",
-                "Other polychaetes", "Oyster", "Sabellid", "Serpulidae",
-                "Solitary ascidian", "Sponge", "Terebellid", "Turf algae", "Vermetid", "n/a")
-    
-    species_lookup <- read_csv("fouling_sp_lookup.csv")
-    
     load_additional_fouling <- reactive({
       df <- bind_rows(
         marinegeo.utils::db_arrow_marinegeo(input_list$output_table_id) %>%
@@ -70,7 +62,13 @@ fouling_cover_v1_vis_server <- function(id, input_list) {
     output$fouling_cover_barplot <- renderPlot({
       
       barplot_data() %>%
-        left_join(species_lookup, by = "scientific_name") %>%
+        mutate(
+          group = utl_mg_assign_ancestor_labels(
+            fg_tree = "fouling",
+            scientific_names = scientific_name,
+            type = "primary"
+          )
+        ) %>%
         ggplot(aes(panel_id, point_count, fill = group)) +
         geom_col() +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
@@ -81,7 +79,13 @@ fouling_cover_v1_vis_server <- function(id, input_list) {
       
       df_viz <- load_additional_fouling() %>%
         distinct() %>%
-        left_join(species_lookup, by = "scientific_name") %>%
+        mutate(
+          group = utl_mg_assign_ancestor_labels(
+            fg_tree = "fouling",
+            scientific_names = scientific_name,
+            type = "primary"
+          )
+        ) %>%
         filter(!is.na(group)) %>%
         group_by(site_name, year, group) %>%
         summarize(percent_cover = mean(percent_cover, na.rm = T))

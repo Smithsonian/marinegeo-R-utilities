@@ -107,6 +107,12 @@ sample_event_server <- function(id, input_list) {
               title = "Panel ID Relationships",
               card(DTOutput(session$ns("panel_relationships")),
                    full_screen = T)
+            ),
+            
+            nav_panel(
+              title = "Fouling Functional Groups",
+              card(DTOutput(session$ns("fouling_functional_groups")),
+                   full_screen = T)
             )
             
           )
@@ -520,11 +526,24 @@ sample_event_server <- function(id, input_list) {
       output$num_uniq_panels <- renderDT({
         
         df <- input_list$out_df %>%
-          filter(deployment_period == "90 day") %>%
+          # filter(deployment_period == "90 day") %>%
           group_by(site_name) %>%
           summarize(`Number of Panels` = n_distinct(panel_id),
-                    `Earliest Retrieval Date` = min(retrieval_date),
-                    `Latest Retrieval Date` = max(retrieval_date))
+                    `Earliest Deployment Date` = min(deployment_date),
+                    `Latest Deployment Date` = max(deployment_date))
+        
+        if("retrieval_date" %in% colnames(input_list$out_df)){
+          
+          df <- df %>%
+            left_join(
+              input_list$out_df %>%
+                group_by(site_name) %>%
+                summarize(`Number of Panels` = n_distinct(panel_id),
+                          `Earliest Retrieval Date` = min(retrieval_date),
+                          `Latest Retrieval Date` = max(retrieval_date))
+            )
+          
+        }
         
         df %>%
           DT::datatable(
@@ -595,6 +614,30 @@ sample_event_server <- function(id, input_list) {
           )
         
       })
+      
+      output$fouling_functional_groups <- renderDT({
+        
+        if(!"scientific_name" %in% colnames(input_list$out_df)){
+          return(NULL)
+        }
+        
+        input_list$out_df %>%
+          count(scientific_name) %>%
+          mutate(scientific_id = utl_mg_get_scientific_id(scientific_name)) %>%
+          mutate(
+            functional_group = utl_mg_assign_ancestor_labels(
+              fg_tree = "fouling",
+              scientific_names = scientific_name,
+              type = "primary"
+            )
+          ) %>%
+          select(scientific_name, scientific_id, functional_group, n) %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
+          )
+      })
+      
       
       ## Oyster Network Project 2025 ####
       output$oyster_2025_roster <- renderDT({

@@ -26,13 +26,13 @@ fouling_sessile_v1_vis_UI <- function(id) {
 fouling_sessile_v1_vis_server <- function(id, input_list) {
   moduleServer(id, function(input, output, session) {
     
-    groups <- c("Amphipod tubes", "Anemone", "Arborescent bryozoan", "Barnacles", 
-                "Colonial ascidian", "Crepidula", "Encrusting bryozoan", "Fish eggs", 
-                "Hydroid", "Kamptozoa", "Mobile", "Mussel", "Other", "Other bivalves",
-                "Other polychaetes", "Oyster", "Sabellid", "Serpulidae",
-                "Solitary ascidian", "Sponge", "Terebellid", "Turf algae", "Vermetid", "n/a")
-    
-    species_lookup <- read_csv("fouling_sp_lookup.csv")
+    # groups <- c("Amphipod tubes", "Anemone", "Arborescent bryozoan", "Barnacles", 
+    #             "Colonial ascidian", "Crepidula", "Encrusting bryozoan", "Fish eggs", 
+    #             "Hydroid", "Kamptozoa", "Mobile", "Mussel", "Other", "Other bivalves",
+    #             "Other polychaetes", "Oyster", "Sabellid", "Serpulidae",
+    #             "Solitary ascidian", "Sponge", "Terebellid", "Turf algae", "Vermetid", "n/a")
+    # 
+    # #species_lookup <- read_csv("fouling_sp_lookup.csv")
     
     load_additional_fouling <- reactive({
       df <- bind_rows(
@@ -68,48 +68,60 @@ fouling_sessile_v1_vis_server <- function(id, input_list) {
     })
     
     output$fouling_sessile_barplot <- renderPlot({
-      
+
       barplot_data() %>%
-        left_join(species_lookup, by = "scientific_name") %>%
+        mutate(
+          group = utl_mg_assign_ancestor_labels(
+            fg_tree = "fouling",
+            scientific_names = scientific_name,
+            type = "primary"
+          )
+        ) %>%
         group_by(site_name, panel_id, group) %>%
         summarize(richness = n_distinct(scientific_name)) %>%
         ggplot(aes(panel_id, richness, fill = group)) +
         geom_col() +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
-      
+
     })
     
     output$fouling_sessile_timeseries_lineplot <- renderPlotly({
-      
+
       df_viz <- load_additional_fouling() %>%
-        left_join(species_lookup, by = "scientific_name") %>%
+        mutate(
+          group = utl_mg_assign_ancestor_labels(
+            fg_tree = "fouling",
+            scientific_names = scientific_name,
+            type = "primary"
+          )
+        ) %>%
         group_by(year, site_name, panel_id, group) %>%
         summarize(richness = n_distinct(scientific_name)) %>%
         ungroup() %>%
         group_by(year, site_name, group) %>%
         summarize(richness = mean(richness, na.rm = T))
-      
+
       top_groups <- df_viz %>%
-        ungroup() %>% 
+        ungroup() %>%
         group_by(group) %>%
         summarize(richness = max(richness, na.rm = T)) %>%
         arrange(desc(richness)) %>%
         pull(group)
-      
+
       top_groups <- top_groups[1:5]
-      
+
       plot <- marinegeo.utils::viz_mg_timeseries_annual(
         df = df_viz,
         y_var = "richness",
         x_var = "year",
         y_label = "Mean Species Richness",
         y_grouping_var = "group",
-        facet_var = "site_name", 
+        facet_var = "site_name",
         facet_num_cols = 1
       )
-      
+
       marinegeo.utils::viz_mg_ggplotly(plot, plotly_visible_traces = top_groups)
-      
+
     })
   })
 }
