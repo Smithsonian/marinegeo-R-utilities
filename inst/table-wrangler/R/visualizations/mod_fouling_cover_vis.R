@@ -71,6 +71,7 @@ fouling_cover_v1_vis_server <- function(id, input_list) {
         ) %>%
         ggplot(aes(panel_id, point_count, fill = group)) +
         geom_col() +
+        ggplot2::facet_wrap(vars(deployment_period), ncol = 1) +
         theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
       
     })
