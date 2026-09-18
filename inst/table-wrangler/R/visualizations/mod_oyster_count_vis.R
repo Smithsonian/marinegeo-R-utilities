@@ -5,7 +5,6 @@ oyster_count_monitoring_v1_vis_UI <- function(id) {
   ns <- NS(id)
   
   tagList(
-    uiOutput(ns("sample_event_select_ui")),
     layout_column_wrap(
       card(
         card_header("Mollusk Count Barplot"),
@@ -35,31 +34,21 @@ oyster_count_monitoring_v1_vis_server <- function(id, input_list) {
     #   df
     # })
     
-    output$sample_event_select_ui <- renderUI({
-      req(input_list$out_df)
-      events <- sort(unique(input_list$out_df$sample_event_id))
-      req(length(events) > 1)
-      selectInput(
-        session$ns("sample_event_select"),
-        label = "Sample Event",
-        choices = events
-      )
-    })
-    
-    barplot_data <- reactive({
-      req(input_list$out_df)
-      events <- sort(unique(input_list$out_df$sample_event_id))
-      selected <- if (length(events) <= 1) events[[1]] else input$sample_event_select
-      req(selected)
-      input_list$out_df %>% 
-        mutate(bivalve_id = paste(scientific_name, live_or_box))%>%
-        filter(sample_event_id == selected)
-    })
-    
     output$oyster_density_barplot <- renderPlot({
-      barplot_data() %>%
-        ggplot(aes(transect, bivalve_density_m2, fill = bivalve_id)) +
-        geom_col() 
+      
+      req(input_list$out_df)
+      
+      input_list$out_df %>%
+        mutate(
+          functional_group = utl_mg_assign_ancestor_labels(
+            fg_tree = "oyster_density",
+            scientific_names = scientific_name,
+            type = "primary"
+          )
+        ) %>%
+        ggplot(aes(transect, density_m2, fill = functional_group)) +
+        geom_col() +
+        facet_wrap(vars(site_name))
       })
     
   })
