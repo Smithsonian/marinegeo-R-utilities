@@ -2,13 +2,9 @@ oyster_height_monitoring_v1_vis_UI <- function(id) {
   ns <- NS(id)
   
   layout_column_wrap(
-    card(card_header("Live Mollusk Height"),
+    card(card_header("Mollusk Height Boxplot"),
          full_screen = T,
-         plotOutput(ns("live_mollusk_length_boxplot"))
-    ),
-    card(card_header("Box Mollusk Height"),
-         full_screen = T,
-         plotOutput(ns("box_mollusk_length_boxplot"))
+         plotOutput(ns("mollusk_length_boxplot"))
     )
   )
 }
@@ -18,20 +14,12 @@ oyster_height_monitoring_v1_vis_server <- function(id, input_list) {
   moduleServer(id, function(input, output, session) {
     
 
-    output$live_mollusk_length_boxplot <- renderPlot({
+    output$mollusk_length_boxplot <- renderPlot({
       input_list$out_df %>%
-        filter(live_or_box == "live")%>%
-        ggplot(aes(site_name, height_mm)) + 
+        ggplot(aes(site_name, height_mm, fill = live_or_box)) + 
         geom_boxplot() +
         facet_wrap(vars(scientific_name))
     })
     
-    output$box_mollusk_length_boxplot <- renderPlot({
-      input_list$out_df %>%
-        filter(live_or_box == "box")%>%
-        ggplot(aes(site_name, height_mm)) + 
-        geom_boxplot() +
-        facet_wrap(vars(scientific_name))
-    })
   })
 }
