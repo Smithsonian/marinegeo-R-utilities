@@ -29,35 +29,44 @@ library(marinegeo.utils)
 input_file_path <- '__INPUT_FILE_PATH__'
 
 ## Destination table metadata
-table_out <- 'fouling-panel-metadata-v1'
+table_out <- 'fouling-biomass-v1'
 req_cols <- marinegeo.utils::utl_mg_column_order(table_out)
 
 ## MarineGEO Table Wrangler Start ####
 
 # Load data
 __LOAD_DATA__
-  mutate(input_filename = basename(input_file_path),
-         table_id = table_out,
-         deployment_date = ymd(paste(panel_deployment_year, panel_deployment_month, panel_deployment_day, sep = "-")),
-         retrieval_date = ymd(paste(sample_retrieval_year, sample_retrieval_month, sample_retrieval_day, sep = "-"))) %>%
-    mutate(deployment_length_days = interval(deployment_date, retrieval_date) / ddays(1)) %>%
-    rename(latitude = deployment_latitude,
-           longitude = deployment_longitude)
+mutate(input_filename = basename(input_file_path),
+       table_id = table_out,
+       retrieval_date = ymd(paste(sample_retrieval_year, sample_retrieval_month, sample_retrieval_day, sep = "-"))) %>%
+left_join(
+  marinegeo.utils::utl_mg_get_registry("site_codes") %>%
+    select(partner_code, site_code, site_name, habitat), by = "site_name"
+) %>%
+mutate(sample_event_id = paste(partner_code,
+                               site_code, "panel",
+                               year(retrieval_date), sep = "_"))
 
-df_out <- df #%>%
-  # left_join(
-  #   marinegeo.utils::utl_mg_get_registry("site_codes") %>%
-  #     select(partner_code, site_code, site_name, habitat), by = "site_name"
-  # ) %>%
-  # mutate(sample_event_id = paste(partner_code, 
-  #                                site_code, "panel", 
-  #                                year(retrieval_date), sep = "_")) %>%
-  #rename(panel_metadata_notes = sample_metadata_notes) %>%
-  #marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
-  #select(any_of(req_cols), everything()) %>%
-  #distinct()
+deployment_period <- marinegeo.utils::db_arrow_marinegeo("fouling-panel-metadata-v1") %>%
+  filter(sample_event_id %in% unique(df$sample_event_id)) %>%
+  select(sample_event_id, panel_id, deployment_date) %>%
+  distinct() %>%
+  collect()
+
+df_out <- df %>%
+  # mutate(biomass_method = NA) %>% # panel preweighed or panel scrapped
+  left_join(deployment_period, by = c("sample_event_id", "panel_id")) %>%
+  mutate(deployment_length_days = interval(deployment_date, retrieval_date) / ddays(1)) %>%
+  # add deployment period code here
+  marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
+  select(any_of(req_cols), everything())
 
 ## MarineGEO Table Wrangler End ##
+
+# Make sure calculated field is accurate, if relevant method used
+all(
+  df_out$community_biomass_g == (df_out$panel_wet_weight_g - df_out$panel_weight_predeployment_g)
+)
 
 # Test Output and write data ####
 # The select(all_of(req_cols)) code will create an error if required columns are not present
@@ -68,4 +77,4 @@ df_out <- df #%>%
 df_out %>%
   select(all_of(req_cols)) %>%
   marinegeo.utils::utl_mg_test_data_types(table_out) %>%
-	write_csv('__OUTPUT_FILE_PATH__')
+  write_csv('__OUTPUT_FILE_PATH__')
