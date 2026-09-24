@@ -42,20 +42,22 @@ __LOAD_DATA__
          retrieval_date = ymd(paste(sample_retrieval_year, sample_retrieval_month, sample_retrieval_day, sep = "-"))) %>%
     mutate(deployment_length_days = interval(deployment_date, retrieval_date) / ddays(1)) %>%
     rename(latitude = deployment_latitude,
-           longitude = deployment_longitude)
+           longitude = deployment_longitude) %>%
+    rename(site_name = location_name) %>%
+    select(-site_code)
 
-df_out <- df #%>%
-  # left_join(
-  #   marinegeo.utils::utl_mg_get_registry("site_codes") %>%
-  #     select(partner_code, site_code, site_name, habitat), by = "site_name"
-  # ) %>%
-  # mutate(sample_event_id = paste(partner_code, 
-  #                                site_code, "panel", 
-  #                                year(retrieval_date), sep = "_")) %>%
-  #rename(panel_metadata_notes = sample_metadata_notes) %>%
-  #marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
-  #select(any_of(req_cols), everything()) %>%
-  #distinct()
+df_out <- df %>%
+  left_join(
+    marinegeo.utils::utl_mg_get_registry("site_codes") %>%
+      select(partner_code, site_code, site_name, habitat), by = "site_name"
+  ) %>%
+  mutate(sample_event_id = paste(partner_code,
+                                 site_code, "panel",
+                                 year(retrieval_date), sep = "_")) %>%
+  rename(panel_metadata_notes = sample_metadata_notes) %>%
+  marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
+  select(any_of(req_cols), everything()) %>%
+  distinct()
 
 ## MarineGEO Table Wrangler End ##
 
