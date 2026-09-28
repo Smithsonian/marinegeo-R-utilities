@@ -685,5 +685,5 @@ utl_oyster_backfill_density <- function(df) {
       scientific_name
     )
   
-  view(df_out)
+ df_out
 }
