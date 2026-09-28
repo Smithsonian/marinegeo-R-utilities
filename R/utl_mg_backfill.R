@@ -420,3 +420,270 @@ utl_sav_backfill_density <- function(df) {
 
   df_out
 }
+
+
+
+
+
+#' Backfill oyster and countable non-oyster mollusk density data with zero-density absence rows
+#'
+#' @description
+#' Accepts an oyster density data frame and adds new rows to ensure that every
+#' oyster or countable non-oyster bivalve species observed anywhere within a sample event is represented at
+#' every transect × quadrat combination within that event. The `count`
+#' and `density_m2` for backfilled rows are set to `0`. Other sessile species that are not counted (presence/absence)
+#' rows (functional group is not Oyster, Non-Oyster Bivalve, or Gastropod) are passed through unchanged.
+#'
+#' @param df A data frame containing oyster density observations. Must include
+#'   the following columns:
+#'   \describe{
+#'     \item{`scientific_name`}{Character. Species or taxon name; used to
+#'       determine functional group membership.}
+#'     \item{`live_or_box`}{Character. categorical value of "live" or "box" distinguishing between live and dead oysters. 
+#'     set to NA for all non-oyster species.}
+#'     \item{`sample_event_id`}{Character. Unique identifier for each sampling
+#'       event; used to group observations before expanding.}
+#'     \item{`partner_code`}{Character. MarineGEO partner identifier.}
+#'     \item{`site_name`}{Character. Site name.}
+#'     \item{`sample_collection_date`}{Date. Date of sample collection.}
+#'     \item{`transect`}{Transect identifier within a sample event.}
+#'     \item{`quadrat`}{Quadrat identifier within a transect.}
+#'     \item{`density_quadrat_dimensions`}{Character. Dimensions of the density
+#'       quadrat.}
+#'     \item{`site_code`}{Character. Machine-readable site identifier (e.g.,
+#'       `"BIS-001"`).}
+#'     \item{`table_id`}{Character. Versioned identifier for the source data
+#'       table; links to the MarineGEO data index.}
+#'     \item{`input_filename`}{Character. Source file name.}
+#'     \item{`count`}{Numeric. Raw count of a given countable species; set to `0` for backfilled
+#'       rows.}
+#'     \item{`density_m2`}{Numeric. density of countable species per square metre; set
+#'       to `0` for backfilled rows.}
+#'   }
+#'
+#' @return A data frame with the same columns as `df`, sorted by
+#'   `sample_event_id`, year, `site_name`, `transect`, `quadrat`, and
+#'   `scientific_name`. Backfilled rows have `count = 0` and
+#'   `density_m2 = 0`; all other columns for backfilled rows are filled
+#'   with the single value observed for that sample event, or `NA` with a
+#'   `message()` if multiple values are present.
+#'
+#' @details
+#' Functional group assignment is performed via
+#' [utl_mg_assign_functional_groups()] with `fg in c("Oysters, Non-Oyster Bivalves, gastropods")`. Rows whose
+#' `scientific_name` resolves to a group other than those listed (including
+#' unknowns) are collected in a separate data frame and
+#' re-appended to the output without modification.
+#'
+#' Within each sample event the function:
+#' \enumerate{
+#'   \item Uses [tidyr::expand()] with [tidyr::nesting()] to produce all
+#'     combinations of `transect` × `quadrat` × `scientific_name` within the
+#'     event's existing transect–quadrat pairs.
+#'   \item Uses [dplyr::anti_join()] to identify combinations absent from the
+#'     original data and inserts them with `count = 0` and
+#'     `density_m2 = 0`.
+#' }
+#'
+#' If `density_quadrat_dimensions` or `input_filename` is not unique within a
+#' sample event, the backfilled rows for that event receive `NA` for the
+#' ambiguous field and a `message()` is emitted.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' # oyster_density_example is a built-in package dataset
+#' backfilled <- utl_oyster_backfill_density(oyster_density_example)
+#' nrow(backfilled) >= nrow(oyster_density_example)  # TRUE
+#' }
+
+utl_oyster_backfill_density <- function(df) {
+  # --- Input validation -------------------------------------------------------
+  if (!is.data.frame(df)) {
+    stop("`df` must be a data frame.")
+  }
+  
+  required_cols <- c(
+    "scientific_name",
+    "sample_event_id",
+    "partner_code",
+    "site_code",
+    "site_name",
+    "table_id",
+    "sample_collection_date",
+    "transect",
+    "quadrat",
+    "density_quadrat_dimensions",
+    "input_filename",
+    "count",
+    "density_m2",
+    "live_or_box"
+  )
+  
+  missing_cols <- setdiff(required_cols, colnames(df))
+  if (length(missing_cols) > 0) {
+    stop(
+      "`df` is missing required column(s): ",
+      paste(missing_cols, collapse = ", ")
+    )
+  }
+  
+  if (!is.character(df$scientific_name)) {
+    stop("`scientific_name` must be a character column.")
+  }
+  
+  if (nrow(df) == 0) {
+    message("Input data frame has zero rows. Returning as-is.")
+    return(df)
+  }
+  
+  # ---------- Assign functional groups to the data ---------------------------
+  df <- df |>
+    dplyr::mutate(
+      functional_group = utl_mg_assign_functional_groups(
+        fg_tree = "oyster_density",
+        fg_labels = c("Oysters", "Non-oyster bivalves", "Gastropods"),
+        scientific_names = scientific_name
+      )
+    )
+  
+  
+  if (all(is.na(df$functional_group))) {
+    message("No Oyster, Non-Oyster Bivalve, or Gastropod rows found. Returning input unchanged.")
+    return(df)
+  }
+  
+  
+  #--------------- Backfill by sample event ------------------
+  sample_events <- unique(df$sample_event_id)
+  
+  
+  df_out <- lapply(sample_events, function(i) {
+    
+    df_se <- df |> 
+      dplyr::filter(sample_event_id == i)
+    
+    
+    # Resolve per-event metadata fields; warn if ambiguous
+    quadrat_dimension <- unique(df_se$density_quadrat_dimensions)
+    input_filename <- unique(df_se$input_filename)
+    
+    if (length(quadrat_dimension) > 1) {
+      quadrat_dimension <- NA_character_
+      message("Unable to backfill quadrat dimensions for ", i)
+    }
+    
+    if (length(input_filename) > 1) {
+      input_filename <- NA_character_
+      message("Unable to backfill input filename for ", i)
+    }
+    
+    # All transect x quadrat x scientific_name x live_or_box combinations implied by the data
+    backfilled_grid <- df_se|>
+      tidyr::expand(
+        tidyr::nesting(
+          sample_event_id,
+          partner_code,
+          site_code,
+          site_name,
+          table_id,
+          sample_collection_date,
+        ),
+        quadrat,
+        transect,
+        scientific_name,
+        live_or_box
+      )
+    
+    
+    #Assign functional groups to the backfill grid 
+    backfilled_grid <- backfilled_grid |>
+      dplyr::mutate(
+        functional_group = utl_mg_assign_functional_groups(
+          fg_tree = "oyster_density",
+          fg_labels = c("Oysters", "Non-oyster bivalves", "Gastropods"),
+          scientific_names = scientific_name
+        )
+      )
+    
+    
+    # get new oyster rows for the sampling event 
+    grid_oysters <- backfilled_grid |> 
+      dplyr::filter(functional_group == "Oysters" & !is.na(live_or_box))
+    
+    
+    df_se_oysters <- df_se |> 
+      dplyr::filter(functional_group == "Oysters")
+    
+    # New rows: combinations present in the grid but absent from the original
+    new_rows_oysters <- dplyr::anti_join(
+      grid_oysters,
+      df_se_oysters,
+      by = dplyr::join_by(
+        sample_event_id,
+        partner_code,
+        site_code,
+        site_name,
+        table_id,
+        sample_collection_date,
+        transect,
+        quadrat,
+        scientific_name
+      )
+    )  |>
+      dplyr::mutate(
+        density_quadrat_dimensions = quadrat_dimension,
+        input_filename = input_filename,
+        count = 0,
+        density_m2 = 0
+      )
+    
+    
+    # get new countable non-oyster bivalve rows for the sampling event. 
+    grid_countable_nonoysters <- backfilled_grid |> 
+      dplyr::filter(functional_group %in% c("Non-oyster bivalves", "Gastropods") & is.na(live_or_box))
+    
+    
+    df_se_countable_nonoysters <- df_se |>
+      dplyr::filter(functional_group %in% c("Non-oyster bivalves", "Gastropods")) 
+    
+    
+    new_rows_nonoysters <- dplyr::anti_join(
+      grid_countable_nonoysters,
+      df_se_countable_nonoysters,
+      by = dplyr::join_by(
+        sample_event_id,
+        partner_code,
+        site_code,
+        site_name,
+        table_id,
+        sample_collection_date,
+        transect,
+        quadrat,
+        scientific_name
+      )
+    )  |>
+      dplyr::mutate(
+        density_quadrat_dimensions = quadrat_dimension,
+        input_filename = input_filename,
+        count = 0,
+        density_m2 = 0
+      )
+    
+    ### Join all new rows with the original
+    new_rows <- dplyr::bind_rows(df_se, new_rows_nonoysters, new_rows_oysters)
+  })|>
+    dplyr::bind_rows() |>
+    dplyr::arrange(
+      sample_event_id,
+      lubridate::year(sample_collection_date),
+      site_code,
+      site_name,
+      transect,
+      quadrat,
+      scientific_name
+    )
+  
+  view(df_out)
+}
