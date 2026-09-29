@@ -58,8 +58,8 @@ df_out <- df  %>%
     density_methodology == "Y" ~ "excavation",
     density_methodology == "N" ~ "no excavation",
     T ~ density_methodology))%>%
-  mutate(density_quadrat_dimensions = "100cmx100cm")%>%
-  mutate(density_m2 = count / 1 )
+  mutate(density_quadrat_dimensions = "25x25cm")%>%
+  mutate(density_m2 = count *16 )
 # left_join(
 #  marinegeo.utils::utl_mg_get_registry("site_codes") %>%
 #    select(partner_code, site_code, site_name), by = "site_name"
