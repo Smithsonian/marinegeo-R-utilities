@@ -108,7 +108,11 @@ fouling_sessile_v1_vis_server <- function(id, input_list) {
         arrange(desc(richness)) %>%
         pull(group)
 
-      top_groups <- top_groups[1:5]
+      if(length(top_groups[!is.na(top_groups)]) > 5){
+        top_groups <- top_groups[!is.na(top_groups)][1:5]
+      } else {
+        top_groups <- top_groups[!is.na(top_groups)]
+      }
 
       plot <- marinegeo.utils::viz_mg_timeseries_annual(
         df = df_viz,
