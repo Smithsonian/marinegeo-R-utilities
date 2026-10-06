@@ -39,6 +39,8 @@ __LOAD_DATA__
 mutate(input_filename = basename(input_file_path),
        table_id = table_out,
        retrieval_date = ymd(paste(sample_retrieval_year, sample_retrieval_month, sample_retrieval_day, sep = "-"))) %>%
+  rename(site_name = location_name) %>%
+  select(-site_code) %>%
   left_join(
     marinegeo.utils::utl_mg_get_registry("site_codes") %>%
       select(partner_code, site_code, site_name, habitat), by = "site_name"
@@ -63,9 +65,10 @@ df_out <- df %>%
   ) %>%
   # mutate(points_in_grid = 100,
   #        percent_cover = point_count / points_in_grid * 100) %>%
+  left_join(deployment_period) %>%
   mutate(deployment_length_days = interval(deployment_date, retrieval_date) / ddays(1)) %>%
-  # add deployment period code here
-  marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
+  # add deployment_period code here
+  # marinegeo.utils::utl_mg_generate_row_uuid(table_out) %>%
   select(any_of(req_cols), everything())
 
 ## MarineGEO Table Wrangler End ##
