@@ -34,17 +34,17 @@ req_cols <- marinegeo.utils::utl_mg_column_order(table_out)
 #Load all three sheets and pivot appropriately 
 type_columns_high = c("Live Oyster", "Box Oyster", "Cultch", "Shell Hash", "Sediment", "Rock")
 df_high <- readxl::read_excel(input_file_path, "OYSTER COMPOSITION - HIGH VIS", skip = 1)%>%
-  pivot_longer(cols = type_columns_high, names_to = "cover_type", values_to = "point_count")%>%
+  pivot_longer(cols = all_of(type_columns_high), names_to = "cover_type", values_to = "point_count")%>%
   mutate(`Transect ID` = as.character(`Transect ID`))
 
 type_columns_low = c("Large Shell Material", "Cultch", "Shell Hash","Sediment","Rock")
 df_low <- readxl::read_excel(input_file_path, "OYSTER COMPOSITION - LOW VIS", skip = 1)%>%
-  pivot_longer(cols = type_columns_low, names_to = "cover_type", values_to = "point_count")%>%
+  pivot_longer(cols = all_of(type_columns_low), names_to = "cover_type", values_to = "point_count")%>%
   mutate(`Transect ID` = as.character(`Transect ID`))
 
 type_columns_other = c("Primary Point Count","Secondary Point Count")
 df_other <- readxl::read_excel(input_file_path, "COMPOSITION - OTHER SPECIES")%>%
-  pivot_longer(cols = type_columns_other, names_to = "cover_type", values_to = "point_count")%>%
+  pivot_longer(cols = all_of(type_columns_other), names_to = "cover_type", values_to = "point_count")%>%
   mutate(`Transect ID` = as.character(`Transect ID`))
 
 df <- bind_rows(df_high, df_low, df_other)%>%
