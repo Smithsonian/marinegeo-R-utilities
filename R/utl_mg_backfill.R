@@ -518,7 +518,8 @@ utl_oyster_backfill_density <- function(df) {
     "input_filename",
     "count",
     "density_m2",
-    "live_or_box"
+    "live_or_box", 
+    "density_methodology"
   )
   
   missing_cols <- setdiff(required_cols, colnames(df))
@@ -568,6 +569,7 @@ utl_oyster_backfill_density <- function(df) {
     # Resolve per-event metadata fields; warn if ambiguous
     quadrat_dimension <- unique(df_se$density_quadrat_dimensions)
     input_filename <- unique(df_se$input_filename)
+    density_methodology <- unique(df_se$density_methodology)
     
     if (length(quadrat_dimension) > 1) {
       quadrat_dimension <- NA_character_
@@ -577,6 +579,11 @@ utl_oyster_backfill_density <- function(df) {
     if (length(input_filename) > 1) {
       input_filename <- NA_character_
       message("Unable to backfill input filename for ", i)
+    }
+    
+    if (length(density_methodology) > 1) {
+      input_filename <- NA_character_
+      message("Unable to backfill density methodology for ", i)
     }
     
     # All transect x quadrat x scientific_name x live_or_box combinations implied by the data
@@ -590,7 +597,6 @@ utl_oyster_backfill_density <- function(df) {
           table_id,
           sample_collection_date,
         ),
-        quadrat,
         transect,
         scientific_name,
         live_or_box
@@ -610,7 +616,12 @@ utl_oyster_backfill_density <- function(df) {
     
     # get new oyster rows for the sampling event 
     grid_oysters <- backfilled_grid |> 
-      dplyr::filter(functional_group == "Oysters" & !is.na(live_or_box))
+      dplyr::filter(functional_group == "Oysters" & !is.na(live_or_box))%>%
+      dplyr::left_join(
+        df_se |>
+          dplyr::distinct(sample_event_id, transect, quadrat),
+        by = c("sample_event_id", "transect")
+      )
     
     
     df_se_oysters <- df_se |> 
@@ -628,13 +639,14 @@ utl_oyster_backfill_density <- function(df) {
         table_id,
         sample_collection_date,
         transect,
-        quadrat,
-        scientific_name
+        scientific_name, 
+        live_or_box
       )
     )  |>
       dplyr::mutate(
         density_quadrat_dimensions = quadrat_dimension,
         input_filename = input_filename,
+        density_methodology = density_methodology,
         count = 0,
         density_m2 = 0
       )
@@ -642,7 +654,12 @@ utl_oyster_backfill_density <- function(df) {
     
     # get new countable non-oyster bivalve rows for the sampling event. 
     grid_countable_nonoysters <- backfilled_grid |> 
-      dplyr::filter(functional_group %in% c("Non-oyster bivalves", "Gastropods") & is.na(live_or_box))
+      dplyr::filter(functional_group %in% c("Non-oyster bivalves", "Gastropods") & is.na(live_or_box)) |>
+      dplyr::left_join(
+        df_se |>
+          dplyr::distinct(sample_event_id, transect, quadrat),
+        by = c("sample_event_id", "transect")
+      )
     
     
     df_se_countable_nonoysters <- df_se |>
@@ -667,6 +684,7 @@ utl_oyster_backfill_density <- function(df) {
       dplyr::mutate(
         density_quadrat_dimensions = quadrat_dimension,
         input_filename = input_filename,
+        density_methodology = density_methodology,
         count = 0,
         density_m2 = 0
       )
@@ -685,5 +703,5 @@ utl_oyster_backfill_density <- function(df) {
       scientific_name
     )
   
- df_out
+  df_out
 }
