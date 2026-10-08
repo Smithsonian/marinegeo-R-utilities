@@ -422,9 +422,6 @@ utl_sav_backfill_density <- function(df) {
 }
 
 
-
-
-
 #' Backfill oyster and countable non-oyster mollusk density data with zero-density absence rows
 #'
 #' @description
@@ -439,7 +436,7 @@ utl_sav_backfill_density <- function(df) {
 #'   \describe{
 #'     \item{`scientific_name`}{Character. Species or taxon name; used to
 #'       determine functional group membership.}
-#'     \item{`live_or_box`}{Character. categorical value of "live" or "box" distinguishing between live and dead oysters. 
+#'     \item{`live_or_box`}{Character. categorical value of "live" or "box" distinguishing between live and dead oysters.
 #'     set to NA for all non-oyster species.}
 #'     \item{`sample_event_id`}{Character. Unique identifier for each sampling
 #'       event; used to group observations before expanding.}
@@ -503,7 +500,7 @@ utl_oyster_backfill_density <- function(df) {
   if (!is.data.frame(df)) {
     stop("`df` must be a data frame.")
   }
-  
+
   required_cols <- c(
     "scientific_name",
     "sample_event_id",
@@ -518,10 +515,10 @@ utl_oyster_backfill_density <- function(df) {
     "input_filename",
     "count",
     "density_m2",
-    "live_or_box", 
+    "live_or_box",
     "density_methodology"
   )
-  
+
   missing_cols <- setdiff(required_cols, colnames(df))
   if (length(missing_cols) > 0) {
     stop(
@@ -529,16 +526,16 @@ utl_oyster_backfill_density <- function(df) {
       paste(missing_cols, collapse = ", ")
     )
   }
-  
+
   if (!is.character(df$scientific_name)) {
     stop("`scientific_name` must be a character column.")
   }
-  
+
   if (nrow(df) == 0) {
     message("Input data frame has zero rows. Returning as-is.")
     return(df)
   }
-  
+
   # ---------- Assign functional groups to the data ---------------------------
   df <- df |>
     dplyr::mutate(
@@ -548,46 +545,43 @@ utl_oyster_backfill_density <- function(df) {
         scientific_names = scientific_name
       )
     )
-  
-  
+
   if (all(is.na(df$functional_group))) {
-    message("No Oyster, Non-Oyster Bivalve, or Gastropod rows found. Returning input unchanged.")
+    message(
+      "No Oyster, Non-Oyster Bivalve, or Gastropod rows found. Returning input unchanged."
+    )
     return(df)
   }
-  
-  
+
   #--------------- Backfill by sample event ------------------
   sample_events <- unique(df$sample_event_id)
-  
-  
+
   df_out <- lapply(sample_events, function(i) {
-    
-    df_se <- df |> 
+    df_se <- df |>
       dplyr::filter(sample_event_id == i)
-    
-    
+
     # Resolve per-event metadata fields; warn if ambiguous
     quadrat_dimension <- unique(df_se$density_quadrat_dimensions)
     input_filename <- unique(df_se$input_filename)
     density_methodology <- unique(df_se$density_methodology)
-    
+
     if (length(quadrat_dimension) > 1) {
       quadrat_dimension <- NA_character_
       message("Unable to backfill quadrat dimensions for ", i)
     }
-    
+
     if (length(input_filename) > 1) {
       input_filename <- NA_character_
       message("Unable to backfill input filename for ", i)
     }
-    
+
     if (length(density_methodology) > 1) {
       input_filename <- NA_character_
       message("Unable to backfill density methodology for ", i)
     }
-    
+
     # All transect x quadrat x scientific_name x live_or_box combinations implied by the data
-    backfilled_grid <- df_se|>
+    backfilled_grid <- df_se |>
       tidyr::expand(
         tidyr::nesting(
           sample_event_id,
@@ -601,9 +595,8 @@ utl_oyster_backfill_density <- function(df) {
         scientific_name,
         live_or_box
       )
-    
-    
-    #Assign functional groups to the backfill grid 
+
+    #Assign functional groups to the backfill grid
     backfilled_grid <- backfilled_grid |>
       dplyr::mutate(
         functional_group = utl_mg_assign_functional_groups(
@@ -612,21 +605,19 @@ utl_oyster_backfill_density <- function(df) {
           scientific_names = scientific_name
         )
       )
-    
-    
-    # get new oyster rows for the sampling event 
-    grid_oysters <- backfilled_grid |> 
-      dplyr::filter(functional_group == "Oysters" & !is.na(live_or_box))%>%
+
+    # get new oyster rows for the sampling event
+    grid_oysters <- backfilled_grid |>
+      dplyr::filter(functional_group == "Oysters" & !is.na(live_or_box)) %>%
       dplyr::left_join(
         df_se |>
           dplyr::distinct(sample_event_id, transect, quadrat),
         by = c("sample_event_id", "transect")
       )
-    
-    
-    df_se_oysters <- df_se |> 
+
+    df_se_oysters <- df_se |>
       dplyr::filter(functional_group == "Oysters")
-    
+
     # New rows: combinations present in the grid but absent from the original
     new_rows_oysters <- dplyr::anti_join(
       grid_oysters,
@@ -639,10 +630,10 @@ utl_oyster_backfill_density <- function(df) {
         table_id,
         sample_collection_date,
         transect,
-        scientific_name, 
+        scientific_name,
         live_or_box
       )
-    )  |>
+    ) |>
       dplyr::mutate(
         density_quadrat_dimensions = quadrat_dimension,
         input_filename = input_filename,
@@ -650,22 +641,25 @@ utl_oyster_backfill_density <- function(df) {
         count = 0,
         density_m2 = 0
       )
-    
-    
-    # get new countable non-oyster bivalve rows for the sampling event. 
-    grid_countable_nonoysters <- backfilled_grid |> 
-      dplyr::filter(functional_group %in% c("Non-oyster bivalves", "Gastropods") & is.na(live_or_box)) |>
+
+    # get new countable non-oyster bivalve rows for the sampling event.
+    grid_countable_nonoysters <- backfilled_grid |>
+      dplyr::filter(
+        functional_group %in%
+          c("Non-oyster bivalves", "Gastropods") &
+          is.na(live_or_box)
+      ) |>
       dplyr::left_join(
         df_se |>
           dplyr::distinct(sample_event_id, transect, quadrat),
         by = c("sample_event_id", "transect")
       )
-    
-    
+
     df_se_countable_nonoysters <- df_se |>
-      dplyr::filter(functional_group %in% c("Non-oyster bivalves", "Gastropods")) 
-    
-    
+      dplyr::filter(
+        functional_group %in% c("Non-oyster bivalves", "Gastropods")
+      )
+
     new_rows_nonoysters <- dplyr::anti_join(
       grid_countable_nonoysters,
       df_se_countable_nonoysters,
@@ -680,7 +674,7 @@ utl_oyster_backfill_density <- function(df) {
         quadrat,
         scientific_name
       )
-    )  |>
+    ) |>
       dplyr::mutate(
         density_quadrat_dimensions = quadrat_dimension,
         input_filename = input_filename,
@@ -688,10 +682,10 @@ utl_oyster_backfill_density <- function(df) {
         count = 0,
         density_m2 = 0
       )
-    
+
     ### Join all new rows with the original
     new_rows <- dplyr::bind_rows(df_se, new_rows_nonoysters, new_rows_oysters)
-  })|>
+  }) |>
     dplyr::bind_rows() |>
     dplyr::arrange(
       sample_event_id,
@@ -702,6 +696,286 @@ utl_oyster_backfill_density <- function(df) {
       quadrat,
       scientific_name
     )
-  
+
+  df_out
+}
+
+#' Resolve a field to its single value within a sample event
+#'
+#' @description
+#' Internal helper for the backfill functions. Returns the one unique value of
+#' `x`, or a typed `NA` plus a `message()` when `x` holds more than one value —
+#' the backfilled rows then carry `NA` for that field rather than an arbitrary
+#' pick.
+#'
+#' @param x Vector of values observed for one field within one grouping unit.
+#' @param field Character scalar naming the field, used in the message.
+#' @param context Character scalar identifying the grouping unit (e.g. a
+#'   `sample_event_id`), used in the message.
+#'
+#' @return A length-1 vector of the same type as `x`.
+#'
+#' @keywords internal
+#' @noRd
+.mg_single_value <- function(x, field, context) {
+  values <- unique(x)
+  if (length(values) > 1) {
+    message("Unable to backfill ", field, " for ", context)
+    return(values[NA_integer_])
+  }
+  values
+}
+
+
+#' Backfill fouling panel cover data with zero-cover absence rows
+#'
+#' @description
+#' Accepts a fouling panel cover data frame and adds new rows to ensure that
+#' every taxon enrolled in a primary fouling group anywhere within a sample
+#' event is represented on every panel image — that is, every
+#' `deployment_period` × `panel_id` combination — observed within that event.
+#' The `percent_cover` for backfilled rows is set to `0`. Taxa that resolve to
+#' no primary fouling group (e.g. `"biofilm"`, `"shadow"`, `"zip tie"`) are
+#' passed through unchanged.
+#'
+#' @param df A data frame containing fouling cover observations. Must include
+#'   the following columns:
+#'   \describe{
+#'     \item{`sample_event_id`}{Character. Unique identifier for each sampling
+#'       event; used to group observations before expanding.}
+#'     \item{`partner_code`}{Character. MarineGEO partner identifier.}
+#'     \item{`site_code`}{Character. Machine-readable site identifier (e.g.,
+#'       `"QDL-003"`).}
+#'     \item{`site_name`}{Character. Site name.}
+#'     \item{`table_id`}{Character. Versioned identifier for the source data
+#'       table; links to the MarineGEO data index.}
+#'     \item{`panel_id`}{Character. Settlement panel identifier within a sample
+#'       event.}
+#'     \item{`deployment_date`}{Date. Date the panels were deployed.}
+#'     \item{`retrieval_date`}{Date. Date the panel was retrieved and
+#'       photographed; varies with `deployment_period`.}
+#'     \item{`deployment_period`}{Character. Soak time of the panel image
+#'       (e.g., `"30 day"`, `"60 day"`, `"90 day"`).}
+#'     \item{`scientific_name`}{Character. Species or taxon name; used to
+#'       determine fouling group membership.}
+#'     \item{`point_count`}{Numeric. Points landing on the taxon; set to `0` for
+#'       backfilled rows whose `points_in_grid` is known.}
+#'     \item{`points_in_grid`}{Numeric. Total points in the scoring grid.}
+#'     \item{`percent_cover`}{Numeric. Percent cover value; set to `0` for
+#'       backfilled rows.}
+#'     \item{`photo_filename`}{Character. Panel photograph file name.}
+#'     \item{`habitat`}{Character. Habitat the panel was deployed in.}
+#'     \item{`input_filename`}{Character. Source file name.}
+#'   }
+#'
+#' @return A data frame with the same columns as `df`, sorted by
+#'   `sample_event_id`, year, `site_code`, `site_name`, `deployment_period`,
+#'   `panel_id`, and `scientific_name`. Backfilled rows have
+#'   `percent_cover = 0` and `point_count = 0` (or `NA` where the panel image
+#'   has no `points_in_grid`); `retrieval_date`, `habitat`, `photo_filename`,
+#'   and `points_in_grid` are inherited from the panel image, and the remaining
+#'   required columns from the sample event. Columns not used by the expansion —
+#'   including `identification_notes`, `percent_cover_notes`, `row_uuid`, and
+#'   any extra column the caller supplied — are left `NA` on backfilled rows.
+#'   `row_uuid` is generated upstream of this function, so re-run
+#'   [utl_mg_generate_row_uuid()] afterwards if the backfilled rows need
+#'   identifiers.
+#'
+#' @details
+#' Group membership is resolved with [utl_mg_assign_ancestor_labels()] against
+#' the `"fouling"` tree with `type = "primary"`, which returns whichever primary
+#' group a name falls under without the candidate labels being enumerated here.
+#' Rows whose `scientific_name` resolves to no primary group are collected in a
+#' separate data frame and re-appended to the output without modification. Note
+#' that `"open space"` and `"sediment"` *are* primary fouling groups and are
+#' therefore backfilled.
+#'
+#' Within each sample event the function:
+#' \enumerate{
+#'   \item Builds a panel image inventory: the distinct `deployment_period` ×
+#'     `panel_id` pairs that were actually observed, each carrying its
+#'     `retrieval_date`, `habitat`, `photo_filename`, and `points_in_grid`. Pairs
+#'     absent from the data are never created — a panel retrieved at 30 and 60
+#'     days but lost before 90 gains no 90-day rows.
+#'   \item Crosses that inventory with every grouped taxon observed anywhere in
+#'     the event using [tidyr::expand_grid()].
+#'   \item Uses [dplyr::anti_join()] to identify combinations absent from the
+#'     original data and inserts them with `percent_cover = 0`.
+#' }
+#'
+#' If an event-level field (`partner_code`, `site_code`, `site_name`,
+#' `table_id`, `deployment_date`, `input_filename`) is not unique within a
+#' sample event, or a panel image field is not unique within a panel image, the
+#' backfilled rows receive `NA` for the ambiguous field and a `message()` is
+#' emitted.
+#'
+#' @seealso [utl_sav_backfill_cover()] for the seagrass transect × quadrat
+#'   equivalent.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' backfilled <- utl_fouling_backfill_cover(fouling_cover)
+#' nrow(backfilled) >= nrow(fouling_cover) # TRUE
+#' }
+utl_fouling_backfill_cover <- function(df) {
+  # --- Input validation -------------------------------------------------------
+  if (!is.data.frame(df)) {
+    stop("`df` must be a data frame.")
+  }
+
+  event_fields <- c(
+    "partner_code",
+    "site_code",
+    "site_name",
+    "table_id",
+    "deployment_date",
+    "retrieval_date",
+    "habitat",
+    "input_filename"
+  )
+
+  panel_image_fields <- c(
+    "photo_filename",
+    "points_in_grid"
+  )
+
+  required_cols <- c(
+    "sample_event_id",
+    "panel_id",
+    "deployment_period",
+    "scientific_name",
+    "point_count",
+    "percent_cover",
+    event_fields,
+    panel_image_fields
+  )
+
+  missing_cols <- setdiff(required_cols, colnames(df))
+  if (length(missing_cols) > 0) {
+    stop(
+      "`df` is missing required column(s): ",
+      paste(missing_cols, collapse = ", ")
+    )
+  }
+
+  if (!is.character(df$scientific_name)) {
+    stop("`scientific_name` must be a character column.")
+  }
+
+  if (nrow(df) == 0) {
+    message("Input data frame has zero rows. Returning as-is.")
+    return(df)
+  }
+
+  # --- Assign primary fouling groups ------------------------------------------
+  df <- df |>
+    dplyr::mutate(
+      .fouling_group = utl_mg_assign_ancestor_labels(
+        fg_tree = "fouling",
+        scientific_names = scientific_name,
+        type = "primary"
+      )
+    )
+
+  df_ungrouped <- df |>
+    dplyr::filter(is.na(.fouling_group))
+
+  df_grouped <- df |>
+    dplyr::filter(!is.na(.fouling_group))
+
+  if (nrow(df_grouped) == 0) {
+    message(
+      "No rows enrolled in a primary fouling group. Returning input unchanged."
+    )
+    return(dplyr::select(df, -".fouling_group"))
+  }
+
+  # `point_count` is an INT column in the table contract; keep it one.
+  point_count_is_integer <- is.integer(df$point_count)
+
+  # --- Backfill by sample event -----------------------------------------------
+  sample_events <- unique(df_grouped$sample_event_id)
+
+  df_out <- lapply(sample_events, function(i) {
+    df_se <- df_grouped |>
+      dplyr::filter(sample_event_id == i)
+
+    # Resolve per-event metadata fields; warn if ambiguous
+    event_values <- lapply(
+      stats::setNames(event_fields, event_fields),
+      function(field) .mg_single_value(df_se[[field]], field, i)
+    )
+
+    # The panel images actually observed in this event, each with the fields
+    # that describe the photograph rather than the observation.
+    panel_images <- df_se |>
+      dplyr::group_by(deployment_period, panel_id) |>
+      dplyr::summarise(
+        dplyr::across(
+          dplyr::all_of(panel_image_fields),
+          \(x) {
+            .mg_single_value(
+              x,
+              dplyr::cur_column(),
+              paste(i, panel_id[1], deployment_period[1], sep = " / ")
+            )
+          }
+        ),
+        .groups = "drop"
+      )
+
+    # Every grouped taxon seen anywhere in the event, at every panel image
+    backfilled_grid <- tidyr::expand_grid(
+      panel_images,
+      scientific_name = unique(df_se$scientific_name)
+    ) |>
+      dplyr::mutate(
+        sample_event_id = i,
+        partner_code = event_values$partner_code,
+        site_code = event_values$site_code,
+        site_name = event_values$site_name,
+        table_id = event_values$table_id,
+        deployment_date = event_values$deployment_date,
+        input_filename = event_values$input_filename
+      )
+
+    # New rows: combinations present in the grid but absent from the original
+    new_rows <- dplyr::anti_join(
+      backfilled_grid,
+      df_se,
+      by = dplyr::join_by(
+        sample_event_id,
+        deployment_period,
+        panel_id,
+        scientific_name
+      )
+    ) |>
+      dplyr::mutate(
+        percent_cover = 0,
+        point_count = dplyr::if_else(is.na(points_in_grid), NA_real_, 0)
+      )
+
+    if (point_count_is_integer) {
+      new_rows <- new_rows |>
+        dplyr::mutate(point_count = as.integer(point_count))
+    }
+
+    dplyr::bind_rows(df_se, new_rows)
+  }) |>
+    dplyr::bind_rows() |>
+    dplyr::bind_rows(df_ungrouped) |>
+    dplyr::select(-".fouling_group") |>
+    dplyr::arrange(
+      sample_event_id,
+      lubridate::year(deployment_date),
+      site_code,
+      site_name,
+      deployment_period,
+      panel_id,
+      scientific_name
+    )
+
   df_out
 }
