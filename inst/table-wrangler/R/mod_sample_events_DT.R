@@ -113,6 +113,12 @@ sample_event_server <- function(id, input_list) {
               title = "Fouling Functional Groups",
               card(DTOutput(session$ns("fouling_functional_groups")),
                    full_screen = T)
+            ),
+            
+            nav_panel(
+              title = "Fouling Deployment Periods",
+              card(DTOutput(session$ns("fouling_deployment_periods")),
+                   full_screen = T)
             )
             
           )
@@ -638,6 +644,21 @@ sample_event_server <- function(id, input_list) {
           )
       })
       
+      output$fouling_deployment_periods <- renderDT({
+        
+        if(!"deployment_period" %in% colnames(input_list$out_df)){
+          return(NULL)
+        }
+          
+        input_list$out_df %>%
+          count(sample_event_id, panel_id, deployment_period) %>%
+          pivot_wider(names_from = deployment_period, values_from = n) %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
+          )
+        
+      })
       
       ## Oyster Network Project 2025 ####
       output$oyster_2025_roster <- renderDT({
