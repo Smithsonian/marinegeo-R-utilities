@@ -831,13 +831,13 @@ utl_fouling_backfill_cover <- function(df) {
     "site_name",
     "table_id",
     "deployment_date",
-    "retrieval_date",
-    "habitat",
     "input_filename"
   )
 
   panel_image_fields <- c(
     "photo_filename",
+    "retrieval_date",
+    "habitat",
     "points_in_grid"
   )
 
