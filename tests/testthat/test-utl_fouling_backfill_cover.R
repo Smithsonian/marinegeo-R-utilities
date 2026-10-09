@@ -163,7 +163,6 @@ test_that("backfilled rows inherit panel image and sample event fields", {
     .make_fouling_df(
       panel_id = c("panel-A", "panel-B"),
       photo_filename = c("A.jpg", "B.jpg"),
-      habitat = c("artificial", "seagrass"),
       points_in_grid = c(100L, 50L)
     ),
     .make_fouling_df(
@@ -176,12 +175,99 @@ test_that("backfilled rows inherit panel image and sample event fields", {
   result <- suppressMessages(utl_fouling_backfill_cover(df))
 
   new_row <- .pick(result, "Bugula neritina", "panel-B")
+  # panel image level
   expect_equal(new_row$photo_filename, "B.jpg")
-  expect_equal(new_row$habitat, "seagrass")
   expect_equal(new_row$points_in_grid, 50L)
+  # deployment period level
   expect_equal(new_row$retrieval_date, as.Date("2024-07-01"))
+  # sample event level
+  expect_equal(new_row$habitat, "artificial")
   expect_equal(new_row$site_name, "Test Site")
   expect_equal(new_row$input_filename, "test.xlsx")
+})
+
+test_that("retrieval_date is inherited per deployment period, not per panel", {
+  # One retrieval per soak time: 30 day pulled 2024-07-01, 60 day 2024-08-01.
+  # Didemnum was only scored on panel-A at 30 day.
+  df <- rbind(
+    .make_fouling_df(
+      panel_id = rep(c("panel-A", "panel-B"), each = 2),
+      deployment_period = rep(c("30 day", "60 day"), times = 2),
+      retrieval_date = rep(as.Date(c("2024-07-01", "2024-08-01")), times = 2),
+      photo_filename = c("A30.jpg", "A60.jpg", "B30.jpg", "B60.jpg"),
+      scientific_name = "Bugula neritina"
+    ),
+    .make_fouling_df(
+      panel_id = "panel-A",
+      deployment_period = "30 day",
+      retrieval_date = as.Date("2024-07-01"),
+      photo_filename = "A30.jpg",
+      scientific_name = "Didemnum perlucidum"
+    )
+  )
+
+  local_mocked_bindings(utl_mg_assign_ancestor_labels = .mock_fouling_group)
+  result <- expect_no_message(utl_fouling_backfill_cover(df))
+
+  expect_equal(
+    .pick(result, "Didemnum perlucidum", "panel-A", "60 day")$retrieval_date,
+    as.Date("2024-08-01")
+  )
+  expect_equal(
+    .pick(result, "Didemnum perlucidum", "panel-B", "30 day")$retrieval_date,
+    as.Date("2024-07-01")
+  )
+  expect_equal(
+    .pick(result, "Didemnum perlucidum", "panel-B", "60 day")$retrieval_date,
+    as.Date("2024-08-01")
+  )
+})
+
+test_that("habitat is inherited event-wide across panels and periods", {
+  df <- rbind(
+    .make_fouling_df(
+      panel_id = rep(c("panel-A", "panel-B"), each = 2),
+      deployment_period = rep(c("30 day", "60 day"), times = 2),
+      retrieval_date = rep(as.Date(c("2024-07-01", "2024-08-01")), times = 2),
+      habitat = "mangrove",
+      scientific_name = "Bugula neritina"
+    ),
+    .make_fouling_df(
+      panel_id = "panel-A",
+      deployment_period = "30 day",
+      habitat = "mangrove",
+      scientific_name = "Didemnum perlucidum"
+    )
+  )
+
+  local_mocked_bindings(utl_mg_assign_ancestor_labels = .mock_fouling_group)
+  result <- suppressMessages(utl_fouling_backfill_cover(df))
+  expect_true(all(result$habitat == "mangrove"))
+})
+
+test_that("ambiguous retrieval_date within a deployment period gives NA", {
+  # Two retrieval dates recorded for the same soak time: unresolvable.
+  df <- rbind(
+    .make_fouling_df(
+      panel_id = c("panel-A", "panel-B"),
+      retrieval_date = as.Date(c("2024-07-01", "2024-07-02"))
+    ),
+    .make_fouling_df(
+      panel_id = "panel-A",
+      scientific_name = "Bugula neritina",
+      retrieval_date = as.Date("2024-07-01")
+    )
+  )
+
+  local_mocked_bindings(utl_mg_assign_ancestor_labels = .mock_fouling_group)
+  expect_message(
+    result <- utl_fouling_backfill_cover(df),
+    "Unable to backfill retrieval_date"
+  )
+
+  new_row <- .pick(result, "Bugula neritina", "panel-B")
+  expect_equal(nrow(new_row), 1L)
+  expect_true(is.na(new_row$retrieval_date))
 })
 
 test_that("output has at least as many rows as input", {
@@ -308,6 +394,37 @@ test_that("ungrouped taxa are passed through unchanged and gain no zero rows", {
   expect_equal(zip_tie$percent_cover, 2)
 })
 
+test_that("a panel image scored only as an ungrouped taxon is still backfilled", {
+  # panel-B's 60 day image exists but carries only "zip tie" (no primary
+  # group). The deployment period is present, so Didemnum must still be
+  # backfilled onto it.
+  df <- rbind(
+    .make_fouling_df(
+      panel_id = rep(c("panel-A", "panel-B"), each = 2),
+      deployment_period = rep(c("30 day", "60 day"), times = 2)
+    )[1:3, ],
+    .make_fouling_df(
+      panel_id = "panel-B",
+      deployment_period = "60 day",
+      scientific_name = "zip tie",
+      point_count = 2L,
+      percent_cover = 2
+    )
+  )
+
+  local_mocked_bindings(utl_mg_assign_ancestor_labels = .mock_fouling_group)
+  result <- suppressMessages(utl_fouling_backfill_cover(df))
+
+  new_row <- .pick(result, "Didemnum perlucidum", "panel-B", "60 day")
+  expect_equal(nrow(new_row), 1L)
+  expect_equal(new_row$percent_cover, 0)
+  expect_equal(new_row$points_in_grid, 100L)
+
+  # the ungrouped row is still passed through exactly once
+  zip_tie <- result[result$scientific_name == "zip tie", , drop = FALSE]
+  expect_equal(nrow(zip_tie), 1L)
+})
+
 test_that("the internal group column is not returned", {
   df <- .make_fouling_df(panel_id = c("panel-A", "panel-B"))
 
@@ -342,7 +459,7 @@ test_that("ambiguous input_filename within a sample event emits a message and se
   expect_true(is.na(new_row$input_filename))
 })
 
-test_that("ambiguous habitat within a panel image emits a message and sets NA", {
+test_that("ambiguous habitat within a sample event emits a message and sets NA", {
   df <- rbind(
     .make_fouling_df(
       panel_id = "panel-A",

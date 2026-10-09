@@ -21,8 +21,8 @@ table; links to the MarineGEO data index.}
 \item{\code{panel_id}}{Character. Settlement panel identifier within a sample
 event.}
 \item{\code{deployment_date}}{Date. Date the panels were deployed.}
-\item{\code{retrieval_date}}{Date. Date the panel was retrieved and
-photographed; varies with \code{deployment_period}.}
+\item{\code{retrieval_date}}{Date. Date the panels were retrieved and
+photographed; one value per \code{deployment_period} within an event.}
 \item{\code{deployment_period}}{Character. Soak time of the panel image
 (e.g., \code{"30 day"}, \code{"60 day"}, \code{"90 day"}).}
 \item{\code{scientific_name}}{Character. Species or taxon name; used to
@@ -33,7 +33,8 @@ backfilled rows whose \code{points_in_grid} is known.}
 \item{\code{percent_cover}}{Numeric. Percent cover value; set to \code{0} for
 backfilled rows.}
 \item{\code{photo_filename}}{Character. Panel photograph file name.}
-\item{\code{habitat}}{Character. Habitat the panel was deployed in.}
+\item{\code{habitat}}{Character. Habitat the panels were deployed in;
+constant within a sample event.}
 \item{\code{input_filename}}{Character. Source file name.}
 }}
 }
@@ -42,9 +43,10 @@ A data frame with the same columns as \code{df}, sorted by
 \code{sample_event_id}, year, \code{site_code}, \code{site_name}, \code{deployment_period},
 \code{panel_id}, and \code{scientific_name}. Backfilled rows have
 \code{percent_cover = 0} and \code{point_count = 0} (or \code{NA} where the panel image
-has no \code{points_in_grid}); \code{retrieval_date}, \code{habitat}, \code{photo_filename},
-and \code{points_in_grid} are inherited from the panel image, and the remaining
-required columns from the sample event. Columns not used by the expansion —
+has no \code{points_in_grid}); \code{photo_filename} and \code{points_in_grid} are
+inherited from the panel image, \code{retrieval_date} from the deployment
+period, and \code{habitat} together with the remaining required columns from
+the sample event. Columns not used by the expansion —
 including \code{identification_notes}, \code{percent_cover_notes}, \code{row_uuid}, and
 any extra column the caller supplied — are left \code{NA} on backfilled rows.
 \code{row_uuid} is generated upstream of this function, so re-run
@@ -54,8 +56,10 @@ identifiers.
 \description{
 Accepts a fouling panel cover data frame and adds new rows to ensure that
 every taxon enrolled in a primary fouling group anywhere within a sample
-event is represented on every panel image — that is, every
-\code{deployment_period} × \code{panel_id} combination — observed within that event.
+event is represented on every panel image observed anywhere within that
+event — that is, on every \code{deployment_period} × \code{panel_id} combination the
+event actually contains, regardless of which panel or period the taxon was
+originally recorded on.
 The \code{percent_cover} for backfilled rows is set to \code{0}. Taxa that resolve to
 no primary fouling group (e.g. \code{"biofilm"}, \code{"shadow"}, \code{"zip tie"}) are
 passed through unchanged.
@@ -72,21 +76,34 @@ therefore backfilled.
 Within each sample event the function:
 \enumerate{
 \item Builds a panel image inventory: the distinct \code{deployment_period} ×
-\code{panel_id} pairs that were actually observed, each carrying its
-\code{retrieval_date}, \code{habitat}, \code{photo_filename}, and \code{points_in_grid}. Pairs
-absent from the data are never created — a panel retrieved at 30 and 60
-days but lost before 90 gains no 90-day rows.
+\code{panel_id} pairs that were actually observed anywhere in the event —
+including pairs represented only by ungrouped taxa — each carrying its
+\code{photo_filename} and \code{points_in_grid}. Pairs absent from the data are
+never created — a panel retrieved at 30 and 60 days but lost before 90
+gains no 90-day rows.
 \item Crosses that inventory with every grouped taxon observed anywhere in
-the event using \code{\link[tidyr:expand_grid]{tidyr::expand_grid()}}.
+the event — on any panel, in any deployment period — using
+\code{\link[tidyr:expand_grid]{tidyr::expand_grid()}}. A taxon seen only on panel A therefore reaches
+every deployment period of panel B that panel B actually has.
 \item Uses \code{\link[dplyr:anti_join]{dplyr::anti_join()}} to identify combinations absent from the
 original data and inserts them with \code{percent_cover = 0}.
 }
 
-If an event-level field (\code{partner_code}, \code{site_code}, \code{site_name},
-\code{table_id}, \code{deployment_date}, \code{input_filename}) is not unique within a
-sample event, or a panel image field is not unique within a panel image, the
-backfilled rows receive \code{NA} for the ambiguous field and a \code{message()} is
-emitted.
+Fields are inherited at the level they are actually fixed at, rather than
+all from the panel image:
+\itemize{
+\item Event level (\code{partner_code}, \code{site_code}, \code{site_name}, \code{table_id},
+\code{deployment_date}, \code{habitat}, \code{input_filename}) — the site the panels
+hung at and the paperwork describing the deployment.
+\item Deployment period level (\code{retrieval_date}) — one retrieval covers
+every panel pulled at that soak time, so a 30/60/90-day event carries
+three retrieval dates rather than one.
+\item Panel image level (\code{photo_filename}, \code{points_in_grid}) — the two
+fields that describe the photograph itself.
+}
+
+If a field is not unique within the level it is resolved at, the backfilled
+rows receive \code{NA} for that field and a \code{message()} is emitted.
 }
 \examples{
 \dontrun{

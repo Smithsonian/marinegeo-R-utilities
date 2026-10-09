@@ -732,8 +732,10 @@ utl_oyster_backfill_density <- function(df) {
 #' @description
 #' Accepts a fouling panel cover data frame and adds new rows to ensure that
 #' every taxon enrolled in a primary fouling group anywhere within a sample
-#' event is represented on every panel image — that is, every
-#' `deployment_period` × `panel_id` combination — observed within that event.
+#' event is represented on every panel image observed anywhere within that
+#' event — that is, on every `deployment_period` × `panel_id` combination the
+#' event actually contains, regardless of which panel or period the taxon was
+#' originally recorded on.
 #' The `percent_cover` for backfilled rows is set to `0`. Taxa that resolve to
 #' no primary fouling group (e.g. `"biofilm"`, `"shadow"`, `"zip tie"`) are
 #' passed through unchanged.
@@ -752,9 +754,9 @@ utl_oyster_backfill_density <- function(df) {
 #'     \item{`panel_id`}{Character. Settlement panel identifier within a sample
 #'       event.}
 #'     \item{`deployment_date`}{Date. Date the panels were deployed.}
-#'     \item{`retrieval_date`}{Date. Date the panel was retrieved and
-#'       photographed; varies with `deployment_period`.}
-#'     \item{`deployment_period`}{Character. Soak time of the panel image
+#'     \item{`retrieval_date`}{Date. Date the panels were retrieved and
+#'       photographed; one value per `deployment_period` within an event.}
+#'     \item{`deployment_period`}{Character. Deployment time of the panel image
 #'       (e.g., `"30 day"`, `"60 day"`, `"90 day"`).}
 #'     \item{`scientific_name`}{Character. Species or taxon name; used to
 #'       determine fouling group membership.}
@@ -764,7 +766,8 @@ utl_oyster_backfill_density <- function(df) {
 #'     \item{`percent_cover`}{Numeric. Percent cover value; set to `0` for
 #'       backfilled rows.}
 #'     \item{`photo_filename`}{Character. Panel photograph file name.}
-#'     \item{`habitat`}{Character. Habitat the panel was deployed in.}
+#'     \item{`habitat`}{Character. Habitat the panels were deployed in;
+#'       constant within a sample event.}
 #'     \item{`input_filename`}{Character. Source file name.}
 #'   }
 #'
@@ -772,9 +775,10 @@ utl_oyster_backfill_density <- function(df) {
 #'   `sample_event_id`, year, `site_code`, `site_name`, `deployment_period`,
 #'   `panel_id`, and `scientific_name`. Backfilled rows have
 #'   `percent_cover = 0` and `point_count = 0` (or `NA` where the panel image
-#'   has no `points_in_grid`); `retrieval_date`, `habitat`, `photo_filename`,
-#'   and `points_in_grid` are inherited from the panel image, and the remaining
-#'   required columns from the sample event. Columns not used by the expansion —
+#'   has no `points_in_grid`); `photo_filename` and `points_in_grid` are
+#'   inherited from the panel image, `retrieval_date` from the deployment
+#'   period, and `habitat` together with the remaining required columns from
+#'   the sample event. Columns not used by the expansion —
 #'   including `identification_notes`, `percent_cover_notes`, `row_uuid`, and
 #'   any extra column the caller supplied — are left `NA` on backfilled rows.
 #'   `row_uuid` is generated upstream of this function, so re-run
@@ -793,21 +797,34 @@ utl_oyster_backfill_density <- function(df) {
 #' Within each sample event the function:
 #' \enumerate{
 #'   \item Builds a panel image inventory: the distinct `deployment_period` ×
-#'     `panel_id` pairs that were actually observed, each carrying its
-#'     `retrieval_date`, `habitat`, `photo_filename`, and `points_in_grid`. Pairs
-#'     absent from the data are never created — a panel retrieved at 30 and 60
-#'     days but lost before 90 gains no 90-day rows.
+#'     `panel_id` pairs that were actually observed anywhere in the event —
+#'     including pairs represented only by ungrouped taxa — each carrying its
+#'     `photo_filename` and `points_in_grid`. Pairs absent from the data are
+#'     never created — a panel retrieved at 30 and 60 days but lost before 90
+#'     gains no 90-day rows.
 #'   \item Crosses that inventory with every grouped taxon observed anywhere in
-#'     the event using [tidyr::expand_grid()].
+#'     the event — on any panel, in any deployment period — using
+#'     [tidyr::expand_grid()]. A taxon seen only on panel A therefore reaches
+#'     every deployment period of panel B that panel B actually has.
 #'   \item Uses [dplyr::anti_join()] to identify combinations absent from the
 #'     original data and inserts them with `percent_cover = 0`.
 #' }
 #'
-#' If an event-level field (`partner_code`, `site_code`, `site_name`,
-#' `table_id`, `deployment_date`, `input_filename`) is not unique within a
-#' sample event, or a panel image field is not unique within a panel image, the
-#' backfilled rows receive `NA` for the ambiguous field and a `message()` is
-#' emitted.
+#' Fields are inherited at the level they are actually fixed at, rather than
+#' all from the panel image:
+#' \itemize{
+#'   \item Event level (`partner_code`, `site_code`, `site_name`, `table_id`,
+#'     `deployment_date`, `habitat`, `input_filename`) — the site the panels
+#'     hung at and the paperwork describing the deployment.
+#'   \item Deployment period level (`retrieval_date`) — one retrieval covers
+#'     every panel pulled at that deployment time, so a 30/60/90-day event carries
+#'     three retrieval dates rather than one.
+#'   \item Panel image level (`photo_filename`, `points_in_grid`) — the two
+#'     fields that describe the photograph itself.
+#' }
+#'
+#' If a field is not unique within the level it is resolved at, the backfilled
+#' rows receive `NA` for that field and a `message()` is emitted.
 #'
 #' @seealso [utl_sav_backfill_cover()] for the seagrass transect × quadrat
 #'   equivalent.
@@ -825,19 +842,23 @@ utl_fouling_backfill_cover <- function(df) {
     stop("`df` must be a data frame.")
   }
 
+  # Fields constant across a whole sample event:
   event_fields <- c(
     "partner_code",
     "site_code",
     "site_name",
     "table_id",
     "deployment_date",
+    "habitat",
     "input_filename"
   )
 
+  # Fields set by the retrieval
+  deployment_period_fields <- c("retrieval_date")
+
+  # Fields that genuinely describe the photograph of one panel: the file itself and the scoring grid laid over it.
   panel_image_fields <- c(
     "photo_filename",
-    "retrieval_date",
-    "habitat",
     "points_in_grid"
   )
 
@@ -849,6 +870,7 @@ utl_fouling_backfill_cover <- function(df) {
     "point_count",
     "percent_cover",
     event_fields,
+    deployment_period_fields,
     panel_image_fields
   )
 
@@ -899,18 +921,25 @@ utl_fouling_backfill_cover <- function(df) {
   sample_events <- unique(df_grouped$sample_event_id)
 
   df_out <- lapply(sample_events, function(i) {
+    # Every row in the event, including rows whose taxon is enrolled in no
+    # primary group: a panel image scored only as "biofilm" or "shadow" is
+    # still a panel image that was photographed, so it belongs in the
+    # inventory below and must receive zero-cover rows.
+    df_se_all <- df |>
+      dplyr::filter(sample_event_id == i)
+
     df_se <- df_grouped |>
       dplyr::filter(sample_event_id == i)
 
     # Resolve per-event metadata fields; warn if ambiguous
     event_values <- lapply(
       stats::setNames(event_fields, event_fields),
-      function(field) .mg_single_value(df_se[[field]], field, i)
+      function(field) .mg_single_value(df_se_all[[field]], field, i)
     )
 
     # The panel images actually observed in this event, each with the fields
     # that describe the photograph rather than the observation.
-    panel_images <- df_se |>
+    panel_images <- df_se_all |>
       dplyr::group_by(deployment_period, panel_id) |>
       dplyr::summarise(
         dplyr::across(
@@ -926,11 +955,32 @@ utl_fouling_backfill_cover <- function(df) {
         .groups = "drop"
       )
 
+    # Fields fixed by the retrieval of a given panel
+    deployment_period_values <- df_se_all |>
+      dplyr::group_by(deployment_period) |>
+      dplyr::summarise(
+        dplyr::across(
+          dplyr::all_of(deployment_period_fields),
+          \(x) {
+            .mg_single_value(
+              x,
+              dplyr::cur_column(),
+              paste(i, deployment_period[1], sep = " / ")
+            )
+          }
+        ),
+        .groups = "drop"
+      )
+
     # Every grouped taxon seen anywhere in the event, at every panel image
     backfilled_grid <- tidyr::expand_grid(
       panel_images,
       scientific_name = unique(df_se$scientific_name)
     ) |>
+      dplyr::left_join(
+        deployment_period_values,
+        by = dplyr::join_by(deployment_period)
+      ) |>
       dplyr::mutate(
         sample_event_id = i,
         partner_code = event_values$partner_code,
@@ -938,13 +988,14 @@ utl_fouling_backfill_cover <- function(df) {
         site_name = event_values$site_name,
         table_id = event_values$table_id,
         deployment_date = event_values$deployment_date,
+        habitat = event_values$habitat,
         input_filename = event_values$input_filename
       )
 
     # New rows: combinations present in the grid but absent from the original
     new_rows <- dplyr::anti_join(
       backfilled_grid,
-      df_se,
+      df_se_all,
       by = dplyr::join_by(
         sample_event_id,
         deployment_period,
