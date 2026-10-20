@@ -25,8 +25,20 @@ standard \code{dplyr} (e.g. \code{dplyr::filter()}, \code{dplyr::count()}) and p
 any other tibble.
 
 Run-level metadata is attached as attributes, read with \code{\link[base:attr]{base::attr()}}:
-\code{table_id}, \code{n_rows} (rows in the validated data), \code{checks_run} (checks that
-executed), and \code{status} (the worst severity present: \code{"fail"} > \code{"warn"} >
-\code{"pass"}).
+\describe{
+\item{\code{table_id}}{The table identifier the data was validated against.}
+\item{\code{n_rows}}{Rows in the validated data.}
+\item{\code{checks_run}}{Checks that executed.}
+\item{\code{checks_skipped}}{Checks that were not applicable to the input.
+Populated by \code{\link[=qc_run]{qc_run()}} with \code{partial = TRUE} and by
+\code{\link[=qc_check_variable]{qc_check_variable()}}, where the three table-scoped checks
+(\code{qc_check_columns}, \code{qc_check_row_uniqueness},
+\code{qc_check_point_counts}) cannot run. Lets a caller distinguish
+"not applicable" from "passed".}
+\item{\code{columns}}{The column names that were validated — the only record of
+what was checked when the result has zero rows.}
+\item{\code{status}}{The worst severity present: \code{"fail"} > \code{"warn"} >
+\code{"pass"}.}
+}
 }
 \keyword{internal}

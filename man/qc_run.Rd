@@ -4,7 +4,7 @@
 \alias{qc_run}
 \title{Run all applicable QC tests on a MarineGEO data table}
 \usage{
-qc_run(x, table_id, sheet = 1L)
+qc_run(x, table_id, sheet = 1L, partial = FALSE)
 }
 \arguments{
 \item{x}{A data frame, tibble, file path (character string), Arrow Dataset,
@@ -16,14 +16,24 @@ columns, data types, and controlled vocabularies.}
 
 \item{sheet}{Integer or character. Only used when \code{x} is an \code{.xlsx} or
 \code{.xls} file path. Passed to \code{\link[readxl:read_excel]{readxl::read_excel()}}. Defaults to \code{1}.}
+
+\item{partial}{Logical scalar. If \code{FALSE} (the default), \code{x} is treated as a
+complete table and all applicable checks run. If \code{TRUE}, \code{x} is treated as
+a subset of the table's columns: the three table-scoped checks
+(\code{qc_check_columns()}, \code{qc_check_row_uniqueness()},
+\code{qc_check_point_counts()}) are skipped rather than reporting the absent
+columns as failures, and are listed in the result's \code{checks_skipped}
+attribute.}
 }
 \value{
 A \link{qc_issues} tibble: one row per detected problem across all
 applicable checks (zero rows if the data is clean), with the producing
 check in the \code{check} column. Run-level metadata rides along as attributes
 — \code{table_id}, \code{n_rows} (rows validated), \code{checks_run} (which checks
-executed), and \code{status} (the worst severity present: \code{"fail"} > \code{"warn"} >
-\code{"pass"}). See \link{qc_issues} for the full column description.
+executed), \code{checks_skipped} (checks not applicable to the input),
+\code{columns} (the columns validated), and \code{status} (the worst severity
+present: \code{"fail"} > \code{"warn"} > \code{"pass"}). See \link{qc_issues} for the full
+column description.
 }
 \description{
 Single entry point for the MarineGEO QA/QC test suite. Given a data object
@@ -33,6 +43,10 @@ structured result list.
 
 Accepts a data frame, a file path (CSV, XLSX, Parquet), or an Arrow
 Dataset/Table.
+
+With \code{partial = TRUE} it also accepts an arbitrary \strong{subset} of a table's
+columns, running only the checks that work on a column in isolation. To
+validate a single field, see \code{\link[=qc_check_variable]{qc_check_variable()}}.
 }
 \details{
 \strong{Metadata-driven dispatch:} Tests are not hard-coded to table types.
@@ -58,6 +72,12 @@ validated against the corresponding global entity registries in
 Adding a new table type requires only updating the metadata CSVs and
 rebuilding sysdata — no R code changes required.
 
+\strong{Partial tables:} under \code{partial = TRUE} each rule set is additionally
+narrowed to the columns actually supplied, so a check appears in
+\code{checks_run} only when a rule applied to one of them. If none of the
+supplied columns are defined for \code{table_id}, a warning is emitted — an empty
+result there means "nothing was checkable", not "clean".
+
 \strong{Arrow support:} Arrow Datasets and Tables are collected into memory via
 \code{\link[dplyr:collect]{dplyr::collect()}} before testing. This requires the \code{arrow} package.
 
@@ -75,4 +95,10 @@ df <- data.frame(
 
 # Supply a valid table_id from marinegeo_metadata$data_index
 # result <- qc_run(df, table_id = "sav_cover_v1")
+
+# Validate only the columns present, ignoring the rest of the table
+# result <- qc_run(df, table_id = "sav_cover_v1", partial = TRUE)
+}
+\seealso{
+\code{\link[=qc_check_variable]{qc_check_variable()}} to validate a single variable's values.
 }

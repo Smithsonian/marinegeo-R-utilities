@@ -9,6 +9,10 @@
 #' Accepts a data frame, a file path (CSV, XLSX, Parquet), or an Arrow
 #' Dataset/Table.
 #'
+#' With `partial = TRUE` it also accepts an arbitrary **subset** of a table's
+#' columns, running only the checks that work on a column in isolation. To
+#' validate a single field, see [qc_check_variable()].
+#'
 #' @param x A data frame, tibble, file path (character string), Arrow Dataset,
 #'   or Arrow Table.
 #' @param table_id Character scalar. The MarineGEO table identifier (from
@@ -16,13 +20,22 @@
 #'   columns, data types, and controlled vocabularies.
 #' @param sheet Integer or character. Only used when `x` is an `.xlsx` or
 #'   `.xls` file path. Passed to [readxl::read_excel()]. Defaults to `1`.
+#' @param partial Logical scalar. If `FALSE` (the default), `x` is treated as a
+#'   complete table and all applicable checks run. If `TRUE`, `x` is treated as
+#'   a subset of the table's columns: the three table-scoped checks
+#'   (`qc_check_columns()`, `qc_check_row_uniqueness()`,
+#'   `qc_check_point_counts()`) are skipped rather than reporting the absent
+#'   columns as failures, and are listed in the result's `checks_skipped`
+#'   attribute.
 #'
 #' @return A [qc_issues] tibble: one row per detected problem across all
 #'   applicable checks (zero rows if the data is clean), with the producing
 #'   check in the `check` column. Run-level metadata rides along as attributes
 #'   — `table_id`, `n_rows` (rows validated), `checks_run` (which checks
-#'   executed), and `status` (the worst severity present: `"fail"` > `"warn"` >
-#'   `"pass"`). See [qc_issues] for the full column description.
+#'   executed), `checks_skipped` (checks not applicable to the input),
+#'   `columns` (the columns validated), and `status` (the worst severity
+#'   present: `"fail"` > `"warn"` > `"pass"`). See [qc_issues] for the full
+#'   column description.
 #'
 #' @details
 #' **Metadata-driven dispatch:** Tests are not hard-coded to table types.
@@ -48,12 +61,20 @@
 #' Adding a new table type requires only updating the metadata CSVs and
 #' rebuilding sysdata — no R code changes required.
 #'
+#' **Partial tables:** under `partial = TRUE` each rule set is additionally
+#' narrowed to the columns actually supplied, so a check appears in
+#' `checks_run` only when a rule applied to one of them. If none of the
+#' supplied columns are defined for `table_id`, a warning is emitted — an empty
+#' result there means "nothing was checkable", not "clean".
+#'
 #' **Arrow support:** Arrow Datasets and Tables are collected into memory via
 #' [dplyr::collect()] before testing. This requires the `arrow` package.
 #'
 #' **File path support:** CSV files are read with [readr::read_csv()]; XLSX/XLS
 #' files with [readxl::read_excel()]; Parquet files with
 #' [arrow::read_parquet()] (requires `arrow`).
+#'
+#' @seealso [qc_check_variable()] to validate a single variable's values.
 #'
 #' @export
 #'
@@ -67,19 +88,28 @@
 #'
 #' # Supply a valid table_id from marinegeo_metadata$data_index
 #' # result <- qc_run(df, table_id = "sav_cover_v1")
-qc_run <- function(x, table_id, sheet = 1L) {
+#'
+#' # Validate only the columns present, ignoring the rest of the table
+#' # result <- qc_run(df, table_id = "sav_cover_v1", partial = TRUE)
+qc_run <- function(x, table_id, sheet = 1L, partial = FALSE) {
   # --- Input validation -------------------------------------------------------
   if (!is.character(table_id) || length(table_id) != 1) {
     stop("`table_id` must be a single character string.")
+  }
+  if (!is.logical(partial) || length(partial) != 1L || is.na(partial)) {
+    stop("`partial` must be a single `TRUE` or `FALSE`.")
   }
 
   # --- Ingest: resolve x to a data frame -------------------------------------
   data <- .qc_ingest(x, sheet = sheet)
 
   # --- Dispatch ---------------------------------------------------------------
-  .qc_dispatch(data, table_id = table_id)
+  .qc_dispatch(
+    data,
+    table_id = table_id,
+    scope = if (partial) "column" else "table"
+  )
 }
-
 # ---------------------------------------------------------------------------
 # Internal: resolve x to a plain data frame
 # ---------------------------------------------------------------------------
@@ -145,16 +175,39 @@ qc_run <- function(x, table_id, sheet = 1L) {
     paste(class(x), collapse = "/")
   )
 }
-
 # ---------------------------------------------------------------------------
 # Internal: metadata-driven dispatch
+#
+# `scope = "table"` treats `data` as a complete table and runs every
+# applicable check. `scope = "column"` treats it as a subset of columns: only
+# the column-scoped checks run, each narrowed to the columns supplied. See
+# R/qc_mg_rules.R for the scope declaration and the rule resolver.
 # ---------------------------------------------------------------------------
-.qc_dispatch <- function(data, table_id) {
-  db_struct <- .mg_get_registry_table("database_structure")
-  cat_vals <- .mg_get_registry_table("categorical_values")
+.qc_dispatch <- function(data, table_id, scope = c("table", "column")) {
+  scope <- match.arg(scope)
 
-  tbl_struct <- db_struct[db_struct$table_id == table_id, ]
-  tbl_cats <- cat_vals[cat_vals$table_id == table_id, ]
+  rules <- .qc_resolve_rules(table_id)
+  tbl_struct <- rules$structure
+  tbl_cats <- rules$categorical
+  tbl_ranges <- rules$ranges
+  lookup_map <- rules$lookups
+
+  table_scope <- identical(scope, "table")
+  checks_skipped <- if (table_scope) {
+    character(0)
+  } else {
+    .qc_table_scoped_checks()
+  }
+
+  empty_result <- function() {
+    new_qc_issues(
+      table_id = table_id,
+      n_rows = nrow(data),
+      checks_run = character(0),
+      checks_skipped = checks_skipped,
+      columns = colnames(data)
+    )
+  }
 
   if (nrow(tbl_struct) == 0 && nrow(tbl_cats) == 0) {
     warning(
@@ -164,17 +217,41 @@ qc_run <- function(x, table_id, sheet = 1L) {
       "No tests will be run. ",
       "Check `marinegeo_metadata$data_index` for valid table_id values."
     )
-    return(new_qc_issues(
-      table_id = table_id,
-      n_rows = nrow(data),
-      checks_run = character(0)
-    ))
+    return(empty_result())
+  }
+
+  # In column scope every rule set is narrowed to the columns actually
+  # supplied, so a check lands in `checks_run` only when a rule applied to one
+  # of them.
+  if (!table_scope) {
+    present <- colnames(data)
+    tbl_struct <- .qc_filter_by_column(tbl_struct, present)
+    tbl_cats <- .qc_filter_by_column(tbl_cats, present)
+    tbl_ranges <- .qc_filter_by_column(tbl_ranges, present)
+
+    nothing_checkable <- nrow(tbl_struct) == 0 &&
+      nrow(tbl_cats) == 0 &&
+      nrow(tbl_ranges) == 0 &&
+      length(intersect(names(lookup_map), present)) == 0
+    if (nothing_checkable) {
+      warning(
+        "None of the supplied column(s) (",
+        paste(present, collapse = ", "),
+        ") are defined for table_id '",
+        table_id,
+        "'. No tests were run. ",
+        "Call `utl_mg_column_order('",
+        table_id,
+        "')` to list its columns."
+      )
+      return(empty_result())
+    }
   }
 
   results <- list()
 
   # --- Test 1: column presence and order -------------------------------------
-  if (nrow(tbl_struct) > 0) {
+  if (table_scope && nrow(tbl_struct) > 0) {
     results$qc_check_columns <- qc_check_columns(
       data = data,
       expected_columns = tbl_struct$column_name
@@ -211,25 +288,6 @@ qc_run <- function(x, table_id, sheet = 1L) {
   }
 
   # --- Test 5: numeric ranges ------------------------------------------------
-  num_ranges <- .mg_get_registry_table("numeric_ranges")
-  range_cols <- c(
-    "column_name",
-    "max_fail",
-    "min_fail",
-    "max_warn",
-    "min_warn",
-    "range_type"
-  )
-  if (
-    nrow(num_ranges) > 0 &&
-      "table_id" %in% colnames(num_ranges) &&
-      all(range_cols %in% colnames(num_ranges))
-  ) {
-    tbl_ranges <- num_ranges[num_ranges$table_id == table_id, ]
-    tbl_ranges <- tbl_ranges[!is.na(tbl_ranges$range_type), ]
-  } else {
-    tbl_ranges <- data.frame()
-  }
   if (nrow(tbl_ranges) > 0) {
     results$qc_check_numeric_ranges <- qc_check_numeric_ranges(
       data = data,
@@ -245,17 +303,6 @@ qc_run <- function(x, table_id, sheet = 1L) {
   }
 
   # --- Test 6: lookup values ---------------------------------------------------
-  lookup_map <- Filter(
-    Negate(is.null),
-    list(
-      partner_code = .mg_get_registry_table("partner_codes")$partner_code,
-      site_name = .mg_get_registry_table("site_codes")$site_name,
-      site_code = .mg_get_registry_table("site_codes")$site_code,
-      scientific_name = .mg_get_registry_table(
-        "observation_lookup"
-      )$scientific_name
-    )
-  )
   present_lookup_cols <- intersect(names(lookup_map), colnames(data))
   if (length(present_lookup_cols) > 0) {
     results$qc_check_lookup_values <- qc_check_lookup_values(
@@ -265,24 +312,30 @@ qc_run <- function(x, table_id, sheet = 1L) {
   }
 
   # --- Test 7: row uniqueness ------------------------------------------------
-  uuid_cols <- if ("uuid_identity" %in% colnames(tbl_struct)) {
-    tbl_struct$column_name[which(tbl_struct$uuid_identity)]
-  } else {
-    character(0)
+  if (table_scope) {
+    uuid_cols <- if ("uuid_identity" %in% colnames(tbl_struct)) {
+      tbl_struct$column_name[which(tbl_struct$uuid_identity)]
+    } else {
+      character(0)
+    }
+    if (length(uuid_cols) > 0) {
+      results$qc_check_row_uniqueness <- qc_check_row_uniqueness(
+        data = data,
+        id_cols = uuid_cols
+      )
+    }
   }
-  if (length(uuid_cols) > 0) {
-    results$qc_check_row_uniqueness <- qc_check_row_uniqueness(
-      data = data,
-      id_cols = uuid_cols
-    )
-  }
-  
+
   # --- Test 8: point count validity ----------------------------------------------
-  if (all(c("points_in_quadrat", "point_count") %in% tbl_struct$column_name)) {
+  if (
+    table_scope &&
+      all(c("points_in_quadrat", "point_count") %in% tbl_struct$column_name)
+  ) {
     results$qc_check_point_counts <- qc_check_point_counts(
       data = data
     )
   }
+
   # --- Combine into a single issues table ------------------------------------
   # Each check returns a qc_issues tibble; bind them and re-wrap with run-level
   # metadata. `status` is derived from the combined rows (fail > warn > pass).
@@ -290,6 +343,8 @@ qc_run <- function(x, table_id, sheet = 1L) {
     dplyr::bind_rows(results),
     table_id = table_id,
     n_rows = nrow(data),
-    checks_run = names(results)
+    checks_run = names(results),
+    checks_skipped = checks_skipped,
+    columns = colnames(data)
   )
 }

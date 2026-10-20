@@ -59,11 +59,15 @@
 # Constructor: normalize `rows` to the canonical schema, attach run metadata,
 # and stamp the qc_issues class. `rows` may be NULL, a zero-column/zero-row
 # frame (e.g. from bind_rows(list())), or a tibble of `.qc_issue()` chunks.
+# `checks_skipped` and `columns` are only populated by the dispatcher; the
+# individual checks leave them NULL.
 new_qc_issues <- function(
   rows = NULL,
   table_id = NULL,
   n_rows = NULL,
-  checks_run = NULL
+  checks_run = NULL,
+  checks_skipped = NULL,
+  columns = NULL
 ) {
   skeleton <- .qc_issues_skeleton()
 
@@ -79,6 +83,8 @@ new_qc_issues <- function(
   attr(out, "table_id") <- table_id
   attr(out, "n_rows") <- n_rows
   attr(out, "checks_run") <- checks_run
+  attr(out, "checks_skipped") <- checks_skipped
+  attr(out, "columns") <- columns
   attr(out, "status") <- .qc_status(out)
   class(out) <- c("qc_issues", class(skeleton))
   out
@@ -108,9 +114,21 @@ new_qc_issues <- function(
 #' any other tibble.
 #'
 #' Run-level metadata is attached as attributes, read with [base::attr()]:
-#' `table_id`, `n_rows` (rows in the validated data), `checks_run` (checks that
-#' executed), and `status` (the worst severity present: `"fail"` > `"warn"` >
-#' `"pass"`).
+#' \describe{
+#'   \item{`table_id`}{The table identifier the data was validated against.}
+#'   \item{`n_rows`}{Rows in the validated data.}
+#'   \item{`checks_run`}{Checks that executed.}
+#'   \item{`checks_skipped`}{Checks that were not applicable to the input.
+#'     Populated by [qc_run()] with `partial = TRUE` and by
+#'     [qc_check_variable()], where the three table-scoped checks
+#'     (`qc_check_columns`, `qc_check_row_uniqueness`,
+#'     `qc_check_point_counts`) cannot run. Lets a caller distinguish
+#'     "not applicable" from "passed".}
+#'   \item{`columns`}{The column names that were validated — the only record of
+#'     what was checked when the result has zero rows.}
+#'   \item{`status`}{The worst severity present: `"fail"` > `"warn"` >
+#'     `"pass"`.}
+#' }
 #'
 #' @name qc_issues
 #' @keywords internal
