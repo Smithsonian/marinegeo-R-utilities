@@ -17,7 +17,10 @@
     column = character(0),
     col_index = integer(0),
     value = character(0),
-    issue = character(0)
+    issue = character(0),
+    rule_id = character(0),
+    detail = character(0),
+    table = character(0)
   )
 }
 
@@ -43,7 +46,10 @@
   row = NA_integer_,
   column = NA_character_,
   col_index = NA_integer_,
-  value = NA_character_
+  value = NA_character_,
+  rule_id = NA_character_,
+  detail = NA_character_,
+  table = NA_character_
 ) {
   tibble::tibble(
     check = as.character(check),
@@ -52,22 +58,26 @@
     column = as.character(column),
     col_index = as.integer(col_index),
     value = as.character(value),
-    issue = as.character(issue)
+    issue = as.character(issue),
+    rule_id = as.character(rule_id),
+    detail = as.character(detail),
+    table = as.character(table)
   )
 }
 
 # Constructor: normalize `rows` to the canonical schema, attach run metadata,
 # and stamp the qc_issues class. `rows` may be NULL, a zero-column/zero-row
 # frame (e.g. from bind_rows(list())), or a tibble of `.qc_issue()` chunks.
-# `checks_skipped` and `columns` are only populated by the dispatcher; the
-# individual checks leave them NULL.
+# `checks_skipped`, `columns` and `rules_skipped` are only populated by the
+# dispatcher; the individual checks leave them NULL.
 new_qc_issues <- function(
   rows = NULL,
   table_id = NULL,
   n_rows = NULL,
   checks_run = NULL,
   checks_skipped = NULL,
-  columns = NULL
+  columns = NULL,
+  rules_skipped = NULL
 ) {
   skeleton <- .qc_issues_skeleton()
 
@@ -85,6 +95,7 @@ new_qc_issues <- function(
   attr(out, "checks_run") <- checks_run
   attr(out, "checks_skipped") <- checks_skipped
   attr(out, "columns") <- columns
+  attr(out, "rules_skipped") <- rules_skipped
   attr(out, "status") <- .qc_status(out)
   class(out) <- c("qc_issues", class(skeleton))
   out
@@ -107,6 +118,18 @@ new_qc_issues <- function(
 #'   \item{`col_index`}{Integer. 1-based column position, or `NA`.}
 #'   \item{`value`}{Character. The offending value, or `NA`.}
 #'   \item{`issue`}{Character. Machine-readable code, e.g. `"out_of_range"`.}
+#'   \item{`rule_id`}{Character. Identifier of the metadata rule that produced
+#'     the issue, or `NA` when the rule is unconditional and carries no id.
+#'     Lets a finding be traced back to the CSV row that defined it, and tells
+#'     apart a conditional rule from the unconditional rule on the same
+#'     column.}
+#'   \item{`detail`}{Character. One human-readable sentence of *why*, where a
+#'     machine-readable `issue` code is not self-explanatory (e.g. which
+#'     condition applied), or `NA`.}
+#'   \item{`table`}{Character. Which table the issue is in. `NA` for a
+#'     single-table run, where [qc_run()] records the table in the `table_id`
+#'     attribute instead; populated by [qc_run_dataset()], whose result spans
+#'     several tables.}
 #' }
 #'
 #' Because it is an ordinary tibble, results are inspected and subset with
@@ -122,10 +145,16 @@ new_qc_issues <- function(
 #'     Populated by [qc_run()] with `partial = TRUE` and by
 #'     [qc_check_variable()], where the three table-scoped checks
 #'     (`qc_check_columns`, `qc_check_row_uniqueness`,
-#'     `qc_check_point_counts`) cannot run. Lets a caller distinguish
+#'     `qc_check_aggregate`) cannot run. Lets a caller distinguish
 #'     "not applicable" from "passed".}
 #'   \item{`columns`}{The column names that were validated — the only record of
 #'     what was checked when the result has zero rows.}
+#'   \item{`rules_skipped`}{`condition_id`s of conditional rules that could not
+#'     be evaluated because the column their condition tests was not among the
+#'     columns supplied. Populated by [qc_run()] with `partial = TRUE` and by
+#'     [qc_check_variable()], which only ever sees one column. Such a rule is
+#'     dropped rather than applied as if unconditional, so this attribute is
+#'     the only record that a bound exists but went unchecked.}
 #'   \item{`status`}{The worst severity present: `"fail"` > `"warn"` >
 #'     `"pass"`.}
 #' }

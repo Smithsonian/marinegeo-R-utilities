@@ -13,7 +13,7 @@
 .qc_check_scopes <- c(
   qc_check_columns = "table",
   qc_check_row_uniqueness = "table",
-  qc_check_point_counts = "table",
+  qc_check_aggregate = "table",
   qc_check_data_types = "column",
   qc_check_categorical_values = "column",
   qc_check_missing_values = "column",
@@ -48,6 +48,49 @@
   tbl[tbl$column_name %in% cols, , drop = FALSE]
 }
 
+# Narrow a rule table to the columns its check requires, carrying `condition_id`
+# along when the table has one. The checks validate `rules` by required columns
+# and ignore extras, so passing the id through costs them nothing -- and it is
+# what lets .qc_apply_conditional() group on it. A plain `tbl[, cols]` would
+# drop it and silently turn every conditional rule into an unconditional one.
+.qc_keep_cols <- function(tbl, cols) {
+  keep <- intersect(c(cols, "condition_id"), colnames(tbl))
+  tbl[, keep, drop = FALSE]
+}
+
+# Split a `|`-delimited metadata list into a character vector. The single
+# definition of the delimiter shared by every rule table that encodes a list in
+# one cell (condition values, group columns, join columns), so surrounding
+# whitespace and empty segments are handled in exactly one place.
+.qc_split_list <- function(x) {
+  if (length(x) != 1L || is.na(x)) {
+    return(character(0))
+  }
+  parts <- trimws(strsplit(as.character(x), "|", fixed = TRUE)[[1]])
+  parts[nzchar(parts)]
+}
+
+# Resolve one metadata-backed rule table for a table_id, tolerating a table that
+# is absent from metadata entirely or that lacks the expected columns -- the
+# normal state for a newly added rule table whose CSVs are not yet in the
+# metadata repo, and for an offline run falling back to a bundled copy that
+# predates it.
+#
+# The is.null()/colnames() guards must precede nrow() because nrow(NULL) is
+# itself NULL.
+.qc_registry_rules <- function(table, required_cols, table_id) {
+  tbl <- .mg_get_registry_table(table)
+  if (
+    is.null(tbl) ||
+      !is.data.frame(tbl) ||
+      !all(c("table_id", required_cols) %in% colnames(tbl)) ||
+      nrow(tbl) == 0
+  ) {
+    return(data.frame())
+  }
+  .qc_filter_by_table(tbl, table_id)
+}
+
 # The global entity registries, keyed by the column name they validate. These
 # are deliberately not declared in metadata -- they are system-wide.
 .qc_lookup_registries <- function() {
@@ -72,6 +115,9 @@
 #                 missing_values, uuid_identity, ...)
 #   categorical - `categorical_values` rows (column_name, value)
 #   ranges      - `numeric_ranges` rows with a non-NA `range_type`
+#   conditions  - `qc_conditions` rows (condition_id, column_name, operator,
+#                 value): the predicate terms that conditional rules reference
+#   aggregates  - `aggregate_rules` rows: grouped-aggregate rules for the table
 #   lookups     - named list of global entity registries
 .qc_resolve_rules <- function(table_id) {
   tbl_struct <- .qc_filter_by_table(
@@ -83,35 +129,41 @@
     table_id
   )
 
-  # `numeric_ranges` is checked defensively: it may be absent from metadata, and
-  # the is.null()/colnames() guards must precede nrow() because nrow(NULL) is
-  # itself NULL.
-  num_ranges <- .mg_get_registry_table("numeric_ranges")
-  range_cols <- c(
-    "column_name",
-    "max_fail",
-    "min_fail",
-    "max_warn",
-    "min_warn",
-    "range_type"
+  tbl_ranges <- .qc_registry_rules(
+    "numeric_ranges",
+    c(
+      "column_name",
+      "max_fail",
+      "min_fail",
+      "max_warn",
+      "min_warn",
+      "range_type"
+    ),
+    table_id
   )
-  if (
-    !is.null(num_ranges) &&
-      is.data.frame(num_ranges) &&
-      all(c("table_id", range_cols) %in% colnames(num_ranges)) &&
-      nrow(num_ranges) > 0
-  ) {
-    tbl_ranges <- .qc_filter_by_table(num_ranges, table_id)
+  if (nrow(tbl_ranges) > 0) {
     tbl_ranges <- tbl_ranges[!is.na(tbl_ranges$range_type), , drop = FALSE]
-  } else {
-    tbl_ranges <- data.frame()
   }
+
+  tbl_conds <- .qc_registry_rules(
+    "qc_conditions",
+    c("condition_id", "column_name", "operator"),
+    table_id
+  )
+
+  tbl_aggs <- .qc_registry_rules(
+    "aggregate_rules",
+    c("group_columns", "value_column", "aggregate_function", "comparison"),
+    table_id
+  )
 
   list(
     table_id = table_id,
     structure = tbl_struct,
     categorical = tbl_cats,
     ranges = tbl_ranges,
+    conditions = tbl_conds,
+    aggregates = tbl_aggs,
     lookups = .qc_lookup_registries()
   )
 }

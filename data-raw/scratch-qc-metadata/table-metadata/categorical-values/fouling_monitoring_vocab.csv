@@ -1,0 +1,3 @@
+table_id,column_name,value,condition_id
+fouling-biomass-v1,biomass_method,panel preweighed,
+fouling-biomass-v1,biomass_method,panel scraped,

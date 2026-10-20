@@ -40,6 +40,9 @@
   database_structure = "table-metadata/data-structure",
   categorical_values = "table-metadata/categorical-values",
   numeric_ranges = "table-metadata/numeric-ranges",
+  qc_conditions = "table-metadata/qc-conditions",
+  aggregate_rules = "table-metadata/aggregate-rules",
+  cross_table_rules = "table-metadata/cross-table-rules",
   partner_codes = "sites-and-partners/partner-codes",
   site_codes = "sites-and-partners/site-names"
 )

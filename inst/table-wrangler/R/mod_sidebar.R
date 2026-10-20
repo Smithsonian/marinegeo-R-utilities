@@ -93,6 +93,9 @@ qc_flag_server <- function(id, input_list) {
         qc_check_missing_values = "Missing required values",
         qc_check_numeric_ranges = "Out-of-range numeric values",
         qc_check_lookup_values = "Unrecognized lookup values",
+        qc_check_row_uniqueness = "Duplicate rows",
+        qc_check_aggregate = "Grouped totals that do not add up",
+        qc_check_cross_table = "Records missing from a related table",
         qc_check_point_counts = "Invalid number of point counts"
       )
 

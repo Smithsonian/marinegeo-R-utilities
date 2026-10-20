@@ -165,14 +165,11 @@ utl_mg_assign_ancestor_labels <- function(fg_tree, scientific_names, ...) {
   }
 
   # Normalize the two WoRMS rank spellings that carry a parenthetical, so
-  # `rank = "Phylum"` also matches plant and algae lineages. Mirrors the
-  # remapping in `.get_taxonomic_classifications()`.
+  # `rank = "Phylum"` also matches plant and algae lineages. Shared with
+  # `.get_taxonomic_classifications()` and the taxon conditions via
+  # `.qc_norm_rank()` (R/qc_mg_taxon_sets.R), so the three cannot drift.
   if ("rank" %in% names(fg)) {
-    fg$rank <- dplyr::case_when(
-      fg$rank == "Phylum (Division)" ~ "Phylum",
-      fg$rank == "Subphylum (Subdivision)" ~ "Subphylum",
-      TRUE ~ fg$rank
-    )
+    fg$rank <- .qc_norm_rank(fg$rank)
   }
 
   # Labels of every node satisfying all criteria. NA cells never match.

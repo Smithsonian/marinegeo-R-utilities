@@ -21,7 +21,7 @@ columns, data types, and controlled vocabularies.}
 complete table and all applicable checks run. If \code{TRUE}, \code{x} is treated as
 a subset of the table's columns: the three table-scoped checks
 (\code{qc_check_columns()}, \code{qc_check_row_uniqueness()},
-\code{qc_check_point_counts()}) are skipped rather than reporting the absent
+\code{qc_check_aggregate()}) are skipped rather than reporting the absent
 columns as failures, and are listed in the result's \code{checks_skipped}
 attribute.}
 }
@@ -63,6 +63,8 @@ for \code{table_id}.
 \code{missing_values} equal to \code{"enforce"} or \code{"warn"} for \code{table_id}.
 \item Numeric ranges test: runs if \code{numeric_ranges} has rows with non-\code{NA}
 \code{range_type} for \code{table_id}.
+\item Grouped aggregate test: runs if \code{aggregate_rules} has rows for
+\code{table_id}.
 \item Lookup values test: runs if \code{data} contains any of the columns
 \code{partner_code}, \code{site_name}, \code{site_code}, or \code{scientific_name}, which are
 validated against the corresponding global entity registries in

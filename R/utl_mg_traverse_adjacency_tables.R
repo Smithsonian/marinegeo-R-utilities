@@ -117,13 +117,11 @@
   }
 
   # --- Lookup -----------------------------------------------------------------
-  taxonomic_lookup <- taxonomic_lookup |>
-    dplyr::mutate(
-      rank = dplyr::case_when(
-        rank == "Phylum (Division)" ~ "Phylum",
-        T ~ rank
-      )
-    )
+  # Shared normalization (see `.qc_norm_rank()` in R/qc_mg_taxon_sets.R). It
+  # also folds "Subphylum (Subdivision)", which this function previously left
+  # alone -- inert here, because the rank is only used as a list name and
+  # Subphylum is not among the ranks this function retains.
+  taxonomic_lookup$rank <- .qc_norm_rank(taxonomic_lookup$rank)
 
   classifications_df <- taxonomic_lookup |>
     dplyr::filter(.data$scientific_id %in% scientific_ids) |>

@@ -86,7 +86,7 @@ test_that("the three table-scoped checks are reported as skipped", {
     c(
       "qc_check_columns",
       "qc_check_row_uniqueness",
-      "qc_check_point_counts"
+      "qc_check_aggregate"
     )
   )
   expect_false(any(

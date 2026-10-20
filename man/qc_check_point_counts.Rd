@@ -2,24 +2,41 @@
 % Please edit documentation in R/qc_mg_check_point_counts.R
 \name{qc_check_point_counts}
 \alias{qc_check_point_counts}
-\title{Check that the total number of point counts for each quadrat totals the number in "points in quadrat"}
+\title{Check that point counts in a quadrat sum to the points in that quadrat}
 \usage{
 qc_check_point_counts(data)
 }
 \arguments{
-\item{data}{A data frame to validate.}
+\item{data}{A data frame to validate. Must contain \code{site_name}, \code{transect},
+\code{quadrat}, \code{point_count} and \code{points_in_quadrat}; if any are absent no
+issues are reported. A \code{cover_type} column, where present, is used to
+exclude \code{"canopy taxa"} rows from the total.}
 }
 \value{
-A \link{qc_issues} tibble with one row per quadrat-transect combination that violates the point-count rules.
+A \link{qc_issues} tibble with one row per offending data row.
 }
 \description{
-Validates that the total number of primary point counts for a given
-quadrat adds up to the number of points in the quadrat
-Designed for use in MarineGEO QA/QC pipelines and can be called
-directly or via \code{\link[=qc_run]{qc_run()}}.
+Validates that the primary point counts recorded for a quadrat add up to the
+quadrat's declared number of points, excluding canopy taxa (which are scored
+over the top of the primary layer and so are not part of the total).
 }
+\section{Superseded}{
+
+This is now a thin wrapper around \code{\link[=qc_check_aggregate]{qc_check_aggregate()}}, which expresses the
+same rule from \code{aggregate_rules} metadata — the grouping key, the aggregate,
+the comparison and the canopy-taxa filter are all parameters there rather
+than literals in R. That is what lets the structurally identical fouling
+panel total (\code{panel_id} / \code{points_in_grid}) be expressed as a CSV row instead
+of a second copy of this function, and \code{\link[=qc_run]{qc_run()}} now dispatches
+\code{qc_check_aggregate()} in its place.
+
+This wrapper is kept so existing direct callers keep working. Prefer an
+\code{aggregate_rules} row for new rules.
+}
+
 \examples{
 data <- data.frame(
+  site_name = "Site A",
   transect = c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2),
   cover_type = c(
     "live_oyster", "box_oyster", "cultch", "hash", "sediment",
@@ -31,4 +48,7 @@ data <- data.frame(
 )
 
 qc_check_point_counts(data)
+}
+\seealso{
+\code{\link[=qc_check_aggregate]{qc_check_aggregate()}} for the general form.
 }

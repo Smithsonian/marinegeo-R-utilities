@@ -222,7 +222,9 @@ test_that("CSV file path produces same result as passing a data frame", {
   )
 
   csv_path <- tempfile(fileext = ".csv")
-  on.exit(unlink(csv_path))
+  # See the note in test-qc_mg_run_dataset.R: a bare on.exit() here would
+  # discard local_mocked_bindings()'s restore handler.
+  withr::defer(unlink(csv_path))
   readr::write_csv(good_df, csv_path)
 
   result_df <- qc_run(good_df, table_id = "test_table_v1")
@@ -241,7 +243,7 @@ test_that("non-existent file path stops with informative error", {
 
 test_that("unsupported file extension stops with informative error", {
   tmp <- tempfile(fileext = ".json")
-  on.exit(unlink(tmp))
+  withr::defer(unlink(tmp))
   writeLines('{"a": 1}', tmp)
 
   expect_error(
@@ -323,7 +325,7 @@ test_that("partial = TRUE skips the three table-scoped checks", {
     c(
       "qc_check_columns",
       "qc_check_row_uniqueness",
-      "qc_check_point_counts"
+      "qc_check_aggregate"
     )
   )
 })

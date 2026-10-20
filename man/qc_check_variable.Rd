@@ -42,7 +42,7 @@ attribute when metadata actually defines that kind of rule for the variable
 — \code{cover_code}, for instance, has categorical values but no numeric range.
 
 The three remaining checks need the whole table (\code{\link[=qc_check_columns]{qc_check_columns()}},
-\code{\link[=qc_check_row_uniqueness]{qc_check_row_uniqueness()}}, \code{\link[=qc_check_point_counts]{qc_check_point_counts()}}). They are skipped and
+\code{\link[=qc_check_row_uniqueness]{qc_check_row_uniqueness()}}, \code{\link[=qc_check_aggregate]{qc_check_aggregate()}}). They are skipped and
 reported in the \code{checks_skipped} attribute, so an empty result can be
 distinguished from a clean one.
 

@@ -1,20 +1,36 @@
-#' Check that the total number of point counts for each quadrat totals the number in "points in quadrat"
+#' Check that point counts in a quadrat sum to the points in that quadrat
 #'
 #' @description
-#' Validates that the total number of primary point counts for a given
-#' quadrat adds up to the number of points in the quadrat
-#' Designed for use in MarineGEO QA/QC pipelines and can be called
-#' directly or via [qc_run()].
+#' Validates that the primary point counts recorded for a quadrat add up to the
+#' quadrat's declared number of points, excluding canopy taxa (which are scored
+#' over the top of the primary layer and so are not part of the total).
 #'
-#' @param data A data frame to validate.
+#' @section Superseded:
+#' This is now a thin wrapper around [qc_check_aggregate()], which expresses the
+#' same rule from `aggregate_rules` metadata — the grouping key, the aggregate,
+#' the comparison and the canopy-taxa filter are all parameters there rather
+#' than literals in R. That is what lets the structurally identical fouling
+#' panel total (`panel_id` / `points_in_grid`) be expressed as a CSV row instead
+#' of a second copy of this function, and [qc_run()] now dispatches
+#' `qc_check_aggregate()` in its place.
 #'
-#' @return A [qc_issues] tibble with one row per quadrat-transect combination that violates the point-count rules.
+#' This wrapper is kept so existing direct callers keep working. Prefer an
+#' `aggregate_rules` row for new rules.
 #'
+#' @param data A data frame to validate. Must contain `site_name`, `transect`,
+#'   `quadrat`, `point_count` and `points_in_quadrat`; if any are absent no
+#'   issues are reported. A `cover_type` column, where present, is used to
+#'   exclude `"canopy taxa"` rows from the total.
+#'
+#' @return A [qc_issues] tibble with one row per offending data row.
+#'
+#' @seealso [qc_check_aggregate()] for the general form.
 #'
 #' @export
 #'
 #' @examples
 #' data <- data.frame(
+#'   site_name = "Site A",
 #'   transect = c(1, 1, 1, 1, 1, 2, 2, 2, 2, 2),
 #'   cover_type = c(
 #'     "live_oyster", "box_oyster", "cultch", "hash", "sediment",
@@ -26,65 +42,79 @@
 #' )
 #'
 #' qc_check_point_counts(data)
-
 qc_check_point_counts <- function(data) {
   if (!is.data.frame(data)) {
     stop("`data` must be a data frame.")
   }
 
   required_cols <- c(
+    "site_name",
     "transect",
     "quadrat",
     "point_count",
-    "points_in_quadrat",
-    "site_name"
+    "points_in_quadrat"
   )
 
-  if (all(required_cols %in% colnames(data))) {
-    if ("cover_type" %in% colnames(data)) {
-      df_primary_point_count <- data |>
-        dplyr::filter(cover_type != "canopy taxa") |>
-        dplyr::group_by(site_name, transect, quadrat) |>
-        dplyr::mutate(
-          total_point_count = sum(point_count, na.rm = TRUE)
-        ) |>
-        dplyr::ungroup()
-    } else {
-      df_primary_point_count <- data |>
-        dplyr::group_by(site_name, transect, quadrat) |>
-        dplyr::mutate(
-          total_point_count = sum(point_count, na.rm = TRUE)
-        ) |>
-        dplyr::ungroup()
-    }
+  empty <- function() {
+    new_qc_issues(
+      n_rows = nrow(data),
+      checks_run = "qc_check_point_counts"
+    )
+  }
 
-    df_invalid_point_count <- df_primary_point_count |>
-      dplyr::filter(total_point_count != points_in_quadrat)
+  # Preserved from the original: a table without these columns is simply not
+  # subject to this rule, and reports nothing.
+  if (!all(required_cols %in% colnames(data))) {
+    return(empty())
+  }
 
-    if (nrow(df_invalid_point_count) == 0) {
-      chunks <- NULL
-    } else {
-      row_ids <- which(
-        df_primary_point_count$total_point_count !=
-          df_primary_point_count$points_in_quadrat
-      )
+  rules <- data.frame(
+    rule_id = NA_character_,
+    group_columns = "site_name|transect|quadrat",
+    value_column = "point_count",
+    aggregate_function = "sum",
+    comparison = "==",
+    target_column = "points_in_quadrat",
+    target_value = NA_real_,
+    tolerance = NA_real_,
+    severity = "fail",
+    stringsAsFactors = FALSE
+  )
 
-      chunks <- .qc_issue(
-        check = "qc_check_point_counts",
-        severity = "fail",
-        issue = "invalid_point_count_total",
-        row = row_ids,
-        column = "point_count",
-        col_index = which(names(data) == "point_count"),
-        value = as.character(df_primary_point_count$total_point_count[row_ids])
-      )
-    }
+  if ("cover_type" %in% colnames(data)) {
+    # Canopy taxa are scored above the primary layer, so they are filtered out
+    # before the total is taken. Routing that through the condition layer -- the
+    # one row-filtering mechanism -- is also what fixes the row numbers: the
+    # original indexed the post-filter frame, so a canopy row appearing before
+    # the offenders shifted every reported row.
+    rules$condition_id <- "primary_points"
+    conditions <- data.frame(
+      condition_id = "primary_points",
+      table_id = NA_character_,
+      column_name = "cover_type",
+      operator = "not_in",
+      value = "canopy taxa",
+      description = "excluding canopy taxa from the primary point total",
+      stringsAsFactors = FALSE
+    )
+    out <- .qc_apply_conditional(
+      qc_check_aggregate,
+      data = data,
+      rules = rules,
+      conditions = conditions
+    )
   } else {
-    chunks <- NULL
+    out <- qc_check_aggregate(data, rules)
+  }
+
+  # Report under this function's own name, so a direct caller's result is
+  # unchanged by the delegation.
+  if (nrow(out) > 0) {
+    out$check <- "qc_check_point_counts"
   }
 
   new_qc_issues(
-    dplyr::bind_rows(chunks),
+    out,
     n_rows = nrow(data),
     checks_run = "qc_check_point_counts"
   )

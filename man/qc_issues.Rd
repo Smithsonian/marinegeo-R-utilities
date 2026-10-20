@@ -18,6 +18,18 @@ for table- or column-level issues (e.g. a missing column).}
 \item{\code{col_index}}{Integer. 1-based column position, or \code{NA}.}
 \item{\code{value}}{Character. The offending value, or \code{NA}.}
 \item{\code{issue}}{Character. Machine-readable code, e.g. \code{"out_of_range"}.}
+\item{\code{rule_id}}{Character. Identifier of the metadata rule that produced
+the issue, or \code{NA} when the rule is unconditional and carries no id.
+Lets a finding be traced back to the CSV row that defined it, and tells
+apart a conditional rule from the unconditional rule on the same
+column.}
+\item{\code{detail}}{Character. One human-readable sentence of \emph{why}, where a
+machine-readable \code{issue} code is not self-explanatory (e.g. which
+condition applied), or \code{NA}.}
+\item{\code{table}}{Character. Which table the issue is in. \code{NA} for a
+single-table run, where \code{\link[=qc_run]{qc_run()}} records the table in the \code{table_id}
+attribute instead; populated by \code{\link[=qc_run_dataset]{qc_run_dataset()}}, whose result spans
+several tables.}
 }
 
 Because it is an ordinary tibble, results are inspected and subset with
@@ -33,10 +45,16 @@ Run-level metadata is attached as attributes, read with \code{\link[base:attr]{b
 Populated by \code{\link[=qc_run]{qc_run()}} with \code{partial = TRUE} and by
 \code{\link[=qc_check_variable]{qc_check_variable()}}, where the three table-scoped checks
 (\code{qc_check_columns}, \code{qc_check_row_uniqueness},
-\code{qc_check_point_counts}) cannot run. Lets a caller distinguish
+\code{qc_check_aggregate}) cannot run. Lets a caller distinguish
 "not applicable" from "passed".}
 \item{\code{columns}}{The column names that were validated — the only record of
 what was checked when the result has zero rows.}
+\item{\code{rules_skipped}}{\code{condition_id}s of conditional rules that could not
+be evaluated because the column their condition tests was not among the
+columns supplied. Populated by \code{\link[=qc_run]{qc_run()}} with \code{partial = TRUE} and by
+\code{\link[=qc_check_variable]{qc_check_variable()}}, which only ever sees one column. Such a rule is
+dropped rather than applied as if unconditional, so this attribute is
+the only record that a bound exists but went unchecked.}
 \item{\code{status}}{The worst severity present: \code{"fail"} > \code{"warn"} >
 \code{"pass"}.}
 }
