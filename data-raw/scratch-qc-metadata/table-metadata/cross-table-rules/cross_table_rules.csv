@@ -1,5 +1,0 @@
-rule_id,relation_type,left_table_id,right_table_id,group_columns,left_columns,right_columns,left_condition_id,right_condition_id,severity,description
-leaf_quadrat_in_cover,subset,seagrass-leaf-monitoring-v1,seagrass-cover-monitoring-v1,sample_event_id|transect,quadrat,quadrat,,,fail,Every quadrat with leaf measurements must appear in the cover table
-substrate_transect_has_metadata,subset,oyster-substrate-composition-monitoring-v1,oyster-transect-metadata-monitoring-v1,sample_event_id,transect,transect,,,fail,Every surveyed transect must have transect metadata
-cover_quadrat_has_shoot_count,subset,seagrass-cover-monitoring-v1,shoot-count-monitoring-v1,sample_event_id|transect,quadrat,quadrat,,,warn,Every quadrat with cover data should also have a shoot count
-oyster_quadrat_sets_match,equal_set,oyster-substrate-composition-monitoring-v1,oyster-height-monitoring-v1,sample_event_id|transect,quadrat,quadrat,,,warn,ILLUSTRATIVE (review or delete) - substrate and height quadrat sets should match

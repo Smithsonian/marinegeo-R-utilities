@@ -88,6 +88,36 @@ marinegeo_metadata <- list(
     )
   ),
 
+  aggregate_rules = readr::read_csv(
+    list.files(
+      paste0(
+        Sys.getenv("repository_filepath"),
+        "marinegeo-metadata/table-metadata/aggregate-rules/"
+      ),
+      full.names = T
+    )
+  ),
+  
+  cross_table_rules = readr::read_csv(
+    list.files(
+      paste0(
+        Sys.getenv("repository_filepath"),
+        "marinegeo-metadata/table-metadata/cross-table-rules/"
+      ),
+      full.names = T
+    )
+  ),
+  
+  qc_conditions = readr::read_csv(
+    list.files(
+      paste0(
+        Sys.getenv("repository_filepath"),
+        "marinegeo-metadata/table-metadata/qc-conditions/"
+      ),
+      full.names = T
+    )
+  ),
+  
   partner_codes = readr::read_csv(
     list.files(
       paste0(

@@ -1,7 +1,0 @@
-condition_id,table_id,column_name,operator,value,description
-primary_points,oyster-substrate-composition-monitoring-v1,cover_type,not_in,canopy taxa,Excluding canopy taxa from the primary point total
-zostera_leaves,seagrass-leaf-monitoring-v1,scientific_name,taxon_within,Genus:Zostera,Leaf of a Zostera species
-flowering_zostera,shoot-count-monitoring-v1,scientific_name,taxon_within,Genus:Zostera,Flowering Zostera shoots
-flowering_zostera,shoot-count-monitoring-v1,flowers_present,==,TRUE,Flowering Zostera shoots
-marine_seagrass,seagrass-cover-monitoring-v1,scientific_name,in_functional_group,vegetation:Marine Seagrass,A marine seagrass
-scored_cover,seagrass-cover-monitoring-v1,cover_code,not_na,,Rows carrying a cover code

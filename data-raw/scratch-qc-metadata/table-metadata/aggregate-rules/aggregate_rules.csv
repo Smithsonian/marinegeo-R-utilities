@@ -1,5 +1,0 @@
-rule_id,table_id,group_columns,value_column,aggregate_function,comparison,target_column,target_value,tolerance,condition_id,severity,description
-oyster_substrate_point_total,oyster-substrate-composition-monitoring-v1,sample_event_id|transect|quadrat,point_count,sum,==,points_in_quadrat,,,primary_points,fail,Primary cover point counts in a quadrat must sum to points_in_quadrat
-seagrass_cover_point_total,seagrass-cover-monitoring-v1,sample_event_id|transect|quadrat,point_count,sum,==,points_in_quadrat,,,,fail,Point counts in a quadrat must sum to points_in_quadrat
-fouling_cover_point_total,fouling-cover-v1,sample_event_id|panel_id|deployment_period,point_count,sum,==,points_in_grid,,,,fail,Point counts on a panel must sum to points_in_grid
-seagrass_cover_percent_total,seagrass-cover-monitoring-v1,sample_event_id|transect|quadrat,percent_cover,sum,<=,,100,0.5,,warn,ILLUSTRATIVE (review or delete) - percent cover within a quadrat should not exceed 100
