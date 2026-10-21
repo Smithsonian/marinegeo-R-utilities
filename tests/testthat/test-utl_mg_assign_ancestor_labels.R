@@ -121,7 +121,6 @@ mock_metadata <- list(
 use_mocks <- function(env = parent.frame()) {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
-    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils",
     .env = env
   )

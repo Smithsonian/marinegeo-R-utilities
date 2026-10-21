@@ -1,0 +1,126 @@
+# darwin-core.yaml -- MarineGEO table metadata (Darwin Core)
+#
+# Authoring format. The flat registry tables the QC engine consumes are
+# derived from this file; see R/convert-table-metadata-to-yaml.R.
+#
+# Quote any value YAML 1.1 would otherwise read as a number or a boolean:
+# column names like "137.5", vocabulary values like "0.1" or "TRUE",
+# and comparison operators like ">=".
+
+schema_version: 1
+protocol: Darwin Core
+level: 3
+tables:
+- table_id: event_darwin_core_obis
+  columns:
+  - name: eventID
+    type: STRING
+  - name: parentEventID
+    type: STRING
+  - name: decimalLatitude
+    type: DOUBLE
+  - name: decimalLongitude
+    type: DOUBLE
+  - name: geodeticDatum
+    type: STRING
+  - name: coordinateUncertaintyInMeters
+    type: DOUBLE
+  - name: footprintWKT
+    type: STRING
+  - name: countryCode
+    type: STRING
+  - name: eventDate
+    type: STRING
+  - name: bibliographicCitation
+    type: STRING
+  - name: datasetID
+    type: STRING
+  - name: datasetName
+    type: STRING
+  - name: fieldNotes
+    type: STRING
+  - name: habitat
+    type: STRING
+  - name: institutionCode
+    type: STRING
+  - name: institutionID
+    type: STRING
+  - name: license
+    type: STRING
+  - name: maximumDepthInMeters
+    type: DOUBLE
+  - name: minimumDepthInMeters
+    type: DOUBLE
+  - name: rightsHolder
+    type: STRING
+  - name: samplingProtocol
+    type: STRING
+  - name: sampleSizeUnit
+    type: STRING
+  - name: sampleSizeValue
+    type: STRING
+- table_id: occurrence_darwin_core_obis
+  columns:
+  - name: eventID
+    type: STRING
+  - name: occurrenceID
+    type: STRING
+  - name: scientificName
+    type: STRING
+  - name: scientificNameID
+    type: STRING
+  - name: basisOfRecord
+    type: STRING
+  - name: occurrenceStatus
+    type: STRING
+  - name: identificationQualifier
+    type: STRING
+  - name: identifiedBy
+    type: STRING
+  - name: recordedBy
+    type: STRING
+  - name: vernacularName
+    type: STRING
+  - name: kingdom
+    type: STRING
+  - name: phylum
+    type: STRING
+  - name: class
+    type: STRING
+  - name: order
+    type: STRING
+  - name: family
+    type: STRING
+  - name: genus
+    type: STRING
+  - name: taxonRank
+    type: STRING
+- table_id: emof_darwin_core_obis
+  columns:
+  - name: eventID
+    type: STRING
+  - name: occurrenceID
+    type: STRING
+  - name: measurementID
+    type: STRING
+  - name: measurementType
+    type: STRING
+  - name: measurementUnit
+    type: STRING
+  - name: measurementValue
+    type: STRING
+  - name: measurementAccuracy
+    type: STRING
+  - name: measurementDeterminedBy
+    type: STRING
+  - name: measurementDeterminedDate
+    type: STRING
+  - name: measurementMethod
+    type: STRING
+  - name: measurementTypeID
+    type: STRING
+  - name: measurementUnitID
+    type: STRING
+  - name: measurementValueID
+    type: STRING
+

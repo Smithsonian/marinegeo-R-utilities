@@ -1,0 +1,116 @@
+# reef-life-survey.yaml -- MarineGEO table metadata (Reef Life Survey)
+#
+# Authoring format. The flat registry tables the QC engine consumes are
+# derived from this file; see R/convert-table-metadata-to-yaml.R.
+#
+# Quote any value YAML 1.1 would otherwise read as a number or a boolean:
+# column names like "137.5", vocabulary values like "0.1" or "TRUE",
+# and comparison operators like ">=".
+
+schema_version: 1
+protocol: Reef Life Survey
+level: 2
+tables:
+- table_id: reef-life-survey-data-marinegeo-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: diver
+    type: STRING
+  - name: buddy
+    type: STRING
+  - name: site_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: latitude
+    type: DOUBLE
+  - name: longitude
+    type: DOUBLE
+  - name: date
+    type: DATE
+  - name: vis
+    type: STRING
+  - name: direction
+    type: STRING
+  - name: time
+    type: STRING
+  - name: photoquadrats
+    type: STRING
+  - name: depth
+    type: DOUBLE
+  - name: method
+    type: TINYINT
+  - name: block
+    type: TINYINT
+  - name: code
+    type: STRING
+  - name: species
+    type: STRING
+  - name: taxonomic_id
+    type: INT
+  - name: common_name
+    type: STRING
+  - name: total
+    type: INT
+  - name: inverts
+    type: INT
+  - name: '2.5'
+    type: INT
+  - name: '5'
+    type: INT
+  - name: '7.5'
+    type: INT
+  - name: '10'
+    type: INT
+  - name: '12.5'
+    type: INT
+  - name: '15'
+    type: INT
+  - name: '20'
+    type: INT
+  - name: '25'
+    type: INT
+  - name: '30'
+    type: INT
+  - name: '35'
+    type: INT
+  - name: '40'
+    type: INT
+  - name: '50'
+    type: INT
+  - name: '62.5'
+    type: INT
+  - name: '75'
+    type: INT
+  - name: '87.5'
+    type: INT
+  - name: '100'
+    type: INT
+  - name: '112.5'
+    type: INT
+  - name: '125'
+    type: INT
+  - name: '137.5'
+    type: INT
+  - name: '150'
+    type: INT
+  - name: '162.5'
+    type: INT
+  - name: '175'
+    type: INT
+  - name: '187.5'
+    type: INT
+  - name: '200'
+    type: INT
+  - name: '250'
+    type: INT
+  - name: '300'
+    type: INT
+  - name: '350'
+    type: INT
+  - name: '400'
+    type: INT
+  - name: input_filename
+    type: STRING
+

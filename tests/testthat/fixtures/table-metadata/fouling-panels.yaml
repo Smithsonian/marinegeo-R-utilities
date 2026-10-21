@@ -1,0 +1,247 @@
+# fouling-panels.yaml -- MarineGEO table metadata (Fouling Community Monitoring)
+#
+# Authoring format. The flat registry tables the QC engine consumes are
+# derived from this file; see R/convert-table-metadata-to-yaml.R.
+#
+# Quote any value YAML 1.1 would otherwise read as a number or a boolean:
+# column names like "137.5", vocabulary values like "0.1" or "TRUE",
+# and comparison operators like ">=".
+
+schema_version: 1
+protocol: Fouling Community Monitoring
+level: 2
+tables:
+- table_id: fouling-panel-metadata-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: panel_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: deployment_date
+    type: DATE
+    missing: warn
+  - name: latitude
+    type: DOUBLE
+    missing: warn
+  - name: longitude
+    type: DOUBLE
+    missing: warn
+  - name: habitat
+    type: STRING
+    missing: enforce
+  - name: panel_metadata_notes
+    type: STRING
+  - name: table_id
+    type: STRING
+    missing: enforce
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+- table_id: fouling-biomass-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: panel_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: deployment_date
+    type: DATE
+    missing: warn
+  - name: retrieval_date
+    type: DATE
+    missing: warn
+  - name: deployment_period
+    type: STRING
+    missing: enforce
+  - name: panel_weight_predeployment_g
+    type: DOUBLE
+    missing: warn
+  - name: panel_wet_weight_g
+    type: DOUBLE
+    missing: warn
+  - name: community_biomass_g
+    type: DOUBLE
+    missing: warn
+  - name: biomass_method
+    type: STRING
+    missing: enforce
+    one_of:
+    - panel preweighed
+    - panel scraped
+  - name: photo_filename
+    type: STRING
+  - name: habitat
+    type: STRING
+    missing: enforce
+  - name: biomass_data_notes
+    type: STRING
+  - name: table_id
+    type: STRING
+    missing: enforce
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+- table_id: fouling-sessile-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: panel_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: deployment_date
+    type: DATE
+    missing: warn
+  - name: retrieval_date
+    type: DATE
+    missing: warn
+  - name: deployment_period
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: scientific_name
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: identification_notes
+    type: STRING
+  - name: photo_filename
+    type: STRING
+  - name: habitat
+    type: STRING
+    missing: enforce
+  - name: sessile_species_data_notes
+    type: STRING
+  - name: table_id
+    type: STRING
+    missing: enforce
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+- table_id: fouling-cover-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: panel_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: deployment_date
+    type: DATE
+    missing: warn
+  - name: retrieval_date
+    type: DATE
+    missing: warn
+  - name: deployment_period
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: scientific_name
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: identification_notes
+    type: STRING
+  - name: point_count
+    type: INT
+    missing: enforce
+  - name: points_in_grid
+    type: INT
+    missing: enforce
+  - name: percent_cover
+    type: DOUBLE
+    missing: enforce
+  - name: photo_filename
+    type: STRING
+  - name: habitat
+    type: STRING
+    missing: enforce
+  - name: percent_cover_notes
+    type: STRING
+  - name: table_id
+    type: STRING
+    missing: enforce
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+  checks:
+    aggregate:
+    - rule_id: fouling_cover_point_total
+      group_by:
+      - sample_event_id
+      - panel_id
+      - deployment_period
+      value: point_count
+      function: sum
+      comparison: ==
+      target_column: points_in_grid
+      severity: fail
+      description: Point counts on a panel must sum to points_in_grid
+

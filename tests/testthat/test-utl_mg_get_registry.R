@@ -142,7 +142,6 @@ test_that("returns full site_codes table with expected columns", {
 test_that("returns full observation_lookup table with expected columns", {
   local_mocked_bindings(
     marinegeo_metadata = .mock_metadata,
-    .mg_fetch_registry = function(url) .observation_lookup,
     .package = "marinegeo.utils"
   )
 
@@ -160,7 +159,6 @@ test_that("returns full observation_lookup table with expected columns", {
 test_that("returns full taxonomic_lookup table with expected columns", {
   local_mocked_bindings(
     marinegeo_metadata = .mock_metadata,
-    .mg_fetch_registry = function(url) .taxonomic_lookup,
     .package = "marinegeo.utils"
   )
 

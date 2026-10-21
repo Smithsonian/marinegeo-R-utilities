@@ -34,7 +34,8 @@ Suggests:
     rmarkdown,
     testthat (>= 3.0.0),
     withr,
-    writexl
+    writexl,
+    yaml
 VignetteBuilder: knitr
 Config/testthat/edition: 3
 Config/roxygen2/version: 8.1.1

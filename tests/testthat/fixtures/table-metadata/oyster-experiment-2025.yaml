@@ -1,0 +1,291 @@
+# oyster-experiment-2025.yaml -- MarineGEO table metadata (Oyster Experiment 2025)
+#
+# Authoring format. The flat registry tables the QC engine consumes are
+# derived from this file; see R/convert-table-metadata-to-yaml.R.
+#
+# Quote any value YAML 1.1 would otherwise read as a number or a boolean:
+# column names like "137.5", vocabulary values like "0.1" or "TRUE",
+# and comparison operators like ">=".
+
+schema_version: 1
+protocol: Oyster Experiment 2025
+level: 2
+tables:
+- table_id: oyster-2025-reef-metadata-deployment
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: deployment_date
+    type: DATE
+  - name: deployment_time
+    type: STRING
+  - name: tidal_zone
+    type: STRING
+    one_of:
+    - intertidal
+    - subtidal
+  - name: water_present
+    type: STRING
+    one_of:
+    - 'TRUE'
+    - 'FALSE'
+  - name: water_depth
+    type: DOUBLE
+  - name: water_depth_unit
+    type: STRING
+    one_of:
+    - cm
+  - name: water_temperature_c
+    type: DOUBLE
+  - name: salinity_ppt
+    type: DOUBLE
+  - name: logger_deployed
+    type: STRING
+    one_of:
+    - 'TRUE'
+    - 'FALSE'
+  - name: logger_serial_number
+    type: STRING
+  - name: spat_stick
+    type: STRING
+    one_of:
+    - biobox
+    - PVC
+  - name: personnel
+    type: STRING
+  - name: notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-rugosity
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: deployment_date
+    type: DATE
+  - name: chain_length_cm
+    type: DOUBLE
+  - name: chain_distance_cm
+    type: DOUBLE
+  - name: rugosity
+    type: DOUBLE
+  - name: cluster_height_cm
+    type: DOUBLE
+  - name: notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-reef-metadata-retrieval
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: retrieval_date
+    type: DATE
+  - name: retrieval_time
+    type: STRING
+  - name: tidal_zone
+    type: STRING
+    one_of:
+    - intertidal
+    - subtidal
+  - name: water_present
+    type: STRING
+    one_of:
+    - 'TRUE'
+    - 'FALSE'
+  - name: water_depth
+    type: DOUBLE
+  - name: water_depth_unit
+    type: STRING
+    one_of:
+    - cm
+  - name: water_temperature_c
+    type: DOUBLE
+  - name: salinity_ppt
+    type: DOUBLE
+  - name: personnel
+    type: STRING
+  - name: notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-oyster-height
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: retrieval_date
+    type: DATE
+  - name: scientific_name
+    type: STRING
+  - name: height_mm
+    type: DOUBLE
+  - name: inside_or_outside_biobox
+    type: STRING
+    one_of:
+    - inside
+    - outside
+  - name: sample_height_notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-bivalve-height
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: retrieval_date
+    type: DATE
+  - name: scientific_name
+    type: STRING
+  - name: height_mm
+    type: STRING
+  - name: sample_height_notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-weight
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: retrieval_date
+    type: DATE
+  - name: empty_bucket_kg
+    type: DOUBLE
+  - name: bivalves_and_bucket_kg
+    type: DOUBLE
+  - name: bivalve_kg
+    type: DOUBLE
+  - name: bivalve_weight_notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-count
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: retrieval_date
+    type: DATE
+  - name: scientific_name
+    type: STRING
+  - name: count
+    type: INT
+  - name: sample_count_notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-mobile-fauna
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: retrieval_date
+    type: DATE
+  - name: scientific_name
+    type: STRING
+  - name: count
+    type: INT
+  - name: mobile_fauna_notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+- table_id: oyster-2025-sessile-fauna
+  columns:
+  - name: sample_event_id
+    type: STRING
+  - name: partner_code
+    type: STRING
+  - name: site_name
+    type: STRING
+  - name: reef_code
+    type: STRING
+  - name: biobox_latitude
+    type: DOUBLE
+  - name: biobox_longitude
+    type: DOUBLE
+  - name: retrieval_date
+    type: DATE
+  - name: scientific_name
+    type: STRING
+  - name: sessile_fauna_notes
+    type: STRING
+  - name: input_filename
+    type: STRING
+

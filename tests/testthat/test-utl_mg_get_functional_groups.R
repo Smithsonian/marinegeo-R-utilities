@@ -352,7 +352,6 @@ test_that("logical input stops with an informative error", {
 test_that("an unknown functional_group_tree stops and lists the available trees", {
   local_mocked_bindings(
     marinegeo_metadata = mock_metadata,
-    .mg_fetch_registry = function(url) mock_obs_lookup,
     .package = "marinegeo.utils"
   )
 

@@ -1,0 +1,91 @@
+# marinegeo-metadata-tables.yaml -- MarineGEO table metadata (taxonomy-and-functional-groups)
+#
+# Authoring format. The flat registry tables the QC engine consumes are
+# derived from this file; see R/convert-table-metadata-to-yaml.R.
+#
+# Quote any value YAML 1.1 would otherwise read as a number or a boolean:
+# column names like "137.5", vocabulary values like "0.1" or "TRUE",
+# and comparison operators like ">=".
+
+schema_version: 1
+protocol: taxonomy-and-functional-groups
+level: 1
+tables:
+- table_id: observation_lookup
+  columns:
+  - name: scientific_name
+    type: STRING
+    uuid_identity: true
+  - name: scientific_id
+    type: STRING
+- table_id: taxonomic_lookup
+  columns:
+  - name: scientific_id
+    type: STRING
+    uuid_identity: true
+  - name: name
+    type: STRING
+  - name: rank
+    type: STRING
+  - name: id
+    type: INT
+  - name: parent_id
+    type: STRING
+- table_id: functional_group_lookup
+  columns:
+  - name: from
+    type: STRING
+    uuid_identity: true
+  - name: to
+    type: STRING
+    uuid_identity: true
+  - name: scientific_id
+    type: STRING
+  - name: type
+    type: STRING
+  - name: code
+    type: STRING
+  - name: rank
+    type: STRING
+  - name: definition
+    type: STRING
+  - name: tree_name
+    type: STRING
+    uuid_identity: true
+- table_id: site_lookup
+  protocol: sites-and-partners
+  columns:
+  - name: partner_code
+    type: STRING
+    missing: enforce
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: habitat
+    type: STRING
+  - name: latitude
+    type: DOUBLE
+  - name: longitude
+    type: DOUBLE
+- table_id: partner_lookup
+  protocol: sites-and-partners
+  columns:
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_name
+    type: STRING
+    missing: enforce
+  - name: institution
+    type: STRING
+  - name: country
+    type: STRING
+  - name: partner_type
+    type: STRING
+    missing: warn
+

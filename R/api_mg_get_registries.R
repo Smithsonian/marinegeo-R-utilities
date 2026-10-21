@@ -1,106 +1,112 @@
 # Live access to MarineGEO registry tables from the Smithsonian/marinegeo-metadata
-# repo, replacing the bundled copies in `marinegeo_metadata` (R/sysdata.rda) for the
-# tables that are maintained there as directories of CSVs.
+# repo, replacing the bundled copies in `marinegeo_metadata` (R/sysdata.rda).
 #
-# Each registry below is a *directory* in the metadata repo holding one or more
-# CSVs with matching columns. We enumerate the CSVs in a directory with a single
-# GitHub git Trees API call (memoised per session), fetch each raw CSV, and
-# row-bind them with `readr::read_csv()` — the same combining behaviour the
-# retired `data-raw/assemble_marinegeo_metadata_sysdata.R` script performed
-# locally with `list.files()`.
+# The metadata repo publishes generated JSON artifacts under dist/, built from
+# its authored sources (nested YAML for rule configs, CSV for the dense
+# registries) by R/generate-metadata-dist.R. This package reads those artifacts.
 #
-# Every directory-backed table is fetched live. When a live fetch fails (offline,
-# 404, timeout, empty directory, ...) the resolver falls back to the bundled copy
-# of that table, so the package keeps working without a network connection.
-# `data_index` (a single root CSV, not a directory) is the one table that is not
-# directory-backed and is always returned from the bundled `marinegeo_metadata`
-# object.
+# Artifacts are split by how often they change, so a one-line rule edit does not
+# invalidate a cached taxonomy payload:
 #
-# Live fetching can be turned off entirely — forcing every table to come from the
-# bundled object — by setting `options(marinegeo.utils.live_registry = FALSE)` or
-# the environment variable `MARINEGEO_UTILS_OFFLINE=true`. This is useful for
-# reproducible / fully offline runs (and the test suite uses it to avoid the
-# network).
+#   dist/qc-metadata.json   ~6 KB gz    volatile  6 QC rule tables
+#   dist/sites.json         ~8 KB gz    medium    partners, sites, data index
+#   dist/taxonomy.json    ~122 KB gz    stable    machine-generated lookups
+#   dist/manifest.json                  index, hashes, and column type schemas
+#
+# This replaces a directory-of-CSVs scheme that cost one GitHub Trees API call
+# plus 46 raw file fetches per cold load (16 of them for QC metadata alone).
+# A cold QC load is now one manifest fetch plus one ~6 KB artifact fetch, and
+# the Trees API -- with its 60-request/hour unauthenticated limit -- is no
+# longer used at all.
+#
+# Types are read from the manifest's declared schema, never inferred. JSON
+# cannot distinguish a null from a typed NA, so an all-null column would
+# otherwise come back as the wrong type; this is the same trap that made
+# `uuid_identity` depend on readr guessing right, and R/qc_mg_run.R calls
+# which() on that column.
+#
+# Four options control resolution, in precedence order:
+#
+#   marinegeo.utils.metadata_local   Path to a local marinegeo-metadata
+#                                    checkout; read from disk with NO fallback.
+#   marinegeo.utils.live_registry    FALSE (or MARINEGEO_UTILS_OFFLINE=true)
+#                                    forces the bundled object.
+#   marinegeo.utils.metadata_ref     Git ref to fetch (default "main").
+#   marinegeo.utils.strict_registry  TRUE turns a failed fetch into an error
+#                                    instead of a bundled fallback.
 #
 # Note: wide-form taxonomic classifications are no longer bundled. They are
 # reconstructed on demand from the live `taxonomic_lookup` by
-# utl_mg_get_taxonomic_classifications() (see R/utl_mg_traverse_adjacency_tables.R),
-# so they always reflect the current lookup table.
+# utl_mg_get_taxonomic_classifications() (see R/utl_mg_traverse_adjacency_tables.R).
 
-# GitHub sources, pinned to `main`.
-.mg_raw_base <- "https://raw.githubusercontent.com/Smithsonian/marinegeo-metadata/refs/heads/main/"
-.mg_tree_url <- "https://api.github.com/repos/Smithsonian/marinegeo-metadata/git/trees/main?recursive=1"
+# The dist/ schema major version this package understands. A newer major means
+# the artifact layout changed in a way this code cannot read, which must be a
+# loud error -- the QC engine reads a malformed rule table as "no rules" and
+# reports a clean pass having run no checks.
+.mg_dist_schema_version <- 1L
 
-# Directory-backed registry tables: table name -> repo-relative directory.
-# names() defines which tables are fetched live; everything else stays bundled.
-.mg_registry_dirs <- c(
-  observation_lookup = "taxonomy-and-functional-groups/observation-lookup",
-  taxonomic_lookup = "taxonomy-and-functional-groups/taxonomic-lookup",
-  functional_group_lookup = "taxonomy-and-functional-groups/functional-group-lookup",
-  database_structure = "table-metadata/data-structure",
-  categorical_values = "table-metadata/categorical-values",
-  numeric_ranges = "table-metadata/numeric-ranges",
-  qc_conditions = "table-metadata/qc-conditions",
-  aggregate_rules = "table-metadata/aggregate-rules",
-  cross_table_rules = "table-metadata/cross-table-rules",
-  partner_codes = "sites-and-partners/partner-codes",
-  site_codes = "sites-and-partners/site-names"
-)
+.mg_manifest_rel <- "dist/manifest.json"
 
-#' List the blob (file) paths in the marinegeo-metadata repo
+#' The git ref to read metadata from
 #'
-#' The single JSON network call. Hits the GitHub git Trees API once (recursively)
-#' and returns every file path in the repo, so one request covers all registry
-#' directories. Kept separate from the rest of the logic so tests can swap it out
-#' (along with the memoised wrapper) via `local_mocked_bindings()` and never touch
-#' the network.
+#' Defaults to `"main"`. Set `options(marinegeo.utils.metadata_ref = "my-branch")`
+#' to resolve registries against an unmerged branch or a release tag. Pinning to
+#' a tag is what makes a QC run reproducible: with the default, merging a
+#' metadata PR changes QC behaviour for every user immediately.
 #'
-#' @return Character vector of repo-relative file paths.
+#' @return Character scalar. A branch name, tag, or commit SHA.
 #' @noRd
-.mg_list_repo_tree <- function() {
-  # Fail fast when offline rather than hanging on the default timeout.
-  old <- options(timeout = 30)
-  on.exit(options(old), add = TRUE)
+.mg_metadata_ref <- function() {
+  ref <- getOption("marinegeo.utils.metadata_ref", "main")
+  if (!is.character(ref) || length(ref) != 1L || !nzchar(ref)) {
+    stop("`marinegeo.utils.metadata_ref` must be a non-empty character scalar.")
+  }
+  ref
+}
 
-  parsed <- jsonlite::fromJSON(.mg_tree_url)
-  if (isTRUE(parsed$truncated)) {
-    warning(
-      "GitHub tree listing for marinegeo-metadata was truncated; ",
-      "some registry CSVs may be missing."
+#' Path to a local marinegeo-metadata checkout, if one is configured
+#'
+#' Set `options(marinegeo.utils.metadata_local = "<path>")` to read registries
+#' from a working tree instead of GitHub. This is the only way to validate
+#' metadata changes before they are merged, since the network path resolves a
+#' ref in the remote repo.
+#'
+#' Deliberately has no bundled fallback: a local override is an explicit request
+#' for *these* files, so a missing or stale `dist/` must be an error. Falling
+#' back would silently validate against the wrong rules.
+#'
+#' @return Character scalar path, or `NULL` when unset.
+#' @noRd
+.mg_metadata_local <- function() {
+  root <- getOption("marinegeo.utils.metadata_local", NULL)
+  if (is.null(root)) {
+    return(NULL)
+  }
+  if (!is.character(root) || length(root) != 1L || !nzchar(root)) {
+    stop(
+      "`marinegeo.utils.metadata_local` must be a non-empty character scalar."
     )
   }
-
-  tree <- parsed$tree
-  tree$path[tree$type == "blob"]
+  root
 }
 
-#' Read one or more registry CSVs from raw URLs
+#' Whether a failed live fetch is an error rather than a fallback
 #'
-#' This is the only function that fetches CSV content. It accepts a vector of raw
-#' URLs and row-binds them, mirroring how the assembly script combined the CSVs in
-#' a directory. Kept separate so tests can swap it out via the memoised wrapper.
+#' The bundled fallback is right for a field user working offline and exactly
+#' wrong for a job whose purpose is to validate metadata. Set
+#' `options(marinegeo.utils.strict_registry = TRUE)` in validation and CI.
 #'
-#' @param urls Character vector. Raw CSV URLs.
-#' @return A tibble parsed by [readr::read_csv()].
+#' @return Logical scalar.
 #' @noRd
-.mg_read_remote_csv <- function(urls) {
-  # Fail fast when offline rather than hanging on the default timeout.
-  old <- options(timeout = 30)
-  on.exit(options(old), add = TRUE)
-  readr::read_csv(urls, show_col_types = FALSE, progress = FALSE)
+.mg_strict_registry <- function() {
+  isTRUE(getOption("marinegeo.utils.strict_registry", FALSE))
 }
-
-# Memoised wrappers around .mg_list_repo_tree and .mg_read_remote_csv, assigned in
-# .onLoad (see R/zzz.R). Cache per session (keyed by argument). Declared here as
-# top-level bindings so they exist in the namespace and can be mocked in tests.
-.mg_fetch_tree <- NULL
-.mg_fetch_registry <- NULL
 
 #' Whether to fetch registry tables live
 #'
 #' Defaults to `TRUE` (live). Set `options(marinegeo.utils.live_registry = FALSE)`
-#' or the env var `MARINEGEO_UTILS_OFFLINE=true` to force every table to come from
-#' the bundled `marinegeo_metadata` object.
+#' or the env var `MARINEGEO_UTILS_OFFLINE=true` to force every table to come
+#' from the bundled `marinegeo_metadata` object.
 #'
 #' @return Logical scalar.
 #' @noRd
@@ -111,63 +117,277 @@
   ))
 }
 
-#' Select the direct-child CSV paths for a registry directory
+#' Base URL for raw metadata file content
 #'
-#' Filters a flat vector of repo paths to the CSV files that live directly in
-#' `dir` (no nested subdirectories), mirroring the non-recursive `list.files()`
-#' the assembly script used.
-#'
-#' @param paths Character vector of repo-relative file paths.
-#' @param dir Character scalar. Repo-relative directory.
-#' @return Character vector of matching CSV paths.
+#' @return Character scalar ending in "/".
 #' @noRd
-.mg_filter_csv_paths <- function(paths, dir) {
-  prefix <- paste0(dir, "/")
-  in_dir <- startsWith(paths, prefix)
-  is_csv <- grepl("\\.csv$", paths, ignore.case = TRUE)
-  # Direct children only: nothing after the directory prefix may contain "/".
-  rest <- substring(paths, nchar(prefix) + 1L)
-  direct <- !grepl("/", rest, fixed = TRUE)
-  paths[in_dir & is_csv & direct]
+.mg_raw_base <- function(ref = .mg_metadata_ref()) {
+  paste0(
+    "https://raw.githubusercontent.com/Smithsonian/marinegeo-metadata/",
+    ref,
+    "/"
+  )
+}
+
+#' URL of a repo-relative metadata file at a ref
+#' @noRd
+.mg_file_url <- function(rel, ref = .mg_metadata_ref()) {
+  paste0(.mg_raw_base(ref), rel)
+}
+
+#' Read and parse one JSON document from a URL or path
+#'
+#' The only function that fetches artifact content. `simplifyVector = FALSE` is
+#' deliberate: simplification would guess column types from the data, and an
+#' all-null column would come back wrong. Columns are built from the manifest's
+#' declared schema instead.
+#'
+#' @param src Character scalar. A URL or a local file path.
+#' @return Parsed JSON as nested lists.
+#' @noRd
+.mg_read_json <- function(src) {
+  # Fail fast when offline rather than hanging on the default timeout.
+  old <- options(timeout = 30)
+  on.exit(options(old), add = TRUE)
+  jsonlite::fromJSON(src, simplifyVector = FALSE)
+}
+
+# Memoised wrapper around .mg_read_json, assigned in .onLoad (see R/zzz.R).
+# Caches per source, so the manifest and each artifact are fetched once per
+# session and a QC run touching several tables in one artifact costs one
+# request.
+.mg_fetch_json <- NULL
+
+#' Check an artifact manifest's schema version
+#'
+#' @noRd
+.mg_check_schema_version <- function(manifest, src) {
+  ver <- manifest$schema_version
+  if (is.null(ver) || !is.numeric(ver) && !is.character(ver)) {
+    stop("'", src, "' has no schema_version", call. = FALSE)
+  }
+  ver <- suppressWarnings(as.integer(ver))
+  if (is.na(ver)) {
+    stop("'", src, "' has an unreadable schema_version", call. = FALSE)
+  }
+  if (ver > .mg_dist_schema_version) {
+    stop(
+      "marinegeo-metadata publishes schema_version ",
+      ver,
+      " but this version of marinegeo.utils understands ",
+      .mg_dist_schema_version,
+      ". Upgrade marinegeo.utils -- continuing would risk running QC with ",
+      "rules this package cannot read.",
+      call. = FALSE
+    )
+  }
+  invisible(ver)
+}
+
+#' Build a typed tibble from JSON rows and a declared column schema
+#'
+#' @param rows List of row objects from the artifact.
+#' @param schema The manifest entry for this table (`rows`, `columns`).
+#' @param table Character scalar, for error messages.
+#' @return A tibble with exactly the declared columns and types.
+#' @noRd
+.mg_coerce_registry_table <- function(rows, schema, table) {
+  if (is.null(schema) || is.null(schema$columns)) {
+    stop("no column schema for table '", table, "'", call. = FALSE)
+  }
+  if (is.null(rows)) {
+    stop("table '", table, "' is missing from its artifact", call. = FALSE)
+  }
+
+  declared <- as.integer(schema$rows)
+  if (!is.na(declared) && length(rows) != declared) {
+    stop(
+      "table '",
+      table,
+      "' has ",
+      length(rows),
+      " rows but the manifest declares ",
+      declared,
+      call. = FALSE
+    )
+  }
+
+  names_ <- vapply(
+    schema$columns,
+    function(c) as.character(c$name),
+    character(1)
+  )
+  types_ <- vapply(
+    schema$columns,
+    function(c) as.character(c$type),
+    character(1)
+  )
+
+  out <- lapply(seq_along(names_), function(i) {
+    nm <- names_[[i]]
+    pick <- function(r) r[[nm]]
+    switch(
+      types_[[i]],
+      character = vapply(
+        rows,
+        function(r) {
+          v <- pick(r)
+          if (is.null(v)) NA_character_ else as.character(v)[[1]]
+        },
+        character(1)
+      ),
+      double = vapply(
+        rows,
+        function(r) {
+          v <- pick(r)
+          if (is.null(v)) NA_real_ else as.numeric(v)[[1]]
+        },
+        numeric(1)
+      ),
+      logical = vapply(
+        rows,
+        function(r) {
+          v <- pick(r)
+          if (is.null(v)) NA else as.logical(v)[[1]]
+        },
+        logical(1)
+      ),
+      date = as.Date(vapply(
+        rows,
+        function(r) {
+          v <- pick(r)
+          if (is.null(v)) NA_character_ else as.character(v)[[1]]
+        },
+        character(1)
+      )),
+      stop(
+        "unknown declared type '",
+        types_[[i]],
+        "' for ",
+        table,
+        ".",
+        nm,
+        call. = FALSE
+      )
+    )
+  })
+  names(out) <- names_
+
+  # A QC rule table missing a column is read downstream as "no rules", so the
+  # mismatch is caught here instead.
+  required <- .mg_flat_schema[[table]]
+  if (!is.null(required) && !all(required %in% names_)) {
+    stop(
+      "table '",
+      table,
+      "' is missing required column(s): ",
+      paste(setdiff(required, names_), collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  tibble::as_tibble(out)
+}
+
+#' Resolve one registry table from a dist/ source
+#'
+#' @param locate Function taking a repo-relative path and returning a URL or
+#'   local path.
+#' @return A tibble, or `NULL` when the manifest does not distribute `table`.
+#' @noRd
+.mg_registry_from_dist <- function(table, locate) {
+  man_src <- locate(.mg_manifest_rel)
+  manifest <- .mg_fetch_json(man_src)
+  .mg_check_schema_version(manifest, man_src)
+
+  aname <- manifest$table_index[[table]]
+  if (is.null(aname)) {
+    # Not published in dist/; the bundled copy is the correct source.
+    return(NULL)
+  }
+  aname <- as.character(aname)[[1]]
+
+  entry <- manifest$artifacts[[aname]]
+  if (is.null(entry)) {
+    stop(
+      "manifest names artifact '",
+      aname,
+      "' but does not describe it",
+      call. = FALSE
+    )
+  }
+
+  artifact <- .mg_fetch_json(locate(paste0("dist/", aname, ".json")))
+  .mg_coerce_registry_table(
+    artifact$tables[[table]],
+    entry$tables[[table]],
+    table
+  )
 }
 
 #' Resolve a registry table, preferring live data with bundled fallback
 #'
-#' For directory-backed tables (see `.mg_registry_dirs`) this enumerates the CSVs
-#' in the table's directory (via the memoised tree listing), fetches and row-binds
-#' them (memoised per session), and falls back to the bundled `marinegeo_metadata`
-#' copy on any failure. All other tables are returned from `marinegeo_metadata`
-#' directly.
+#' Reads the generated `dist/` artifacts, falling back to the bundled
+#' `marinegeo_metadata` copy on any failure so the package keeps working
+#' offline. A configured local checkout takes precedence over both and errors
+#' rather than falling back; see `.mg_metadata_local()`.
 #'
 #' @param table Character scalar. Registry table name.
 #' @return A data frame for the requested table.
 #' @noRd
 .mg_get_registry_table <- function(table) {
-  if (!.mg_use_live_registry() || !table %in% names(.mg_registry_dirs)) {
+  local_root <- .mg_metadata_local()
+  if (!is.null(local_root)) {
+    out <- .mg_registry_from_dist(
+      table,
+      function(rel) {
+        path <- file.path(local_root, rel)
+        if (!file.exists(path)) {
+          stop(
+            "'",
+            path,
+            "' not found. Run R/generate-metadata-dist.R in the ",
+            "metadata repo to build dist/.",
+            call. = FALSE
+          )
+        }
+        path
+      }
+    )
+    if (is.null(out)) {
+      return(marinegeo_metadata[[table]])
+    }
+    return(out)
+  }
+
+  if (!.mg_use_live_registry()) {
     return(marinegeo_metadata[[table]])
   }
 
+  ref <- .mg_metadata_ref()
   out <- tryCatch(
-    {
-      paths <- .mg_fetch_tree()
-      dir <- .mg_registry_dirs[[table]]
-      csv_paths <- .mg_filter_csv_paths(paths, dir)
-      if (length(csv_paths) == 0L) {
-        stop("no CSV files found in '", dir, "'")
+    .mg_registry_from_dist(table, function(rel) .mg_file_url(rel, ref)),
+    error = function(e) {
+      msg <- paste0(
+        "Could not fetch live registry '",
+        table,
+        "' at ref '",
+        ref,
+        "': ",
+        conditionMessage(e)
+      )
+      if (.mg_strict_registry()) {
+        stop(msg, call. = FALSE)
       }
-      .mg_fetch_registry(paste0(.mg_raw_base, csv_paths))
-    },
-    error = function(e) NULL
+      # A warning, not a message: a message is invisible in a non-interactive
+      # script, which is where a silent fallback does the most damage.
+      warning(msg, "; using bundled fallback.", call. = FALSE)
+      NULL
+    }
   )
 
   if (is.null(out)) {
-    message(
-      "Could not fetch live registry '",
-      table,
-      "'; using bundled fallback."
-    )
     return(marinegeo_metadata[[table]])
   }
-
   out
 }

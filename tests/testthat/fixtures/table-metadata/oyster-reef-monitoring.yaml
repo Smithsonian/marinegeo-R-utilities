@@ -1,0 +1,530 @@
+# oyster-reef-monitoring.yaml -- MarineGEO table metadata (Oyster Reef Monitoring)
+#
+# Authoring format. The flat registry tables the QC engine consumes are
+# derived from this file; see R/convert-table-metadata-to-yaml.R.
+#
+# Quote any value YAML 1.1 would otherwise read as a number or a boolean:
+# column names like "137.5", vocabulary values like "0.1" or "TRUE",
+# and comparison operators like ">=".
+
+schema_version: 1
+protocol: Oyster Reef Monitoring
+level: 2
+tables:
+- table_id: oyster-transect-metadata-monitoring-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: sample_collection_date
+    type: DATE
+    missing: enforce
+    uuid_identity: true
+  - name: transect
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+  - name: transect_begin_decimal_latitude
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_fail: 180
+      min_fail: -180
+  - name: transect_begin_decimal_longitude
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_fail: 180
+      min_fail: -180
+  - name: transect_end_decimal_latitude
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_fail: 180
+      min_fail: -180
+  - name: transect_end_decimal_longitude
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_fail: 180
+      min_fail: -180
+  - name: transect_length_m
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      min_fail: 0
+      max_warn: 50
+  - name: depth_min_m
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: ~
+  - name: depth_max_m
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: ~
+  - name: intertidal_habitat
+    type: BOOL
+    missing: warn
+    one_of:
+    - 'TRUE'
+    - 'FALSE'
+  - name: reef_building_oysters
+    type: BOOL
+    missing: warn
+    one_of:
+    - 'TRUE'
+    - 'FALSE'
+  - name: sample_metadata_notes
+    type: STRING
+    missing: allow
+  - name: table_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+- table_id: oyster-substrate-composition-monitoring-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: transect
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+  - name: quadrat
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+    numeric_range:
+      range_type: inclusive
+      max_warn: 30
+      min_warn: 0
+  - name: sample_collection_date
+    type: DATE
+    missing: enforce
+    uuid_identity: true
+  - name: scientific_name
+    type: STRING
+    missing: allow
+    uuid_identity: true
+  - name: cover_type
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+    one_of:
+    - live oyster
+    - box oyster
+    - cultch
+    - shell hash
+    - large shell material
+    - sediment
+    - rock
+    - other primary
+    - canopy taxa
+  - name: point_count
+    type: INT
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_warn: 81
+  - name: points_in_quadrat
+    type: INT
+    missing: enforce
+    numeric_range:
+      range_type: inclusive
+      max_warn: 81
+  - name: percent_cover
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_warn: 100
+  - name: composition_notes
+    type: STRING
+    missing: allow
+  - name: table_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+  checks:
+    aggregate:
+    - rule_id: oyster_substrate_point_total
+      group_by:
+      - sample_event_id
+      - transect
+      - quadrat
+      value: point_count
+      function: sum
+      comparison: ==
+      target_column: points_in_quadrat
+      severity: fail
+      description: Primary cover point counts in a quadrat must sum to points_in_quadrat
+      when:
+        label: primary_points
+        description: Excluding canopy taxa from the primary point total
+        all:
+        - column: cover_type
+          not_in: canopy taxa
+    cross_table:
+    - rule_id: substrate_transect_has_metadata
+      relation: subset
+      right_table: oyster-transect-metadata-monitoring-v1
+      group_by:
+      - sample_event_id
+      'on':
+      - left: transect
+        right: transect
+      severity: fail
+      description: Every surveyed transect must have transect metadata
+    - rule_id: oyster_quadrat_sets_match
+      relation: equal_set
+      right_table: oyster-height-monitoring-v1
+      group_by:
+      - sample_event_id
+      - transect
+      'on':
+      - left: quadrat
+        right: quadrat
+      severity: warn
+      description: ILLUSTRATIVE (review or delete) - substrate and height quadrat
+        sets should match
+- table_id: oyster-height-monitoring-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: transect
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+  - name: quadrat
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+    numeric_range:
+      range_type: inclusive
+      max_warn: 30
+      min_warn: 0
+  - name: sample_id
+    type: INT
+    missing: enforce
+    uuid_identity: true
+  - name: sample_collection_date
+    type: DATE
+    missing: enforce
+    uuid_identity: true
+  - name: scientific_name
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: identification_notes
+    type: STRING
+    missing: allow
+  - name: live_or_box
+    type: STRING
+    missing: warn
+    one_of:
+    - live
+    - box
+  - name: height_mm
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      min_fail: 0
+      max_warn: 355
+  - name: sample_height_notes
+    type: STRING
+    missing: allow
+  - name: table_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+- table_id: oyster-count-monitoring-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: transect
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+  - name: quadrat
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+    numeric_range:
+      range_type: inclusive
+      max_warn: 30
+      min_warn: 0
+  - name: sample_collection_date
+    type: DATE
+    missing: enforce
+    uuid_identity: true
+  - name: density_methodology
+    type: STRING
+    missing: warn
+    one_of:
+    - excavation
+    - no excavation
+  - name: scientific_name
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: identification_notes
+    type: STRING
+    missing: allow
+  - name: live_or_box
+    type: STRING
+    missing: warn
+    uuid_identity: true
+    one_of:
+    - live
+    - box
+  - name: count
+    type: INT
+    missing: warn
+    numeric_range:
+      range_type: ~
+      max_warn: 100
+      min_warn: 0
+  - name: density_quadrat_dimensions
+    type: STRING
+    missing: warn
+    one_of:
+    - 25cmx25cm
+  - name: density_m2
+    type: DOUBLE
+    missing: warn
+  - name: sample_frequency_notes
+    type: STRING
+    missing: allow
+  - name: table_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+- table_id: oyster-habitat-complexity-monitoring-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: transect
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+  - name: quadrat
+    type: TINYINT
+    missing: enforce
+    uuid_identity: true
+    numeric_range:
+      range_type: inclusive
+      max_warn: 30
+      min_warn: 0
+  - name: sample_collection_date
+    type: DATE
+    missing: enforce
+    uuid_identity: true
+  - name: chain_length_m
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      min_fail: 0
+      max_warn: 30
+  - name: chain_distance_m
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      min_fail: 0
+      max_warn: 30
+  - name: rugosity
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_fail: 1
+      min_fail: 0
+  - name: max_cluster_height_cm
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      min_fail: 0
+      max_warn: 100
+  - name: habitat_complexity_notes
+    type: STRING
+    missing: allow
+  - name: table_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+- table_id: oyster-biobox-monitoring-v1
+  columns:
+  - name: sample_event_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: partner_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_code
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: site_name
+    type: STRING
+    missing: enforce
+  - name: biobox_deployment_date
+    type: DATE
+    missing: warn
+  - name: biobox_recovery_date
+    type: DATE
+    missing: warn
+  - name: biobox_id
+    type: DOUBLE
+    missing: enforce
+    uuid_identity: true
+    numeric_range:
+      range_type: inclusive
+      min_fail: 0
+      max_warn: 3
+  - name: biobox_latitude
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_fail: 180
+      min_fail: -180
+  - name: biobox_longitude
+    type: DOUBLE
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      max_fail: 180
+      min_fail: -180
+  - name: scientific_name
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: identification_notes
+    type: STRING
+    missing: allow
+  - name: biobox_count
+    type: INT
+    missing: warn
+    numeric_range:
+      range_type: inclusive
+      min_fail: 0
+      max_warn: 100
+  - name: biobox_note
+    type: STRING
+    missing: allow
+  - name: table_id
+    type: STRING
+    missing: enforce
+    uuid_identity: true
+  - name: row_uuid
+    type: STRING
+    missing: enforce
+  - name: input_filename
+    type: STRING
+    missing: enforce
+
