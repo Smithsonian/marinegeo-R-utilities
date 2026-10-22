@@ -16,6 +16,11 @@
 #'   a data frame, a file path (CSV, XLSX, Parquet), or an Arrow Dataset/Table.
 #' @param sheet Integer or character. Passed to [readxl::read_excel()] for any
 #'   element that is an `.xlsx`/`.xls` path. Defaults to `1`.
+#' @param verbose Logical scalar. If `TRUE` (the default), each table's run
+#'   reports to the console as it happens — see [qc_run()] — followed by one
+#'   report for the dataset as a whole, covering the cross-table checks and the
+#'   combined status. Purely informational. Use `verbose = FALSE` or
+#'   [suppressMessages()] to silence it.
 #'
 #' @return A [qc_issues] tibble combining every table's issues with the
 #'   cross-table ones, where the `table` column names the table each issue is
@@ -47,7 +52,7 @@
 #'
 #' # File paths work the same way:
 #' # qc_run_dataset(list(`seagrass-shoots-v1` = "shoots.csv"))
-qc_run_dataset <- function(tables, sheet = 1L) {
+qc_run_dataset <- function(tables, sheet = 1L, verbose = TRUE) {
   # --- Input validation -------------------------------------------------------
   if (!is.list(tables) || is.data.frame(tables)) {
     stop(
@@ -57,6 +62,9 @@ qc_run_dataset <- function(tables, sheet = 1L) {
   }
   if (length(tables) == 0L) {
     stop("`tables` must contain at least one table.")
+  }
+  if (!is.logical(verbose) || length(verbose) != 1L || is.na(verbose)) {
+    stop("`verbose` must be a single `TRUE` or `FALSE`.")
   }
 
   ids <- names(tables)
@@ -81,7 +89,7 @@ qc_run_dataset <- function(tables, sheet = 1L) {
 
   # --- Per-table checks -------------------------------------------------------
   per_table <- lapply(ids, function(id) {
-    out <- qc_run(data_list[[id]], table_id = id)
+    out <- qc_run(data_list[[id]], table_id = id, verbose = verbose)
     if (nrow(out) > 0) {
       out$table <- id
     }
@@ -127,7 +135,7 @@ qc_run_dataset <- function(tables, sheet = 1L) {
   columns <- lapply(data_list, colnames)
   names(columns) <- ids
 
-  new_qc_issues(
+  result <- new_qc_issues(
     dplyr::bind_rows(c(per_table, cross)),
     table_id = ids,
     n_rows = sum(vapply(data_list, nrow, integer(1))),
@@ -136,4 +144,10 @@ qc_run_dataset <- function(tables, sheet = 1L) {
     columns = columns,
     rules_skipped = gather(per_table, "rules_skipped")
   )
+
+  # Dataset-level report, after the per-table ones each qc_run() already
+  # emitted: this is where the cross-table checks and the combined status show.
+  .qc_report(result, verbose = verbose)
+
+  result
 }

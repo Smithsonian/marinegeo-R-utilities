@@ -27,6 +27,12 @@
 #'   `qc_check_aggregate()`) are skipped rather than reporting the absent
 #'   columns as failures, and are listed in the result's `checks_skipped`
 #'   attribute.
+#' @param verbose Logical scalar. If `TRUE` (the default), a summary of the run
+#'   is written to the console with [message()]: one line per check that ran
+#'   with its status (`PASS`, `WARN` or `FAIL`) and issue count, then an overall
+#'   status footer. Purely informational — it does not affect the returned
+#'   object. Use `verbose = FALSE` or wrap the call in [suppressMessages()] to
+#'   silence it.
 #'
 #' @return A [qc_issues] tibble: one row per detected problem across all
 #'   applicable checks (zero rows if the data is clean), with the producing
@@ -69,6 +75,13 @@
 #' supplied columns are defined for `table_id`, a warning is emitted — an empty
 #' result there means "nothing was checkable", not "clean".
 #'
+#' **Console report:** because the result holds one row per *problem*, a clean
+#' run is an empty tibble, which is indistinguishable at a glance from a run
+#' where nothing was checked. With `verbose = TRUE` the run therefore reports
+#' which checks executed and how each fared, so a passing check is visible
+#' rather than merely silent. A run where no checks applied reports
+#' `NOT CHECKED` instead of a pass.
+#'
 #' **Arrow support:** Arrow Datasets and Tables are collected into memory via
 #' [dplyr::collect()] before testing. This requires the `arrow` package.
 #'
@@ -93,7 +106,7 @@
 #'
 #' # Validate only the columns present, ignoring the rest of the table
 #' # result <- qc_run(df, table_id = "sav_cover_v1", partial = TRUE)
-qc_run <- function(x, table_id, sheet = 1L, partial = FALSE) {
+qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   # --- Input validation -------------------------------------------------------
   if (!is.character(table_id) || length(table_id) != 1) {
     stop("`table_id` must be a single character string.")
@@ -101,16 +114,26 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE) {
   if (!is.logical(partial) || length(partial) != 1L || is.na(partial)) {
     stop("`partial` must be a single `TRUE` or `FALSE`.")
   }
+  if (!is.logical(verbose) || length(verbose) != 1L || is.na(verbose)) {
+    stop("`verbose` must be a single `TRUE` or `FALSE`.")
+  }
 
   # --- Ingest: resolve x to a data frame -------------------------------------
   data <- .qc_ingest(x, sheet = sheet)
 
   # --- Dispatch ---------------------------------------------------------------
-  .qc_dispatch(
+  result <- .qc_dispatch(
     data,
     table_id = table_id,
     scope = if (partial) "column" else "table"
   )
+
+  # --- Report -----------------------------------------------------------------
+  # Derived from `result`, so this single call site covers every way
+  # .qc_dispatch() can return (including its two early exits).
+  .qc_report(result, verbose = verbose)
+
+  result
 }
 # ---------------------------------------------------------------------------
 # Internal: resolve x to a plain data frame

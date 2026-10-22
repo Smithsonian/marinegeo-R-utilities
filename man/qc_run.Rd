@@ -4,7 +4,7 @@
 \alias{qc_run}
 \title{Run all applicable QC tests on a MarineGEO data table}
 \usage{
-qc_run(x, table_id, sheet = 1L, partial = FALSE)
+qc_run(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{x}{A data frame, tibble, file path (character string), Arrow Dataset,
@@ -24,6 +24,13 @@ a subset of the table's columns: the three table-scoped checks
 \code{qc_check_aggregate()}) are skipped rather than reporting the absent
 columns as failures, and are listed in the result's \code{checks_skipped}
 attribute.}
+
+\item{verbose}{Logical scalar. If \code{TRUE} (the default), a summary of the run
+is written to the console with \code{\link[=message]{message()}}: one line per check that ran
+with its status (\code{PASS}, \code{WARN} or \code{FAIL}) and issue count, then an overall
+status footer. Purely informational — it does not affect the returned
+object. Use \code{verbose = FALSE} or wrap the call in \code{\link[=suppressMessages]{suppressMessages()}} to
+silence it.}
 }
 \value{
 A \link{qc_issues} tibble: one row per detected problem across all
@@ -79,6 +86,13 @@ narrowed to the columns actually supplied, so a check appears in
 \code{checks_run} only when a rule applied to one of them. If none of the
 supplied columns are defined for \code{table_id}, a warning is emitted — an empty
 result there means "nothing was checkable", not "clean".
+
+\strong{Console report:} because the result holds one row per \emph{problem}, a clean
+run is an empty tibble, which is indistinguishable at a glance from a run
+where nothing was checked. With \code{verbose = TRUE} the run therefore reports
+which checks executed and how each fared, so a passing check is visible
+rather than merely silent. A run where no checks applied reports
+\verb{NOT CHECKED} instead of a pass.
 
 \strong{Arrow support:} Arrow Datasets and Tables are collected into memory via
 \code{\link[dplyr:collect]{dplyr::collect()}} before testing. This requires the \code{arrow} package.

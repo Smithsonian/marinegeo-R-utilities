@@ -4,7 +4,7 @@
 \alias{qc_run_dataset}
 \title{Run QC across several related MarineGEO tables at once}
 \usage{
-qc_run_dataset(tables, sheet = 1L)
+qc_run_dataset(tables, sheet = 1L, verbose = TRUE)
 }
 \arguments{
 \item{tables}{A named list of tables to validate. Each name must be a
@@ -13,6 +13,12 @@ a data frame, a file path (CSV, XLSX, Parquet), or an Arrow Dataset/Table.}
 
 \item{sheet}{Integer or character. Passed to \code{\link[readxl:read_excel]{readxl::read_excel()}} for any
 element that is an \code{.xlsx}/\code{.xls} path. Defaults to \code{1}.}
+
+\item{verbose}{Logical scalar. If \code{TRUE} (the default), each table's run
+reports to the console as it happens — see \code{\link[=qc_run]{qc_run()}} — followed by one
+report for the dataset as a whole, covering the cross-table checks and the
+combined status. Purely informational. Use \code{verbose = FALSE} or
+\code{\link[=suppressMessages]{suppressMessages()}} to silence it.}
 }
 \value{
 A \link{qc_issues} tibble combining every table's issues with the

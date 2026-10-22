@@ -215,3 +215,39 @@ test_that("duplicate table_ids are rejected", {
 test_that("an empty list is rejected", {
   expect_error(qc_run_dataset(list()), "at least one table")
 })
+
+# ---------------------------------------------------------------------------
+# Console report
+# ---------------------------------------------------------------------------
+
+test_that("qc_run_dataset reports each table and then the dataset", {
+  local_ds_metadata()
+
+  messages <- capture_messages(qc_run_dataset(both_tables()))
+
+  # One block per table, then one for the dataset as a whole.
+  expect_equal(sum(grepl("^QC: quadrat_v1 ", messages)), 1L)
+  expect_equal(sum(grepl("^QC: shoots_v1 ", messages)), 1L)
+  expect_equal(sum(grepl("^QC: quadrat_v1, shoots_v1 ", messages)), 1L)
+  # The cross-table check only exists at the dataset level.
+  combined <- messages[grepl("^QC: quadrat_v1, shoots_v1 ", messages)]
+  expect_match(combined, "FAIL  qc_check_cross_table \\(1 issue\\)")
+  expect_match(combined, "Status: FAIL")
+})
+
+test_that("qc_run_dataset is silent with verbose = FALSE", {
+  local_ds_metadata()
+
+  quiet <- expect_no_message(qc_run_dataset(both_tables(), verbose = FALSE))
+  loud <- suppressMessages(qc_run_dataset(both_tables()))
+
+  expect_equal(quiet, loud)
+  expect_identical(attributes(quiet), attributes(loud))
+})
+
+test_that("non-logical verbose stops with an informative error", {
+  expect_error(
+    qc_run_dataset(both_tables(), verbose = "yes"),
+    "`verbose` must be a single `TRUE` or `FALSE`"
+  )
+})
