@@ -3,8 +3,8 @@ Title: MarineGEO R Utilities
 Version: 0.0.0.9001
 Authors@R: person("Michael", "Lonneman", email = "marinegeo-data@si.edu",
   role = c("aut", "cre"))
-Description: R tools to support MarineGEO Data Management
-License: 
+Description: R tools to support MarineGEO Data Management.
+License: PLACEHOLDER - license not yet chosen
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:

@@ -577,7 +577,7 @@
 
 #' Flatten parsed table-metadata documents into the six registry tibbles
 #'
-#' @param docs Named list from [.mg_parse_table_metadata_dir()].
+#' @param docs Named list from `.mg_parse_table_metadata_dir()`.
 #' @return Named list of six tibbles matching `.mg_flat_schema`.
 #' @noRd
 .mg_flatten_table_metadata <- function(docs) {
@@ -939,13 +939,13 @@
 
 #' Validate parsed table metadata, including cross-document references
 #'
-#' Structural and enum validation happens during [.mg_flatten_table_metadata()],
+#' Structural and enum validation happens during `.mg_flatten_table_metadata()`,
 #' which errors on the first problem. This adds the checks that need the whole
 #' flattened picture. Every failure is an error: the QC engine treats a
 #' malformed rule table as "no rules" and reports a clean pass, so a warning
 #' here would be indistinguishable from success.
 #'
-#' @param docs Named list from [.mg_parse_table_metadata_dir()].
+#' @param docs Named list from `.mg_parse_table_metadata_dir()`.
 #' @return Invisibly `TRUE`.
 #' @noRd
 .mg_validate_table_metadata <- function(docs) {
