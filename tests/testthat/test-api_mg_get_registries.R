@@ -9,7 +9,6 @@
 .bundled_struct <- data.frame(
   protocol = "bundled",
   table_id = "bundled_v1",
-  level = 2,
   column_name = "bundled_col",
   data_type = "STRING",
   missing_values = NA_character_,
@@ -34,7 +33,6 @@
   list(
     protocol = "live",
     table_id = "live_v1",
-    level = 2L,
     column_name = "a",
     data_type = "STRING",
     missing_values = "fail",
@@ -43,7 +41,6 @@
   list(
     protocol = "live",
     table_id = "live_v1",
-    level = 2L,
     column_name = "b",
     data_type = "INT",
     missing_values = NULL,
@@ -56,7 +53,6 @@
   columns = list(
     list(name = "protocol", type = "character"),
     list(name = "table_id", type = "character"),
-    list(name = "level", type = "double"),
     list(name = "column_name", type = "character"),
     list(name = "data_type", type = "character"),
     list(name = "missing_values", type = "character"),
@@ -64,7 +60,7 @@
   )
 )
 
-.fake_manifest <- function(schema_version = 2L) {
+.fake_manifest <- function(schema_version = 1L) {
   list(
     schema_version = schema_version,
     artifacts = list(
@@ -79,7 +75,7 @@
 
 .fake_artifact <- function() {
   list(
-    schema_version = 2L,
+    schema_version = 1L,
     artifact = "qc-metadata",
     tables = list(database_structure = .live_struct_rows)
   )
@@ -170,14 +166,14 @@ test_that("strict registry defaults off", {
 # ---------------------------------------------------------------------------
 
 test_that("a readable schema version passes", {
-  expect_equal(.mg_check_schema_version(list(schema_version = 2L), "x"), 2L)
+  expect_equal(.mg_check_schema_version(list(schema_version = 1L), "x"), 1L)
 })
 
-test_that("a pre-rename schema version is a loud error", {
-  # Schema 1 spells the missing-value rule `enforce`, which this package
-  # filters out entirely -- a clean pass having checked nothing.
+test_that("a schema version below the floor is a loud error", {
+  # An older layout read by this code would filter to zero rules -- a clean
+  # pass having checked nothing.
   expect_error(
-    .mg_check_schema_version(list(schema_version = 1L), "dist/manifest.json"),
+    .mg_check_schema_version(list(schema_version = 0L), "dist/manifest.json"),
     "requires at least"
   )
 })
@@ -214,7 +210,6 @@ test_that("columns are built with their declared types", {
   expect_s3_class(out, "tbl_df")
   expect_identical(colnames(out), .mg_flat_schema$database_structure)
   expect_true(is.character(out$protocol))
-  expect_true(is.double(out$level))
   # JSON cannot distinguish null from a typed NA, so types come from the
   # manifest. Inferring them would make an all-null column the wrong type.
   expect_true(is.logical(out$uuid_identity))
@@ -247,7 +242,7 @@ test_that("a QC table missing a required column is an error", {
   schema <- .struct_schema
   schema$columns <- schema$columns[1:3]
   rows <- lapply(.live_struct_rows, function(r) {
-    r[c("protocol", "table_id", "level")]
+    r[c("protocol", "table_id", "column_name")]
   })
 
   # Downstream this would be read as "no rules" and silently skip the check.

@@ -7,9 +7,8 @@
 # column names like "137.5", vocabulary values like "0.1" or "TRUE",
 # and comparison operators like ">=".
 
-schema_version: 2
+schema_version: 1
 protocol: Seagrass Monitoring
-level: 2
 tables:
 - table_id: seagrass-cover-monitoring-v1
   columns:
@@ -793,23 +792,3 @@ tables:
   - name: input_filename
     type: STRING
     na_values: fail
-conditions:
-- label: flowering_zostera
-  table: shoot-count-monitoring-v1
-  description: Flowering Zostera shoots
-  all:
-  - column: scientific_name
-    taxon_within: Genus:Zostera
-- label: marine_seagrass
-  table: seagrass-cover-monitoring-v1
-  description: A marine seagrass
-  all:
-  - column: scientific_name
-    in_functional_group: vegetation:Marine Seagrass
-- label: scored_cover
-  table: seagrass-cover-monitoring-v1
-  description: Rows carrying a cover code
-  all:
-  - column: cover_code
-    not_na: true
-

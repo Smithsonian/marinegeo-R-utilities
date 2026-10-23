@@ -7,9 +7,8 @@
 # column names like "137.5", vocabulary values like "0.1" or "TRUE",
 # and comparison operators like ">=".
 
-schema_version: 2
+schema_version: 1
 protocol: Reef Life Survey
-level: 2
 tables:
 - table_id: reef-life-survey-data-marinegeo-v1
   columns:

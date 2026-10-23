@@ -7,9 +7,8 @@
 # column names like "137.5", vocabulary values like "0.1" or "TRUE",
 # and comparison operators like ">=".
 
-schema_version: 2
+schema_version: 1
 protocol: Darwin Core
-level: 3
 tables:
 - table_id: event_darwin_core_obis
   columns:

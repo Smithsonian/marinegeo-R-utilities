@@ -59,7 +59,6 @@
   database_structure = c(
     "protocol",
     "table_id",
-    "level",
     "column_name",
     "data_type",
     "missing_values",
@@ -593,7 +592,6 @@
     reg <- .mg_cond_registry()
 
     file_protocol <- .mg_chr1(doc$protocol)
-    file_level <- doc$level
 
     tables <- doc$tables
     if (is.null(tables) || length(tables) == 0L) {
@@ -618,12 +616,6 @@
       if (is.na(protocol)) {
         stop("missing `protocol:` at ", where_tbl, call. = FALSE)
       }
-      level_raw <- if (is.null(tbl$level)) file_level else tbl$level
-      level <- .mg_num1(level_raw, paste0(where_tbl, " $level"))
-      if (is.na(level)) {
-        stop("missing `level:` at ", where_tbl, call. = FALSE)
-      }
-
       cols <- tbl$columns
       if (is.null(cols) || length(cols) == 0L) {
         stop("no `columns:` at ", where_tbl, call. = FALSE)
@@ -660,7 +652,6 @@
         struct[[length(struct) + 1L]] <- list(
           protocol = protocol,
           table_id = table_id,
-          level = level,
           column_name = name,
           data_type = .mg_req_chr1(col$type, paste0(where_col, " $type")),
           missing_values = .mg_enum1(
@@ -890,7 +881,7 @@
     database_structure = .mg_bind_rows(
       struct,
       .mg_flat_schema$database_structure,
-      c("chr", "chr", "num", "chr", "chr", "chr", "lgl")
+      c("chr", "chr", "chr", "chr", "chr", "lgl")
     ),
     categorical_values = .mg_bind_rows(
       categorical,

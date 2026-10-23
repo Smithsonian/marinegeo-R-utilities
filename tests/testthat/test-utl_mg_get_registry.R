@@ -59,7 +59,6 @@
     "sav_cover_v1",
     "sav_density_v1"
   ),
-  level = c("raw", "raw", "raw", "raw"),
   column_name = c("site_code", "site_name", "percent_cover", "shoot_density"),
   data_type = c("STRING", "STRING", "DOUBLE", "DOUBLE"),
   uuid_identity = c(FALSE, FALSE, FALSE, FALSE),
@@ -220,7 +219,6 @@ test_that("returns full database_structure table with expected columns", {
     c(
       "protocol",
       "table_id",
-      "level",
       "column_name",
       "data_type",
       "uuid_identity"

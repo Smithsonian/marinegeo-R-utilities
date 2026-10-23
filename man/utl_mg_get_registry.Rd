@@ -108,7 +108,6 @@ Additional columns may be present (e.g., data level, storage location).
 \itemize{
 \item \code{protocol} — Monitoring or experiment program.
 \item \code{table_id} — Links to \code{data_index}.
-\item \code{level} — Data processing level.
 \item \code{column_name} — Expected column name in the data table.
 \item \code{data_type} — SQL-style type name (e.g., \code{"STRING"}, \code{"DOUBLE"}, \code{"DATE"}).
 }

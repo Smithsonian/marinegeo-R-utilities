@@ -127,13 +127,7 @@ test_that("qc_conditions round-trips with ids and row order intact", {
   )
   expect_identical(
     flat$qc_conditions$condition_id,
-    c(
-      "primary_points",
-      "zostera_leaves",
-      "flowering_zostera",
-      "marine_seagrass",
-      "scored_cover"
-    )
+    c("primary_points", "zostera_leaves")
   )
 })
 

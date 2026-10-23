@@ -86,7 +86,6 @@
 #' **`database_structure`**
 #' - `protocol` — Monitoring or experiment program.
 #' - `table_id` — Links to `data_index`.
-#' - `level` — Data processing level.
 #' - `column_name` — Expected column name in the data table.
 #' - `data_type` — SQL-style type name (e.g., `"STRING"`, `"DOUBLE"`, `"DATE"`).
 #'

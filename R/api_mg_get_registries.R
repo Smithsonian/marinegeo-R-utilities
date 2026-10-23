@@ -43,13 +43,13 @@
 # the artifact layout changed in a way this code cannot read, which must be a
 # loud error -- the QC engine reads a malformed rule table as "no rules" and
 # reports a clean pass having run no checks.
-.mg_dist_schema_version <- 2L
+.mg_dist_schema_version <- 1L
 
-# The oldest dist/ schema major version still readable. Schema 1 spelled the
-# `missing_values` rule `enforce` where 2 spells it `fail`, so schema 1 read by
-# this code would filter to zero missing-value rules and report a clean pass
-# having checked nothing -- the same silent failure, from the other direction.
-.mg_dist_schema_version_min <- 2L
+# The oldest dist/ schema major version still readable. A dist/ built against
+# an older layout than this would be read with renamed or dropped keys absent,
+# filtering to zero rules and reporting a clean pass having checked nothing --
+# the same silent failure, from the other direction.
+.mg_dist_schema_version_min <- 1L
 
 .mg_manifest_rel <- "dist/manifest.json"
 

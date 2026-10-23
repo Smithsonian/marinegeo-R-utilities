@@ -166,12 +166,14 @@ test_that("every table in the registry reports identically", {
   flat_meta <- .flat_metadata()
   ids <- unique(marinegeo_metadata$database_structure$table_id)
   # The five registry self-description tables are lookups, not submittable
-  # tables, and carry no QC rules.
+  # tables, and carry no QC rules. They are the tables declared by
+  # marinegeo-metadata-tables.yaml, across both protocols it names.
+  lookup_protocols <- c("taxonomy-and-functional-groups", "sites-and-partners")
   ids <- setdiff(
     ids,
     unique(
       marinegeo_metadata$database_structure$table_id[
-        marinegeo_metadata$database_structure$level == 1
+        marinegeo_metadata$database_structure$protocol %in% lookup_protocols
       ]
     )
   )

@@ -17,7 +17,6 @@
 .minimal <- function(extra_col = "", checks = "", conditions = "") {
   paste0(
     "protocol: Test Protocol\n",
-    "level: 2\n",
     "tables:\n",
     "- table_id: test-table-v1\n",
     "  columns:\n",
@@ -241,7 +240,6 @@ test_that("a vocabulary value that looks numeric or boolean survives verbatim", 
 test_that("columns must be a sequence, because order is significant", {
   txt <- paste0(
     "protocol: Test Protocol\n",
-    "level: 2\n",
     "tables:\n",
     "- table_id: test-table-v1\n",
     "  columns:\n",
@@ -257,7 +255,7 @@ test_that("columns must be a sequence, because order is significant", {
 
 test_that("required fields are required", {
   no_type <- paste0(
-    "protocol: Test\nlevel: 2\ntables:\n- table_id: t-v1\n  columns:\n  - name: a\n"
+    "protocol: Test\ntables:\n- table_id: t-v1\n  columns:\n  - name: a\n"
   )
   expect_error(
     .mg_flatten_table_metadata(.load_yaml_str(no_type)),
@@ -265,7 +263,7 @@ test_that("required fields are required", {
   )
 
   no_protocol <- paste0(
-    "level: 2\ntables:\n- table_id: t-v1\n  columns:\n  - name: a\n    type: STRING\n"
+    "tables:\n- table_id: t-v1\n  columns:\n  - name: a\n    type: STRING\n"
   )
   expect_error(
     .mg_flatten_table_metadata(.load_yaml_str(no_protocol)),
