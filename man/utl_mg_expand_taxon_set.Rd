@@ -37,7 +37,7 @@ how you check what such a reference resolves to \strong{before} relying on it.
 \details{
 The result is derived from the registry, so it reflects whatever
 \code{taxonomic_lookup} / \code{functional_group_lookup} is in force. Offline, that is
-the copy bundled in the package, which may be older than the live one — so a
+the copy shipped in the package, which may be older than the live one — so a
 set can be narrower than it would be online. \code{getOption( "marinegeo.utils.live_registry")} tells you which you are seeing.
 }
 \examples{

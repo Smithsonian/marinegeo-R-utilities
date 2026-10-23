@@ -1,11 +1,11 @@
 # Live access to MarineGEO registry tables from the Smithsonian/marinegeo-metadata
-# repo, replacing the bundled copies in `marinegeo_metadata` (R/sysdata.rda).
+# repo, replacing the offline copies in `marinegeo_metadata` (R/sysdata.rda).
 #
-# The metadata repo publishes generated JSON artifacts under dist/, built from
+# The metadata repo publishes generated JSON bundles under dist/, built from
 # its authored sources (nested YAML for rule configs, CSV for the dense
-# registries) by R/generate-metadata-dist.R. This package reads those artifacts.
+# registries) by R/generate-metadata-dist.R. This package reads those bundles.
 #
-# Artifacts are split by how often they change, so a one-line rule edit does not
+# Bundles are split by how often they change, so a one-line rule edit does not
 # invalidate a cached taxonomy payload:
 #
 #   dist/qc-metadata.json   ~6 KB gz    volatile  6 QC rule tables
@@ -15,7 +15,7 @@
 #
 # This replaces a directory-of-CSVs scheme that cost one GitHub Trees API call
 # plus 46 raw file fetches per cold load (16 of them for QC metadata alone).
-# A cold QC load is now one manifest fetch plus one ~6 KB artifact fetch, and
+# A cold QC load is now one manifest fetch plus one ~6 KB bundle fetch, and
 # the Trees API -- with its 60-request/hour unauthenticated limit -- is no
 # longer used at all.
 #
@@ -30,17 +30,17 @@
 #   marinegeo.utils.metadata_local   Path to a local marinegeo-metadata
 #                                    checkout; read from disk with NO fallback.
 #   marinegeo.utils.live_registry    FALSE (or MARINEGEO_UTILS_OFFLINE=true)
-#                                    forces the bundled object.
+#                                    forces the offline object.
 #   marinegeo.utils.metadata_ref     Git ref to fetch (default "main").
 #   marinegeo.utils.strict_registry  TRUE turns a failed fetch into an error
-#                                    instead of a bundled fallback.
+#                                    instead of an offline fallback.
 #
-# Note: wide-form taxonomic classifications are no longer bundled. They are
-# reconstructed on demand from the live `taxonomic_lookup` by
+# Note: wide-form taxonomic classifications are no longer shipped in the
+# package. They are reconstructed on demand from the live `taxonomic_lookup` by
 # utl_mg_get_taxonomic_classifications() (see R/utl_mg_traverse_adjacency_tables.R).
 
 # The dist/ schema major version this package understands. A newer major means
-# the artifact layout changed in a way this code cannot read, which must be a
+# the bundle layout changed in a way this code cannot read, which must be a
 # loud error -- the QC engine reads a malformed rule table as "no rules" and
 # reports a clean pass having run no checks.
 .mg_dist_schema_version <- 1L
@@ -77,7 +77,7 @@
 #' metadata changes before they are merged, since the network path resolves a
 #' ref in the remote repo.
 #'
-#' Deliberately has no bundled fallback: a local override is an explicit request
+#' Deliberately has no offline fallback: a local override is an explicit request
 #' for *these* files, so a missing or stale `dist/` must be an error. Falling
 #' back would silently validate against the wrong rules.
 #'
@@ -98,7 +98,7 @@
 
 #' Whether a failed live fetch is an error rather than a fallback
 #'
-#' The bundled fallback is right for a field user working offline and exactly
+#' The offline fallback is right for a field user with no network and exactly
 #' wrong for a job whose purpose is to validate metadata. Set
 #' `options(marinegeo.utils.strict_registry = TRUE)` in validation and CI.
 #'
@@ -112,7 +112,7 @@
 #'
 #' Defaults to `TRUE` (live). Set `options(marinegeo.utils.live_registry = FALSE)`
 #' or the env var `MARINEGEO_UTILS_OFFLINE=true` to force every table to come
-#' from the bundled `marinegeo_metadata` object.
+#' from the offline `marinegeo_metadata` object.
 #'
 #' @return Logical scalar.
 #' @noRd
@@ -143,7 +143,7 @@
 
 #' Read and parse one JSON document from a URL or path
 #'
-#' The only function that fetches artifact content. `simplifyVector = FALSE` is
+#' The only function that fetches bundle content. `simplifyVector = FALSE` is
 #' deliberate: simplification would guess column types from the data, and an
 #' all-null column would come back wrong. Columns are built from the manifest's
 #' declared schema instead.
@@ -159,12 +159,12 @@
 }
 
 # Memoised wrapper around .mg_read_json, assigned in .onLoad (see R/zzz.R).
-# Caches per source, so the manifest and each artifact are fetched once per
-# session and a QC run touching several tables in one artifact costs one
+# Caches per source, so the manifest and each bundle are fetched once per
+# session and a QC run touching several tables in one bundle costs one
 # request.
 .mg_fetch_json <- NULL
 
-#' Check an artifact manifest's schema version
+#' Check a bundle manifest's schema version
 #'
 #' @noRd
 .mg_check_schema_version <- function(manifest, src) {
@@ -205,7 +205,7 @@
 
 #' Build a typed tibble from JSON rows and a declared column schema
 #'
-#' @param rows List of row objects from the artifact.
+#' @param rows List of row objects from the bundle.
 #' @param schema The manifest entry for this table (`rows`, `columns`).
 #' @param table Character scalar, for error messages.
 #' @return A tibble with exactly the declared columns and types.
@@ -215,7 +215,7 @@
     stop("no column schema for table '", table, "'", call. = FALSE)
   }
   if (is.null(rows)) {
-    stop("table '", table, "' is missing from its artifact", call. = FALSE)
+    stop("table '", table, "' is missing from its bundle", call. = FALSE)
   }
 
   declared <- as.integer(schema$rows)
@@ -319,34 +319,34 @@
   manifest <- .mg_fetch_json(man_src)
   .mg_check_schema_version(manifest, man_src)
 
-  aname <- manifest$table_index[[table]]
-  if (is.null(aname)) {
-    # Not published in dist/; the bundled copy is the correct source.
+  bname <- manifest$table_index[[table]]
+  if (is.null(bname)) {
+    # Not published in dist/; the offline copy is the correct source.
     return(NULL)
   }
-  aname <- as.character(aname)[[1]]
+  bname <- as.character(bname)[[1]]
 
-  entry <- manifest$artifacts[[aname]]
+  entry <- manifest$bundles[[bname]]
   if (is.null(entry)) {
     stop(
-      "manifest names artifact '",
-      aname,
+      "manifest names bundle '",
+      bname,
       "' but does not describe it",
       call. = FALSE
     )
   }
 
-  artifact <- .mg_fetch_json(locate(paste0("dist/", aname, ".json")))
+  bundle <- .mg_fetch_json(locate(paste0("dist/", bname, ".json")))
   .mg_coerce_registry_table(
-    artifact$tables[[table]],
+    bundle$tables[[table]],
     entry$tables[[table]],
     table
   )
 }
 
-#' Resolve a registry table, preferring live data with bundled fallback
+#' Resolve a registry table, preferring live data with offline fallback
 #'
-#' Reads the generated `dist/` artifacts, falling back to the bundled
+#' Reads the generated `dist/` bundles, falling back to the offline
 #' `marinegeo_metadata` copy on any failure so the package keeps working
 #' offline. A configured local checkout takes precedence over both and errors
 #' rather than falling back; see `.mg_metadata_local()`.
@@ -400,7 +400,7 @@
       }
       # A warning, not a message: a message is invisible in a non-interactive
       # script, which is where a silent fallback does the most damage.
-      warning(msg, "; using bundled fallback.", call. = FALSE)
+      warning(msg, "; using offline fallback.", call. = FALSE)
       NULL
     }
   )

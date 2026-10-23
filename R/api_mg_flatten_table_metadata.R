@@ -53,7 +53,7 @@
   "OFF"
 )
 
-# Column orders of the six tibbles this file produces. Must match the bundled
+# Column orders of the six tibbles this file produces. Must match the in-package
 # `marinegeo_metadata` exactly -- the round-trip test asserts on these.
 .mg_flat_schema <- list(
   database_structure = c(

@@ -6,7 +6,7 @@
 #' row in the result corresponds to one matched `scientific_id`, with one column
 #' per standard taxonomic rank.
 #'
-#' `taxonomic_lookup` is resolved through the live registry (with a bundled
+#' `taxonomic_lookup` is resolved through the live registry (with an offline
 #' fallback), so the classifications always reflect the current lookup table
 #' rather than a precomputed snapshot.
 #'

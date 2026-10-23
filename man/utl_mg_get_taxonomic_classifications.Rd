@@ -36,7 +36,7 @@ walking the MarineGEO \code{taxonomic_lookup} adjacency table at call time. Each
 row in the result corresponds to one matched \code{scientific_id}, with one column
 per standard taxonomic rank.
 
-\code{taxonomic_lookup} is resolved through the live registry (with a bundled
+\code{taxonomic_lookup} is resolved through the live registry (with an offline
 fallback), so the classifications always reflect the current lookup table
 rather than a precomputed snapshot.
 

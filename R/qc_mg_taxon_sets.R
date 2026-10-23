@@ -40,7 +40,7 @@
 
 # Registry accessors, guarded the same defensive way the rule resolvers are: a
 # table absent from metadata or missing its columns yields NULL rather than an
-# error, so an offline run against a bundled copy that predates a column does
+# error, so an offline run against an in-package copy that predates a column does
 # not abort the QC run.
 .qc_taxonomic_lookup <- function() {
   tl <- .mg_get_registry_table("taxonomic_lookup")
@@ -390,7 +390,7 @@
 #' @details
 #' The result is derived from the registry, so it reflects whatever
 #' `taxonomic_lookup` / `functional_group_lookup` is in force. Offline, that is
-#' the copy bundled in the package, which may be older than the live one — so a
+#' the copy shipped in the package, which may be older than the live one — so a
 #' set can be narrower than it would be online. `getOption(
 #' "marinegeo.utils.live_registry")` tells you which you are seeing.
 #'

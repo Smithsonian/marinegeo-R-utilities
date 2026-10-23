@@ -1,4 +1,4 @@
-# Rebuild R/sysdata.rda from the metadata repo's generated dist/ artifacts.
+# Rebuild R/sysdata.rda from the metadata repo's generated dist/ bundles.
 #
 # Run from the package root:
 #   Rscript data-raw/build_sysdata_from_dist.R
@@ -11,7 +11,7 @@
 # So the tables are read through the package's own resolver with
 # `marinegeo.utils.metadata_local` pointed at a local metadata checkout. Reading
 # dist/ directly would risk reproducing the types slightly differently; going
-# through .mg_get_registry_table() means the bundled copy is byte-for-byte what
+# through .mg_get_registry_table() means the in-package copy is byte-for-byte what
 # a live fetch produces, because it is produced by the same code.
 #
 # The two legacy_* tables are not published in dist/ -- they come from this

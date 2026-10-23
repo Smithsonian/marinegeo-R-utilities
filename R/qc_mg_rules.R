@@ -73,7 +73,7 @@
 # Resolve one metadata-backed rule table for a table_id, tolerating a table that
 # is absent from metadata entirely or that lacks the expected columns -- the
 # normal state for a newly added rule table whose CSVs are not yet in the
-# metadata repo, and for an offline run falling back to a bundled copy that
+# metadata repo, and for an offline run falling back to an in-package copy that
 # predates it.
 #
 # The is.null()/colnames() guards must precede nrow() because nrow(NULL) is

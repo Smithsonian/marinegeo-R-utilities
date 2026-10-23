@@ -1,5 +1,5 @@
 # ---------------------------------------------------------------------------
-# Registry resolution from the generated dist/ artifacts
+# Registry resolution from the generated dist/ bundles
 #
 # Nothing here touches the network: the local-checkout path writes a small
 # dist/ to a temp dir, and the live path mocks the single fetch seam
@@ -28,7 +28,7 @@
   legacy_taxonomic_ids = data.frame(x = 1L)
 )
 
-# The live rows a fake artifact serves for database_structure.
+# The live rows a fake bundle serves for database_structure.
 .live_struct_rows <- list(
   list(
     protocol = "live",
@@ -63,7 +63,7 @@
 .fake_manifest <- function(schema_version = 1L) {
   list(
     schema_version = schema_version,
-    artifacts = list(
+    bundles = list(
       `qc-metadata` = list(
         path = "dist/qc-metadata.json",
         tables = list(database_structure = .struct_schema)
@@ -73,25 +73,25 @@
   )
 }
 
-.fake_artifact <- function() {
+.fake_bundle <- function() {
   list(
     schema_version = 1L,
-    artifact = "qc-metadata",
+    bundle = "qc-metadata",
     tables = list(database_structure = .live_struct_rows)
   )
 }
 
-# Serve the fake manifest/artifact through the one fetch seam.
+# Serve the fake manifest/bundle through the one fetch seam.
 .mock_fetch <- function(
   manifest = .fake_manifest(),
-  artifact = .fake_artifact()
+  bundle = .fake_bundle()
 ) {
   function(src) {
     if (grepl("manifest\\.json$", src)) {
       return(manifest)
     }
     if (grepl("qc-metadata\\.json$", src)) {
-      return(artifact)
+      return(bundle)
     }
     stop("unexpected fetch: ", src)
   }
@@ -101,7 +101,7 @@
 .write_fake_dist <- function(
   root,
   manifest = .fake_manifest(),
-  artifact = .fake_artifact()
+  bundle = .fake_bundle()
 ) {
   dir.create(file.path(root, "dist"), recursive = TRUE, showWarnings = FALSE)
   writeLines(
@@ -109,7 +109,7 @@
     file.path(root, "dist", "manifest.json")
   )
   writeLines(
-    jsonlite::toJSON(artifact, auto_unbox = TRUE, null = "null"),
+    jsonlite::toJSON(bundle, auto_unbox = TRUE, null = "null"),
     file.path(root, "dist", "qc-metadata.json")
   )
   root
@@ -261,10 +261,10 @@ test_that("an unknown declared type is an error", {
   )
 })
 
-test_that("a table absent from its artifact is an error", {
+test_that("a table absent from its bundle is an error", {
   expect_error(
     .mg_coerce_registry_table(NULL, .struct_schema, "database_structure"),
-    "missing from its artifact"
+    "missing from its bundle"
   )
 })
 
@@ -330,7 +330,7 @@ test_that("offline mode returns bundled data without fetching", {
   expect_equal(.mg_get_registry_table("database_structure"), .bundled_struct)
 })
 
-test_that("a live fetch returns the typed artifact table", {
+test_that("a live fetch returns the typed bundle table", {
   withr::local_options(
     marinegeo.utils.live_registry = TRUE,
     marinegeo.utils.metadata_local = NULL
@@ -430,7 +430,7 @@ test_that("a newer schema version is not swallowed by the fallback in strict mod
   )
 })
 
-test_that("resolving several tables from one artifact fetches it once", {
+test_that("resolving several tables from one bundle fetches it once", {
   withr::local_options(
     marinegeo.utils.live_registry = TRUE,
     marinegeo.utils.metadata_local = NULL
@@ -451,7 +451,7 @@ test_that("resolving several tables from one artifact fetches it once", {
   .mg_get_registry_table("database_structure")
   .mg_get_registry_table("database_structure")
 
-  # The manifest and the artifact, once each -- the reason the fetch seam is
+  # The manifest and the bundle, once each -- the reason the fetch seam is
   # memoised on its source.
   expect_identical(length(unique(seen)), 2L)
   expect_identical(length(seen), 2L)
