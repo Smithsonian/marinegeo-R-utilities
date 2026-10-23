@@ -67,7 +67,7 @@ for \code{table_id}.
 \item Categorical values test: runs if \code{categorical_values} has rows for
 \code{table_id}.
 \item Missing values test: runs if \code{database_structure} has rows with
-\code{missing_values} equal to \code{"enforce"} or \code{"warn"} for \code{table_id}.
+\code{missing_values} equal to \code{"fail"} or \code{"warn"} for \code{table_id}.
 \item Numeric ranges test: runs if \code{numeric_ranges} has rows with non-\code{NA}
 \code{range_type} for \code{table_id}.
 \item Grouped aggregate test: runs if \code{aggregate_rules} has rows for

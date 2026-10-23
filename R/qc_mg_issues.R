@@ -24,6 +24,11 @@
   )
 }
 
+# The `missing_values` values that actually produce an issue. The third value,
+# "allow", declares no rule. Since the rename these ARE severities, so a rule's
+# value is used as the issue's severity verbatim.
+.qc_missing_active <- c("fail", "warn")
+
 # Derive the worst severity present: fail > warn > pass.
 .qc_status <- function(issues) {
   sev <- issues$severity

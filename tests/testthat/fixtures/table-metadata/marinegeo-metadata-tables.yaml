@@ -7,7 +7,7 @@
 # column names like "137.5", vocabulary values like "0.1" or "TRUE",
 # and comparison operators like ">=".
 
-schema_version: 1
+schema_version: 2
 protocol: taxonomy-and-functional-groups
 level: 1
 tables:
@@ -57,14 +57,14 @@ tables:
   columns:
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: habitat
     type: STRING
   - name: latitude
@@ -76,16 +76,16 @@ tables:
   columns:
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: institution
     type: STRING
   - name: country
     type: STRING
   - name: partner_type
     type: STRING
-    missing: warn
+    na_values: warn
 

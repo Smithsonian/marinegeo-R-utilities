@@ -7,7 +7,7 @@
 # column names like "137.5", vocabulary values like "0.1" or "TRUE",
 # and comparison operators like ">=".
 
-schema_version: 1
+schema_version: 2
 protocol: Fouling Community Monitoring
 level: 2
 tables:
@@ -15,88 +15,88 @@ tables:
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: panel_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: deployment_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: latitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
   - name: longitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
   - name: habitat
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: panel_metadata_notes
     type: STRING
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: fouling-biomass-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: panel_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: deployment_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: retrieval_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: deployment_period
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: panel_weight_predeployment_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
   - name: panel_wet_weight_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
   - name: community_biomass_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
   - name: biomass_method
     type: STRING
-    missing: enforce
+    na_values: fail
     one_of:
     - panel preweighed
     - panel scraped
@@ -104,52 +104,52 @@ tables:
     type: STRING
   - name: habitat
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: biomass_data_notes
     type: STRING
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: fouling-sessile-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: panel_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: deployment_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: retrieval_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: deployment_period
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: identification_notes
     type: STRING
@@ -157,80 +157,80 @@ tables:
     type: STRING
   - name: habitat
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: sessile_species_data_notes
     type: STRING
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: fouling-cover-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: panel_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: deployment_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: retrieval_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: deployment_period
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: identification_notes
     type: STRING
   - name: point_count
     type: INT
-    missing: enforce
+    na_values: fail
   - name: points_in_grid
     type: INT
-    missing: enforce
+    na_values: fail
   - name: percent_cover
     type: DOUBLE
-    missing: enforce
+    na_values: fail
   - name: photo_filename
     type: STRING
   - name: habitat
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: percent_cover_notes
     type: STRING
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
   checks:
     aggregate:
     - rule_id: fouling_cover_point_total

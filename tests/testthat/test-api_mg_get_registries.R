@@ -37,7 +37,7 @@
     level = 2L,
     column_name = "a",
     data_type = "STRING",
-    missing_values = "enforce",
+    missing_values = "fail",
     uuid_identity = TRUE
   ),
   list(
@@ -64,7 +64,7 @@
   )
 )
 
-.fake_manifest <- function(schema_version = 1L) {
+.fake_manifest <- function(schema_version = 2L) {
   list(
     schema_version = schema_version,
     artifacts = list(
@@ -79,7 +79,7 @@
 
 .fake_artifact <- function() {
   list(
-    schema_version = 1L,
+    schema_version = 2L,
     artifact = "qc-metadata",
     tables = list(database_structure = .live_struct_rows)
   )
@@ -170,7 +170,16 @@ test_that("strict registry defaults off", {
 # ---------------------------------------------------------------------------
 
 test_that("a readable schema version passes", {
-  expect_equal(.mg_check_schema_version(list(schema_version = 1L), "x"), 1L)
+  expect_equal(.mg_check_schema_version(list(schema_version = 2L), "x"), 2L)
+})
+
+test_that("a pre-rename schema version is a loud error", {
+  # Schema 1 spells the missing-value rule `enforce`, which this package
+  # filters out entirely -- a clean pass having checked nothing.
+  expect_error(
+    .mg_check_schema_version(list(schema_version = 1L), "dist/manifest.json"),
+    "requires at least"
+  )
 })
 
 test_that("a newer major schema version is a loud error", {
@@ -219,7 +228,7 @@ test_that("a JSON null becomes a typed NA, not an empty string", {
     "database_structure"
   )
 
-  expect_identical(out$missing_values, c("enforce", NA_character_))
+  expect_identical(out$missing_values, c("fail", NA_character_))
   expect_identical(out$uuid_identity, c(TRUE, NA))
   expect_false(any(!is.na(out$missing_values) & out$missing_values == ""))
 })

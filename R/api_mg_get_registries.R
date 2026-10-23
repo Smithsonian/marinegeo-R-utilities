@@ -43,7 +43,13 @@
 # the artifact layout changed in a way this code cannot read, which must be a
 # loud error -- the QC engine reads a malformed rule table as "no rules" and
 # reports a clean pass having run no checks.
-.mg_dist_schema_version <- 1L
+.mg_dist_schema_version <- 2L
+
+# The oldest dist/ schema major version still readable. Schema 1 spelled the
+# `missing_values` rule `enforce` where 2 spells it `fail`, so schema 1 read by
+# this code would filter to zero missing-value rules and report a clean pass
+# having checked nothing -- the same silent failure, from the other direction.
+.mg_dist_schema_version_min <- 2L
 
 .mg_manifest_rel <- "dist/manifest.json"
 
@@ -169,6 +175,19 @@
   ver <- suppressWarnings(as.integer(ver))
   if (is.na(ver)) {
     stop("'", src, "' has an unreadable schema_version", call. = FALSE)
+  }
+  if (ver < .mg_dist_schema_version_min) {
+    stop(
+      "'",
+      src,
+      "' publishes schema_version ",
+      ver,
+      " but this version of marinegeo.utils requires at least ",
+      .mg_dist_schema_version_min,
+      ". That metadata predates the `na_values:`/`fail` rename -- regenerate ",
+      "dist/ from marinegeo-metadata.",
+      call. = FALSE
+    )
   }
   if (ver > .mg_dist_schema_version) {
     stop(

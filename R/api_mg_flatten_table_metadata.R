@@ -118,7 +118,7 @@
 # deliberately *not* duplicated here -- they are validated against the real
 # objects in R/qc_mg_conditional.R, R/qc_mg_check_aggregate.R and
 # R/qc_mg_check_cross_table.R, so the schema can never drift from the engine.
-.mg_missing_values_enum <- c("enforce", "warn", "allow")
+.mg_missing_values_enum <- c("fail", "warn", "allow")
 .mg_range_type_enum <- c("inclusive", "exclusive")
 .mg_severity_enum <- c("fail", "warn")
 
@@ -645,6 +645,18 @@
         )
         where_col <- paste0(where_tbl, " ", name)
 
+        # The flattener validates values, not key names, so an unrenamed
+        # `missing:` would be read as "no rule" and the column would silently
+        # lose its NA check. Refuse it instead.
+        if (!is.null(col$missing)) {
+          stop(
+            "`missing:` was renamed to `na_values:` at ",
+            where_col,
+            " -- and its `enforce` value is now `fail`",
+            call. = FALSE
+          )
+        }
+
         struct[[length(struct) + 1L]] <- list(
           protocol = protocol,
           table_id = table_id,
@@ -652,9 +664,9 @@
           column_name = name,
           data_type = .mg_req_chr1(col$type, paste0(where_col, " $type")),
           missing_values = .mg_enum1(
-            col$missing,
+            col$na_values,
             .mg_missing_values_enum,
-            paste0(where_col, " $missing")
+            paste0(where_col, " $na_values")
           ),
           uuid_identity = .mg_lgl1(
             col$uuid_identity,

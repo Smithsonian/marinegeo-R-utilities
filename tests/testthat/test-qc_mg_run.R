@@ -49,7 +49,7 @@ mock_db_struct_full <- data.frame(
   table_id = rep("test_table_v1", 3),
   column_name = c("site_name", "survey_date", "cover"),
   data_type = c("STRING", "DATE", "DOUBLE"),
-  missing_values = c("enforce", "warn", "allow"),
+  missing_values = c("fail", "warn", "allow"),
   uuid_identity = c(TRUE, TRUE, NA),
   stringsAsFactors = FALSE
 )
@@ -319,7 +319,7 @@ test_that("partial = FALSE leaves checks_skipped empty", {
 
 test_that("partial = TRUE records only checks with an applicable rule", {
   local_partial_metadata()
-  # site_name has a type, a controlled vocabulary and an "enforce" rule, but no
+  # site_name has a type, a controlled vocabulary and an "fail" rule, but no
   # numeric range -- only `cover` does.
   result <- qc_run(
     good_df[, "site_name", drop = FALSE],

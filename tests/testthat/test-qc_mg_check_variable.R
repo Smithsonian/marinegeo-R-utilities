@@ -7,7 +7,7 @@ var_db_struct <- data.frame(
   table_id = rep("test_table_v1", 4),
   column_name = c("site_name", "cover", "notes", "scientific_name"),
   data_type = c("STRING", "DOUBLE", "STRING", "STRING"),
-  missing_values = c("enforce", "warn", "allow", "allow"),
+  missing_values = c("fail", "warn", "allow", "allow"),
   uuid_identity = c(TRUE, NA, NA, NA),
   stringsAsFactors = FALSE
 )
@@ -201,7 +201,7 @@ test_that("an invalid categorical value is a fail on the right cell", {
   expect_equal(bad$value, "NOT_VALID")
 })
 
-test_that("NA under an enforce rule fails and under a warn rule warns", {
+test_that("NA under a fail rule fails and under a warn rule warns", {
   local_var_metadata()
 
   enforced <- qc_check_variable(

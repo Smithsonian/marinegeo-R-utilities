@@ -23,7 +23,7 @@
     "  columns:\n",
     "  - name: site_code\n",
     "    type: STRING\n",
-    "    missing: enforce\n",
+    "    na_values: fail\n",
     "  - name: count\n",
     "    type: INT\n",
     extra_col,
@@ -188,10 +188,31 @@ test_that("a non-numeric bound is rejected rather than silently NA", {
   expect_error(.mg_flatten_table_metadata(docs), "expected a number")
 })
 
+test_that("the pre-rename `missing:` key is refused, not ignored", {
+  # The flattener validates values, not key names, so a missed rename would
+  # otherwise read as "no rule" and the column would silently lose its NA
+  # check.
+  expect_error(
+    .mg_flatten_table_metadata(
+      .load_yaml_str(.minimal("    missing: enforce\n"))
+    ),
+    "renamed to `na_values:`"
+  )
+})
+
+test_that("the pre-rename `enforce` value is refused", {
+  expect_error(
+    .mg_flatten_table_metadata(
+      .load_yaml_str(.minimal("    na_values: enforce\n"))
+    ),
+    "is not one of"
+  )
+})
+
 test_that("closed enums are enforced", {
   expect_error(
     .mg_flatten_table_metadata(.load_yaml_str(.minimal(
-      "    missing: sometimes\n"
+      "    na_values: sometimes\n"
     ))),
     "is not one of"
   )

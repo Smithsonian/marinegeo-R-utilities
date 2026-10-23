@@ -9,7 +9,7 @@
 #' @param rules A data frame with columns `column_name` and `missing_values`.
 #'   Each row specifies the missing-value rule for one column:
 #'   \itemize{
-#'     \item `"enforce"` — `NA` values are a **fail**.
+#'     \item `"fail"` — `NA` values are a **fail**.
 #'     \item `"warn"` — `NA` values produce a **warn**.
 #'     \item `"allow"` or `NA` — column is skipped (caller should pre-filter,
 #'       but these rows are silently ignored if present).
@@ -17,8 +17,8 @@
 #'
 #' @return A [qc_issues] tibble with one row per offending `NA` cell
 #'   (`issue = "missing_value"`), or zero rows if no required values are
-#'   missing. Cells in `"enforce"` columns are `"fail"` rows; cells in `"warn"`
-#'   columns are `"warn"` rows. `row` and `col_index` are 1-based; `value` is
+#'   missing. The rule value is the issue's severity: cells in `"fail"`
+#'   columns are `"fail"` rows and cells in `"warn"` columns are `"warn"` rows. `row` and `col_index` are 1-based; `value` is
 #'   `NA` (the cell is empty by definition).
 #'
 #' @details
@@ -30,7 +30,7 @@
 #' not its rank among only the validated columns.
 #'
 #' This function is called automatically by [qc_run()] when the
-#' `database_structure` metadata contains `"enforce"` or `"warn"` rules for
+#' `database_structure` metadata contains `"fail"` or `"warn"` rules for
 #' the given `table_id`.
 #'
 #' @export
@@ -44,11 +44,11 @@
 #'
 #' rules <- data.frame(
 #'   column_name    = c("site_name", "survey_date", "cover"),
-#'   missing_values = c("enforce", "warn", "allow"),
+#'   missing_values = c("fail", "warn", "allow"),
 #'   stringsAsFactors = FALSE
 #' )
 #'
-#' # site_name has an NA and is "enforce" -> one fail row
+#' # site_name has an NA and is "fail" -> one fail row
 #' qc_check_missing_values(df, rules)
 qc_check_missing_values <- function(data, rules) {
   # --- Input validation -------------------------------------------------------
@@ -64,7 +64,7 @@ qc_check_missing_values <- function(data, rules) {
     stop("`rules` must have columns `column_name` and `missing_values`.")
   }
 
-  active_rules <- rules[rules$missing_values %in% c("enforce", "warn"), ]
+  active_rules <- rules[rules$missing_values %in% .qc_missing_active, ]
   cols_to_check <- intersect(active_rules$column_name, colnames(data))
 
   chunks <- lapply(cols_to_check, function(col) {
@@ -76,7 +76,8 @@ qc_check_missing_values <- function(data, rules) {
       return(NULL)
     }
 
-    severity <- if (rule == "enforce") "fail" else "warn"
+    # The rule value is the severity: "fail" or "warn".
+    severity <- rule
 
     .qc_issue(
       check = "qc_check_missing_values",

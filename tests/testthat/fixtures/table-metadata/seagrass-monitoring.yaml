@@ -7,7 +7,7 @@
 # column names like "137.5", vocabulary values like "0.1" or "TRUE",
 # and comparison operators like ">=".
 
-schema_version: 1
+schema_version: 2
 protocol: Seagrass Monitoring
 level: 2
 tables:
@@ -15,26 +15,26 @@ tables:
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -43,15 +43,15 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: cover_method
     type: STRING
-    missing: warn
+    na_values: warn
     one_of:
     - Braun-Blanquet
     - point count
@@ -61,20 +61,20 @@ tables:
     - method in notes
   - name: point_count
     type: INT
-    missing: allow
+    na_values: allow
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 81
   - name: points_in_quadrat
     type: INT
-    missing: allow
+    na_values: allow
     numeric_range:
       range_type: inclusive
       max_warn: 144
   - name: cover_code
     type: DOUBLE
-    missing: warn
+    na_values: warn
     one_of:
     - '0'
     - '0.1'
@@ -85,7 +85,7 @@ tables:
     - '4'
   - name: percent_cover
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 200
@@ -93,27 +93,27 @@ tables:
       max_warn: 100
   - name: sediment_type
     type: STRING
-    missing: allow
+    na_values: allow
   - name: cover_quadrat_dimensions
     type: STRING
-    missing: warn
+    na_values: warn
     one_of:
     - 50x50cm
     - 100x100cm
     - 150x150cm
   - name: cover_sample_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
   checks:
     aggregate:
     - rule_id: seagrass_cover_point_total
@@ -155,26 +155,26 @@ tables:
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -183,57 +183,57 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: macro_invert_id
     type: STRING
-    missing: warn
+    na_values: warn
   - name: size_mm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: macro_invert_sample_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: shoot-count-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -242,26 +242,26 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: shoot_count
     type: INT
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: flowers_present
     type: BOOL
-    missing: allow
+    na_values: allow
     one_of:
     - 'TRUE'
     - 'FALSE'
   - name: density_quadrat_dimensions
     type: STRING
-    missing: warn
+    na_values: warn
     one_of:
     - 20cm circumference
     - 25x25cm
@@ -269,66 +269,66 @@ tables:
     - 75x75cm
   - name: shoot_density_m2
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: shoot_count_sample_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: seagrass-leaf-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: ~
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: leaf_rank
     type: INT
-    missing: warn
+    na_values: warn
     uuid_identity: true
     numeric_range:
       range_type: ~
   - name: leaf_length_mm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
     - range_type: exclusive
       min_fail: 0
@@ -343,23 +343,23 @@ tables:
           taxon_within: Genus:Zostera
   - name: leaf_width_mm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: leaf_measurement_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
   checks:
     cross_table:
     - rule_id: leaf_quadrat_in_cover
@@ -377,26 +377,26 @@ tables:
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -405,85 +405,85 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: sheath_length_mm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: median_leaf_length_mm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: shoot_length_mm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: grazing_scars_present
     type: BOOL
-    missing: allow
+    na_values: allow
     one_of:
     - 'TRUE'
     - 'FALSE'
   - name: epibiont_dry_mass_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
   - name: blades_dry_mass_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
   - name: sheath_and_epibiont_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: seagrass-macroalgae-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -492,123 +492,123 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: macroalgae_id
     type: STRING
-    missing: warn
+    na_values: warn
     uuid_identity: true
   - name: macroalgae_dry_mass_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: sample_data_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: seagrass-biomass-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: ~
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: identification_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: biomass_type
     type: STRING
-    missing: warn
+    na_values: warn
     uuid_identity: true
   - name: sample_dry_mass_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: corer_dimensions
     type: STRING
-    missing: warn
+    na_values: warn
   - name: sample_data_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: seagrass-macrophyte-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -617,55 +617,55 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: warn
+    na_values: warn
     uuid_identity: true
   - name: sample_dry_mass_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: macrophyte_mass_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: seagrass-epifauna-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -674,125 +674,125 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: size_class
     type: STRING
-    missing: warn
+    na_values: warn
   - name: count
     type: INT
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: abundance_per_macrophyte_g
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: exclusive
       min_fail: 0
   - name: epifauna_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: seagrass-metadata-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: transect_begin_decimal_latitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_begin_decimal_longitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_end_decimal_latitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_end_decimal_longitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_length_m
     type: INT
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 50
   - name: compass_bearing
     type: DOUBLE
-    missing: warn
+    na_values: warn
   - name: depth_min_m
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: depth_max_m
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: sample_metadata_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 conditions:
 - label: flowering_zostera
   table: shoot-count-monitoring-v1

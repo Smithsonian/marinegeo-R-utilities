@@ -7,7 +7,7 @@
 # column names like "137.5", vocabulary values like "0.1" or "TRUE",
 # and comparison operators like ">=".
 
-schema_version: 1
+schema_version: 2
 protocol: Oyster Reef Monitoring
 level: 2
 tables:
@@ -15,121 +15,121 @@ tables:
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: transect_begin_decimal_latitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_begin_decimal_longitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_end_decimal_latitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_end_decimal_longitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: transect_length_m
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 50
   - name: depth_min_m
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: depth_max_m
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
   - name: intertidal_habitat
     type: BOOL
-    missing: warn
+    na_values: warn
     one_of:
     - 'TRUE'
     - 'FALSE'
   - name: reef_building_oysters
     type: BOOL
-    missing: warn
+    na_values: warn
     one_of:
     - 'TRUE'
     - 'FALSE'
   - name: sample_metadata_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: oyster-substrate-composition-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -137,15 +137,15 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: allow
+    na_values: allow
     uuid_identity: true
   - name: cover_type
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     one_of:
     - live oyster
@@ -159,35 +159,35 @@ tables:
     - canopy taxa
   - name: point_count
     type: INT
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_warn: 81
   - name: points_in_quadrat
     type: INT
-    missing: enforce
+    na_values: fail
     numeric_range:
       range_type: inclusive
       max_warn: 81
   - name: percent_cover
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_warn: 100
   - name: composition_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
   checks:
     aggregate:
     - rule_id: oyster_substrate_point_total
@@ -234,26 +234,26 @@ tables:
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -261,69 +261,69 @@ tables:
       min_warn: 0
   - name: sample_id
     type: INT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: identification_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: live_or_box
     type: STRING
-    missing: warn
+    na_values: warn
     one_of:
     - live
     - box
   - name: height_mm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 355
   - name: sample_height_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: oyster-count-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -331,80 +331,80 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: density_methodology
     type: STRING
-    missing: warn
+    na_values: warn
     one_of:
     - excavation
     - no excavation
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: identification_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: live_or_box
     type: STRING
-    missing: warn
+    na_values: warn
     uuid_identity: true
     one_of:
     - live
     - box
   - name: count
     type: INT
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: ~
       max_warn: 100
       min_warn: 0
   - name: density_quadrat_dimensions
     type: STRING
-    missing: warn
+    na_values: warn
     one_of:
     - 25cmx25cm
   - name: density_m2
     type: DOUBLE
-    missing: warn
+    na_values: warn
   - name: sample_frequency_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: oyster-habitat-complexity-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: transect
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: quadrat
     type: TINYINT
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -412,75 +412,75 @@ tables:
       min_warn: 0
   - name: sample_collection_date
     type: DATE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: chain_length_m
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 30
   - name: chain_distance_m
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 30
   - name: rugosity
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 1
       min_fail: 0
   - name: max_cluster_height_cm
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 100
   - name: habitat_complexity_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 - table_id: oyster-biobox-monitoring-v1
   columns:
   - name: sample_event_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: partner_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_code
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: site_name
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: biobox_deployment_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: biobox_recovery_date
     type: DATE
-    missing: warn
+    na_values: warn
   - name: biobox_id
     type: DOUBLE
-    missing: enforce
+    na_values: fail
     uuid_identity: true
     numeric_range:
       range_type: inclusive
@@ -488,43 +488,43 @@ tables:
       max_warn: 3
   - name: biobox_latitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: biobox_longitude
     type: DOUBLE
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       max_fail: 180
       min_fail: -180
   - name: scientific_name
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: identification_notes
     type: STRING
-    missing: allow
+    na_values: allow
   - name: biobox_count
     type: INT
-    missing: warn
+    na_values: warn
     numeric_range:
       range_type: inclusive
       min_fail: 0
       max_warn: 100
   - name: biobox_note
     type: STRING
-    missing: allow
+    na_values: allow
   - name: table_id
     type: STRING
-    missing: enforce
+    na_values: fail
     uuid_identity: true
   - name: row_uuid
     type: STRING
-    missing: enforce
+    na_values: fail
   - name: input_filename
     type: STRING
-    missing: enforce
+    na_values: fail
 

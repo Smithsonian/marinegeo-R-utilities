@@ -55,7 +55,7 @@
 #'   \item Categorical values test: runs if `categorical_values` has rows for
 #'     `table_id`.
 #'   \item Missing values test: runs if `database_structure` has rows with
-#'     `missing_values` equal to `"enforce"` or `"warn"` for `table_id`.
+#'     `missing_values` equal to `"fail"` or `"warn"` for `table_id`.
 #'   \item Numeric ranges test: runs if `numeric_ranges` has rows with non-`NA`
 #'     `range_type` for `table_id`.
 #'   \item Grouped aggregate test: runs if `aggregate_rules` has rows for
@@ -337,7 +337,7 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   }
 
   # --- Test 4: missing values ------------------------------------------------
-  miss_rows <- tbl_struct[tbl_struct$missing_values %in% c("enforce", "warn"), ]
+  miss_rows <- tbl_struct[tbl_struct$missing_values %in% .qc_missing_active, ]
   if (nrow(miss_rows) > 0) {
     results$qc_check_missing_values <- .qc_apply_conditional(
       qc_check_missing_values,
