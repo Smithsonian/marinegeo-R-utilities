@@ -231,6 +231,12 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   # declared before that closure.
   rules_skipped <- character(0)
 
+  # Rule tables that came from the offline snapshot rather than live metadata.
+  # Recorded as a side effect of .qc_resolve_rules() above. A rule table that
+  # could not be loaded is indistinguishable downstream from one with no rules,
+  # so without this the result would claim a clean pass having checked nothing.
+  stale_registries <- .mg_stale_registry_tables(.qc_registry_tables)
+
   empty_result <- function() {
     new_qc_issues(
       table_id = table_id,
@@ -238,7 +244,8 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
       checks_run = character(0),
       checks_skipped = checks_skipped,
       columns = colnames(data),
-      rules_skipped = rules_skipped
+      rules_skipped = rules_skipped,
+      stale_registries = stale_registries
     )
   }
 
@@ -415,6 +422,7 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
     checks_run = names(results),
     checks_skipped = checks_skipped,
     columns = colnames(data),
-    rules_skipped = rules_skipped
+    rules_skipped = rules_skipped,
+    stale_registries = stale_registries
   )
 }

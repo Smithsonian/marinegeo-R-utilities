@@ -73,6 +73,7 @@ general_sidebar_server <- function(id, input_list) {
 qc_flag_UI <- function(id) {
   ns <- NS(id)
   tagList(
+    uiOutput(ns("registry_warning")), # stale (offline) QC rules alert
     uiOutput(ns("structural_warnings")), # structural test alerts
     uiOutput(ns("select_flag")),
     uiOutput(ns("hide_warn_toggle")), # hide-warns checkbox
@@ -228,6 +229,37 @@ qc_flag_server <- function(id, input_list) {
             select(flag = color_id, row_num)
           input_list$selected_flag <- input$select_flag
         }
+      })
+
+      # Rule tables that could not be read from marinegeo-metadata and were
+      # served from the package's offline snapshot instead. Without this the
+      # app shows a clean pass for rules it never loaded, which is how a
+      # newly-added rule looks like a rule that doesn't work.
+      output$registry_warning <- renderUI({
+        req(qc_flags_list())
+
+        stale <- attr(qc_flags_list(), "stale_registries")
+        if (length(stale) == 0) {
+          return(NULL)
+        }
+
+        ref <- getOption("marinegeo.utils.metadata_ref", "main")
+
+        tags$div(
+          class = "alert alert-danger",
+          style = "font-size: 0.85em; padding: 6px 10px; margin-bottom: 4px;",
+          tags$strong("QC rules are out of date"),
+          tags$div(
+            paste0(
+              "Could not read ",
+              paste(stale, collapse = ", "),
+              " from marinegeo-metadata (ref '",
+              ref,
+              "'); using the copy built into the package. ",
+              "Rules added since then did not run."
+            )
+          )
+        )
       })
 
       output$structural_warnings <- renderUI({

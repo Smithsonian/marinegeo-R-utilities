@@ -142,7 +142,10 @@ qc_run_dataset <- function(tables, sheet = 1L, verbose = TRUE) {
     checks_run = gather(c(per_table, cross), "checks_run"),
     checks_skipped = checks_skipped,
     columns = columns,
-    rules_skipped = gather(per_table, "rules_skipped")
+    rules_skipped = gather(per_table, "rules_skipped"),
+    # Recomputed rather than gathered: the cross-table rules are resolved here,
+    # after the per-table runs stamped their own attribute.
+    stale_registries = .mg_stale_registry_tables(.qc_registry_tables)
   )
 
   # Dataset-level report, after the per-table ones each qc_run() already

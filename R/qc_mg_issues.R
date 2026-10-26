@@ -73,8 +73,8 @@
 # Constructor: normalize `rows` to the canonical schema, attach run metadata,
 # and stamp the qc_issues class. `rows` may be NULL, a zero-column/zero-row
 # frame (e.g. from bind_rows(list())), or a tibble of `.qc_issue()` chunks.
-# `checks_skipped`, `columns` and `rules_skipped` are only populated by the
-# dispatcher; the individual checks leave them NULL.
+# `checks_skipped`, `columns`, `rules_skipped` and `stale_registries` are only
+# populated by the dispatcher; the individual checks leave them NULL.
 new_qc_issues <- function(
   rows = NULL,
   table_id = NULL,
@@ -82,7 +82,8 @@ new_qc_issues <- function(
   checks_run = NULL,
   checks_skipped = NULL,
   columns = NULL,
-  rules_skipped = NULL
+  rules_skipped = NULL,
+  stale_registries = NULL
 ) {
   skeleton <- .qc_issues_skeleton()
 
@@ -101,6 +102,7 @@ new_qc_issues <- function(
   attr(out, "checks_skipped") <- checks_skipped
   attr(out, "columns") <- columns
   attr(out, "rules_skipped") <- rules_skipped
+  attr(out, "stale_registries") <- stale_registries
   attr(out, "status") <- .qc_status(out)
   class(out) <- c("qc_issues", class(skeleton))
   out
@@ -160,6 +162,13 @@ new_qc_issues <- function(
 #'     [qc_check_variable()], which only ever sees one column. Such a rule is
 #'     dropped rather than applied as if unconditional, so this attribute is
 #'     the only record that a bound exists but went unchecked.}
+#'   \item{`stale_registries`}{Names of the rule tables that were served from
+#'     the package's offline snapshot because the live `dist/` bundles could
+#'     not be read — see [utl_mg_registry_status()]. Those rules are as old as
+#'     the installed package, so a rule added to `marinegeo-metadata` since it
+#'     was built did not run. Since a rule table that failed to load is read as
+#'     "no rules", this attribute is the only thing separating that from a
+#'     genuine pass. `NULL` when every table came from live or local metadata.}
 #'   \item{`status`}{The worst severity present: `"fail"` > `"warn"` >
 #'     `"pass"`.}
 #' }

@@ -105,6 +105,17 @@ tables:
   - name: input_filename
     type: STRING
     na_values: fail
+  checks:
+    aggregate:
+    - rule_id: oyster_transect_sample_events
+      group_by:
+      - sample_event_id
+      value: transect
+      function: n_distinct
+      comparison: ==
+      target_value: 1
+      severity: fail
+      description: Each transect defined in sample event should have one row
 - table_id: oyster-substrate-composition-monitoring-v1
   columns:
   - name: sample_event_id
@@ -454,6 +465,18 @@ tables:
   - name: input_filename
     type: STRING
     na_values: fail
+  checks:
+    aggregate:
+    - rule_id: oyster_complexity_quadrats_per_transect
+      group_by:
+      - sample_event_id
+      - transect
+      value: quadrat
+      function: n_distinct
+      comparison: ==
+      target_value: 5
+      severity: fail
+      description: Evaluating number of quadrats per transect
 - table_id: oyster-biobox-monitoring-v1
   columns:
   - name: sample_event_id

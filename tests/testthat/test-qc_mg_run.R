@@ -557,3 +557,56 @@ test_that("non-logical verbose stops with an informative error", {
     "`verbose` must be a single `TRUE` or `FALSE`"
   )
 })
+
+# ---------------------------------------------------------------------------
+# Stale-rule provenance
+#
+# A rule table that could not be loaded is read as "no rules", so without this
+# attribute a run against unreachable metadata is indistinguishable from a
+# clean pass. See R/api_mg_get_registries.R.
+# ---------------------------------------------------------------------------
+
+test_that("qc_run names the rule tables that fell back to the offline copy", {
+  .mg_registry_env$source <- list()
+  withr::defer(.mg_registry_env$source <- list())
+  withr::local_options(
+    marinegeo.utils.live_registry = TRUE,
+    marinegeo.utils.metadata_local = NULL,
+    marinegeo.utils.strict_registry = FALSE
+  )
+  local_mocked_bindings(
+    marinegeo_metadata = make_mock_metadata(),
+    .mg_fetch_json = function(src) stop("HTTP status was '404 Not Found'"),
+    .package = "marinegeo.utils"
+  )
+
+  result <- suppressWarnings(qc_run(good_df, "test_table_v1"))
+
+  stale <- attr(result, "stale_registries")
+  expect_true("database_structure" %in% stale)
+  expect_true("categorical_values" %in% stale)
+
+  # And the human-facing report says so, rather than claiming a clean pass.
+  expect_match(
+    paste(.qc_report_lines(result), collapse = "\n"),
+    "offline rules:.*database_structure"
+  )
+})
+
+test_that("a deliberately offline run reports no stale rule tables", {
+  .mg_registry_env$source <- list()
+  withr::defer(.mg_registry_env$source <- list())
+  withr::local_options(marinegeo.utils.live_registry = FALSE)
+  local_mocked_bindings(
+    marinegeo_metadata = make_mock_metadata(),
+    .package = "marinegeo.utils"
+  )
+
+  result <- qc_run(good_df, "test_table_v1")
+
+  expect_identical(attr(result, "stale_registries"), character(0))
+  expect_no_match(
+    paste(.qc_report_lines(result), collapse = "\n"),
+    "offline rules:"
+  )
+})

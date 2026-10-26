@@ -93,13 +93,16 @@
 #'     \item{`tolerance`}{Optional numeric slack; `NA` means exact.}
 #'     \item{`severity`}{`"fail"` or `"warn"`. Defaults to `"fail"`.}
 #'     \item{`rule_id`}{Optional identifier, reported in the result.}
+#'     \item{`description`}{Optional prose, appended in parentheses to
+#'       `detail` so a finding says what the rule is for.}
 #'   }
 #'
 #' @return A [qc_issues] tibble with one `issue = "aggregate_mismatch"` row per
 #'   offending data row — not one per group — so `row` and `col_index` stay
 #'   usable for highlighting the offending cells. `value` holds the row's own
 #'   value of `value_column`; `detail` carries the group-level explanation, e.g.
-#'   `"sum(point_count) = 30, expected points_in_quadrat = 81"`.
+#'   `"sum(point_count) = 30, expected == points_in_quadrat = 81"`, or
+#'   `"n_distinct(quadrat) = 4, expected == 5"` for a literal target.
 #'
 #' @details
 #' Malformed metadata never aborts a run. A rule naming a column that is absent,
@@ -296,7 +299,9 @@ qc_check_aggregate <- function(data, rules) {
     target_label <- target_col
   } else {
     expected <- rep(suppressWarnings(as.numeric(target_val)), nrow(data))
-    target_label <- "expected value"
+    # A literal target names nothing, so there is no label to print: "expected
+    # == 5" reads correctly where "expected == expected value = 5" does not.
+    target_label <- NA_character_
   }
 
   tol <- suppressWarnings(as.numeric(.qc_rule_field(rule, "tolerance", NA)))
@@ -308,6 +313,23 @@ qc_check_aggregate <- function(data, rules) {
   bad <- which(!holds & !is.na(holds))
   if (length(bad) == 0L) {
     return(NULL)
+  }
+
+  # A column target is worth naming ("expected == points_in_quadrat = 81");
+  # a literal one is just the number ("expected == 5").
+  expected_text <- if (is.na(target_label)) {
+    .qc_fmt_num(expected[bad])
+  } else {
+    paste0(target_label, " = ", .qc_fmt_num(expected[bad]))
+  }
+
+  # The rule's own prose, when metadata carries it, says what the rule is
+  # *for* -- "5 quadrats per transect" rather than a bare arithmetic mismatch.
+  why <- .qc_rule_field(rule, "description", NA_character_)
+  suffix <- if (is.na(why) || !nzchar(trimws(why))) {
+    ""
+  } else {
+    paste0(" (", trimws(why), ")")
   }
 
   .qc_issue(
@@ -328,9 +350,8 @@ qc_check_aggregate <- function(data, rules) {
       ", expected ",
       cmp_name,
       " ",
-      target_label,
-      " = ",
-      .qc_fmt_num(expected[bad])
+      expected_text,
+      suffix
     )
   )
 }

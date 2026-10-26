@@ -344,12 +344,123 @@
   )
 }
 
+# ---------------------------------------------------------------------------
+# Provenance
+#
+# Which source each registry table was actually served from, recorded as a side
+# effect of resolving it. The offline fallback is the dangerous path: a rule
+# table that failed to load is read downstream as "no rules", so QC reports a
+# clean pass having checked nothing. The warning says so, but a warning raised
+# inside a Shiny reactive is effectively invisible -- which is exactly how a
+# `dist/` missing from the default ref looks like "my new rule doesn't work".
+#
+# Keyed by table name and overwritten on every resolution, so the record always
+# describes the most recent load rather than accumulating history.
+# ---------------------------------------------------------------------------
+.mg_registry_env <- new.env(parent = emptyenv())
+.mg_registry_env$source <- list()
+
+# `source` is one of "local", "live" or "offline"; `detail` carries the path,
+# ref or failure reason behind it.
+#
+# `fallback` separates the two ways a table ends up offline. Asking for offline
+# mode, or reading a table the manifest simply does not publish, is a correct
+# outcome. Reaching for live metadata and failing is not: those rules are as
+# old as the installed package, and the caller needs telling. Only the latter
+# is a fallback.
+.mg_note_registry_source <- function(
+  table,
+  source,
+  detail = NA_character_,
+  fallback = FALSE
+) {
+  .mg_registry_env$source[[table]] <- list(
+    source = source,
+    detail = detail,
+    fallback = fallback
+  )
+  invisible(NULL)
+}
+
+# The provenance of every registry table resolved so far this session, as a
+# tibble. Empty before the first resolution.
+.mg_registry_sources <- function() {
+  recorded <- .mg_registry_env$source
+  # USE.NAMES = FALSE throughout: the list is keyed by table name, and letting
+  # those names ride along would give every column the same names attribute.
+  pluck <- function(f, type) {
+    vapply(recorded, f, type, USE.NAMES = FALSE)
+  }
+  tibble::tibble(
+    table = if (length(recorded) == 0) character(0) else names(recorded),
+    source = pluck(function(x) x$source, character(1)),
+    fallback = pluck(function(x) isTRUE(x$fallback), logical(1)),
+    detail = pluck(function(x) as.character(x$detail), character(1))
+  )
+}
+
+# The subset of `tables` whose rules fell back to the offline copy against the
+# caller's intent. The dispatcher stamps this onto its result so a caller can
+# tell "these rules are stale" apart from "these rules passed".
+.mg_stale_registry_tables <- function(tables) {
+  recorded <- .mg_registry_env$source[intersect(
+    tables,
+    names(.mg_registry_env$source)
+  )]
+  stale <- vapply(recorded, function(x) isTRUE(x$fallback), logical(1))
+  names(recorded)[stale]
+}
+
+#' Where registry tables were loaded from this session
+#'
+#' @description
+#' Reports, for every registry table resolved so far in this session, whether it
+#' came from a local `marinegeo-metadata` checkout, the live `dist/` bundles on
+#' GitHub, or the offline copy baked into the package.
+#'
+#' The offline copy is a fallback, not an equivalent: it is a snapshot taken
+#' when the package was built, so a rule added to `marinegeo-metadata` since
+#' then is simply absent. Because a QC check reads a rule table it could not
+#' load as "no rules to apply", that shows up as a clean pass rather than an
+#' error. Call this when a rule you know exists in the metadata repo does not
+#' appear to fire.
+#'
+#' @return A [tibble][tibble::tibble] with one row per resolved table:
+#'   \describe{
+#'     \item{`table`}{Registry table name, e.g. `"aggregate_rules"`.}
+#'     \item{`source`}{`"local"`, `"live"` or `"offline"`.}
+#'     \item{`fallback`}{`TRUE` only where live metadata was wanted and could
+#'       not be read. Running offline on purpose, or reading a table the
+#'       manifest does not publish, is `FALSE` — those are correct outcomes,
+#'       not degraded ones.}
+#'     \item{`detail`}{The checkout path, the git ref, or the reason the live
+#'       fetch failed.}
+#'   }
+#'   Zero rows before any registry table has been resolved.
+#'
+#' @seealso [qc_run()], whose result carries a `stale_registries` attribute
+#'   naming the rule tables that fell back.
+#'
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' utl_mg_list_tables()
+#' utl_mg_registry_status()
+#' }
+utl_mg_registry_status <- function() {
+  .mg_registry_sources()
+}
+
 #' Resolve a registry table, preferring live data with offline fallback
 #'
 #' Reads the generated `dist/` bundles, falling back to the offline
 #' `marinegeo_metadata` copy on any failure so the package keeps working
 #' offline. A configured local checkout takes precedence over both and errors
 #' rather than falling back; see `.mg_metadata_local()`.
+#'
+#' Every return path records its provenance via `.mg_note_registry_source()`,
+#' so a silent fallback leaves a trace the caller can read back.
 #'
 #' @param table Character scalar. Registry table name.
 #' @return A data frame for the requested table.
@@ -374,16 +485,28 @@
       }
     )
     if (is.null(out)) {
+      .mg_note_registry_source(
+        table,
+        "offline",
+        paste0("not published in dist/ at '", local_root, "'")
+      )
       return(marinegeo_metadata[[table]])
     }
+    .mg_note_registry_source(table, "local", local_root)
     return(out)
   }
 
   if (!.mg_use_live_registry()) {
+    .mg_note_registry_source(
+      table,
+      "offline",
+      "live registry disabled (marinegeo.utils.live_registry / MARINEGEO_UTILS_OFFLINE)"
+    )
     return(marinegeo_metadata[[table]])
   }
 
   ref <- .mg_metadata_ref()
+  reason <- NULL
   out <- tryCatch(
     .mg_registry_from_dist(table, function(rel) .mg_file_url(rel, ref)),
     error = function(e) {
@@ -398,6 +521,7 @@
       if (.mg_strict_registry()) {
         stop(msg, call. = FALSE)
       }
+      reason <<- msg
       # A warning, not a message: a message is invisible in a non-interactive
       # script, which is where a silent fallback does the most damage.
       warning(msg, "; using offline fallback.", call. = FALSE)
@@ -406,7 +530,21 @@
   )
 
   if (is.null(out)) {
+    # Either the fetch failed (`reason` set by the handler) -- a real fallback
+    # -- or the manifest simply does not publish this table, in which case the
+    # offline copy is the intended source and nothing is stale.
+    .mg_note_registry_source(
+      table,
+      "offline",
+      if (is.null(reason)) {
+        paste0("not published in dist/ at ref '", ref, "'")
+      } else {
+        reason
+      },
+      fallback = !is.null(reason)
+    )
     return(marinegeo_metadata[[table]])
   }
+  .mg_note_registry_source(table, "live", ref)
   out
 }

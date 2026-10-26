@@ -25,6 +25,8 @@ constant within a group. Mutually exclusive with \code{target_value}.}
 \item{\code{tolerance}}{Optional numeric slack; \code{NA} means exact.}
 \item{\code{severity}}{\code{"fail"} or \code{"warn"}. Defaults to \code{"fail"}.}
 \item{\code{rule_id}}{Optional identifier, reported in the result.}
+\item{\code{description}}{Optional prose, appended in parentheses to
+\code{detail} so a finding says what the rule is for.}
 }}
 }
 \value{
@@ -32,7 +34,8 @@ A \link{qc_issues} tibble with one \code{issue = "aggregate_mismatch"} row per
 offending data row — not one per group — so \code{row} and \code{col_index} stay
 usable for highlighting the offending cells. \code{value} holds the row's own
 value of \code{value_column}; \code{detail} carries the group-level explanation, e.g.
-\code{"sum(point_count) = 30, expected points_in_quadrat = 81"}.
+\code{"sum(point_count) = 30, expected == points_in_quadrat = 81"}, or
+\code{"n_distinct(quadrat) = 4, expected == 5"} for a literal target.
 }
 \description{
 Validates a property of a \emph{group} of rows rather than of a single value: that

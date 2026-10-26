@@ -30,6 +30,7 @@
   checks_run <- attr(x, "checks_run")
   checks_skipped <- attr(x, "checks_skipped")
   rules_skipped <- attr(x, "rules_skipped")
+  stale_registries <- attr(x, "stale_registries")
 
   # `table_id` is a vector for a qc_run_dataset() result.
   label <- if (length(table_id) > 0) {
@@ -80,6 +81,20 @@
     lines <- c(
       lines,
       paste0("  rules_skipped: ", .qc_report_join(rules_skipped))
+    )
+  }
+  # Rules served from the package's offline snapshot. Anything added to
+  # marinegeo-metadata since the package was built is simply not in them, and
+  # an unloaded rule table looks exactly like a table with no rules -- so this
+  # line is the difference between "passed" and "never checked".
+  if (length(stale_registries) > 0) {
+    lines <- c(
+      lines,
+      paste0(
+        "  offline rules: ",
+        .qc_report_join(stale_registries),
+        " (stale; see utl_mg_registry_status())"
+      )
     )
   }
 

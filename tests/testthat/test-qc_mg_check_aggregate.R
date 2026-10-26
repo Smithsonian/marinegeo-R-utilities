@@ -433,3 +433,137 @@ test_that("the aggregate check is table-scoped and skipped under partial", {
   expect_true("qc_check_aggregate" %in% attr(result, "checks_skipped"))
   expect_false("qc_check_aggregate" %in% attr(result, "checks_run"))
 })
+
+# ---------------------------------------------------------------------------
+# How a finding reads
+# ---------------------------------------------------------------------------
+
+test_that("a literal target is reported as the number, with no label", {
+  df <- quadrat_df(c(40, 40))
+  result <- qc_check_aggregate(
+    df,
+    agg_rule(target_column = NA_character_, target_value = 100)
+  )
+
+  # A literal names nothing, so there is nothing to label it with.
+  expect_match(result$detail[1], "^sum\\(point_count\\) = 80, expected == 100$")
+})
+
+test_that("a column target is still named in the detail", {
+  df <- quadrat_df(c(40, 40))
+  result <- qc_check_aggregate(df, agg_rule())
+
+  expect_match(result$detail[1], "expected == points_in_quadrat = 81")
+})
+
+test_that("a rule description is appended so a finding says what it is for", {
+  df <- quadrat_df(c(40, 40))
+  result <- qc_check_aggregate(
+    df,
+    agg_rule(
+      target_column = NA_character_,
+      target_value = 100,
+      description = "Point counts must total 100"
+    )
+  )
+
+  expect_match(result$detail[1], "\\(Point counts must total 100\\)$")
+})
+
+test_that("a blank or absent description adds nothing", {
+  df <- quadrat_df(c(40, 40))
+  rule <- agg_rule(target_column = NA_character_, target_value = 100)
+
+  expect_match(qc_check_aggregate(df, rule)$detail[1], "expected == 100$")
+  expect_match(
+    qc_check_aggregate(
+      df,
+      agg_rule(
+        target_column = NA_character_,
+        target_value = 100,
+        description = "   "
+      )
+    )$detail[1],
+    "expected == 100$"
+  )
+})
+
+# ---------------------------------------------------------------------------
+# Counting distinct members of a group
+#
+# A completeness rule -- "five quadrats per transect" -- is n_distinct, not n:
+# a table may carry several rows per quadrat, which n would count twice.
+# ---------------------------------------------------------------------------
+
+test_that("n_distinct counts group members, not rows", {
+  # Two rows for each of three quadrats: five are required, three are present.
+  df <- data.frame(
+    sample_event_id = "SE1",
+    transect = 1L,
+    quadrat = rep(1:3, each = 2),
+    stringsAsFactors = FALSE
+  )
+  rule <- agg_rule(
+    group_columns = "sample_event_id|transect",
+    value_column = "quadrat",
+    aggregate_function = "n_distinct",
+    target_column = NA_character_,
+    target_value = 5
+  )
+
+  result <- qc_check_aggregate(df, rule)
+
+  # One issue per row of the short group, so the cells stay highlightable.
+  expect_identical(nrow(result), 6L)
+  expect_identical(unique(result$issue), "aggregate_mismatch")
+  expect_match(result$detail[1], "n_distinct\\(quadrat\\) = 3, expected == 5")
+
+  # `n` would have counted the six rows and called it a pass at 6 != 5 for the
+  # wrong reason -- pin that the two aggregates genuinely differ here.
+  n_rule <- rule
+  n_rule$aggregate_function <- "n"
+  n_rule$target_value <- 6
+  expect_identical(nrow(qc_check_aggregate(df, n_rule)), 0L)
+})
+
+test_that("a complete group passes while a short one does not", {
+  rule <- agg_rule(
+    group_columns = "sample_event_id|transect",
+    value_column = "quadrat",
+    aggregate_function = "n_distinct",
+    target_column = NA_character_,
+    target_value = 5
+  )
+  df <- function(quadrats) {
+    data.frame(
+      sample_event_id = "SE1",
+      transect = 1L,
+      quadrat = quadrats,
+      stringsAsFactors = FALSE
+    )
+  }
+
+  expect_identical(nrow(qc_check_aggregate(df(1:5), rule)), 0L)
+  expect_identical(nrow(qc_check_aggregate(df(1:4), rule)), 4L)
+})
+
+test_that("each group is counted on its own", {
+  df <- data.frame(
+    sample_event_id = "SE1",
+    transect = rep(1:2, c(5L, 3L)),
+    quadrat = c(1:5, 1:3),
+    stringsAsFactors = FALSE
+  )
+  rule <- agg_rule(
+    group_columns = "sample_event_id|transect",
+    value_column = "quadrat",
+    aggregate_function = "n_distinct",
+    target_column = NA_character_,
+    target_value = 5
+  )
+
+  result <- qc_check_aggregate(df, rule)
+
+  # Only the three rows of the short transect, not the complete one.
+  expect_identical(result$row, 6:8)
+})

@@ -55,6 +55,13 @@ columns supplied. Populated by \code{\link[=qc_run]{qc_run()}} with \code{partia
 \code{\link[=qc_check_variable]{qc_check_variable()}}, which only ever sees one column. Such a rule is
 dropped rather than applied as if unconditional, so this attribute is
 the only record that a bound exists but went unchecked.}
+\item{\code{stale_registries}}{Names of the rule tables that were served from
+the package's offline snapshot because the live \verb{dist/} bundles could
+not be read — see \code{\link[=utl_mg_registry_status]{utl_mg_registry_status()}}. Those rules are as old as
+the installed package, so a rule added to \code{marinegeo-metadata} since it
+was built did not run. Since a rule table that failed to load is read as
+"no rules", this attribute is the only thing separating that from a
+genuine pass. \code{NULL} when every table came from live or local metadata.}
 \item{\code{status}}{The worst severity present: \code{"fail"} > \code{"warn"} >
 \code{"pass"}.}
 }

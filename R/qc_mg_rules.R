@@ -25,6 +25,22 @@
   names(.qc_check_scopes)[.qc_check_scopes == "table"]
 }
 
+# Every registry table a QC run reads. Used to ask
+# .mg_stale_registry_tables() which of them fell back to the package's offline
+# snapshot, so the result can say which rules are stale instead of reporting a
+# clean pass over rules it never loaded.
+.qc_registry_tables <- c(
+  "database_structure",
+  "categorical_values",
+  "numeric_ranges",
+  "qc_conditions",
+  "aggregate_rules",
+  "cross_table_rules",
+  "partner_codes",
+  "site_codes",
+  "observation_lookup"
+)
+
 # Filter a registry table to one table_id, tolerating a table that is absent
 # from metadata entirely (NULL) or that carries no `table_id` column.
 .qc_filter_by_table <- function(tbl, table_id) {

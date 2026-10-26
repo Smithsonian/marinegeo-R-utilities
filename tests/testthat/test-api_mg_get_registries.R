@@ -456,3 +456,146 @@ test_that("resolving several tables from one bundle fetches it once", {
   expect_identical(length(unique(seen)), 2L)
   expect_identical(length(seen), 2L)
 })
+
+# ---------------------------------------------------------------------------
+# Provenance
+#
+# The silent-fallback trap this records: a dist/ missing from the resolved ref
+# makes every rule table fall back to the package snapshot, and a rule table
+# that failed to load is read downstream as "no rules" -- so QC reports a
+# clean pass having checked nothing. Only an *unwanted* fallback counts.
+# ---------------------------------------------------------------------------
+
+# Provenance is session state, so each test starts from an empty record.
+.clear_registry_sources <- function() {
+  .mg_registry_env$source <- list()
+}
+
+test_that("a live resolution records the ref it came from", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  withr::local_options(
+    marinegeo.utils.live_registry = TRUE,
+    marinegeo.utils.metadata_local = NULL,
+    marinegeo.utils.metadata_ref = "some-branch"
+  )
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_md,
+    .mg_fetch_json = .mock_fetch(),
+    .package = "marinegeo.utils"
+  )
+
+  .mg_get_registry_table("database_structure")
+  status <- utl_mg_registry_status()
+
+  expect_identical(status$table, "database_structure")
+  expect_identical(status$source, "live")
+  expect_identical(status$detail, "some-branch")
+  expect_false(status$fallback)
+  expect_identical(
+    .mg_stale_registry_tables("database_structure"),
+    character(0)
+  )
+})
+
+test_that("a failed live fetch is recorded as a fallback with its reason", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  withr::local_options(
+    marinegeo.utils.live_registry = TRUE,
+    marinegeo.utils.metadata_local = NULL,
+    marinegeo.utils.strict_registry = FALSE,
+    marinegeo.utils.metadata_ref = "no-dist-here"
+  )
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_md,
+    .mg_fetch_json = function(src) stop("HTTP status was '404 Not Found'"),
+    .package = "marinegeo.utils"
+  )
+
+  expect_warning(
+    out <- .mg_get_registry_table("database_structure"),
+    "using offline fallback"
+  )
+  expect_equal(out, .bundled_struct)
+
+  status <- utl_mg_registry_status()
+  expect_identical(status$source, "offline")
+  expect_true(status$fallback)
+  expect_match(status$detail, "404 Not Found")
+  expect_identical(
+    .mg_stale_registry_tables(c("database_structure", "never_resolved")),
+    "database_structure"
+  )
+})
+
+test_that("offline on purpose is not reported as a stale fallback", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  withr::local_options(marinegeo.utils.live_registry = FALSE)
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_md,
+    .mg_fetch_json = function(src) stop("should not fetch"),
+    .package = "marinegeo.utils"
+  )
+
+  .mg_get_registry_table("database_structure")
+  status <- utl_mg_registry_status()
+
+  # Offline is where the data came from; it is not a degraded outcome, so a
+  # deliberately offline run must not cry stale.
+  expect_identical(status$source, "offline")
+  expect_false(status$fallback)
+  expect_identical(
+    .mg_stale_registry_tables("database_structure"),
+    character(0)
+  )
+})
+
+test_that("a table the manifest does not publish is not a stale fallback", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  withr::local_options(
+    marinegeo.utils.live_registry = TRUE,
+    marinegeo.utils.metadata_local = NULL
+  )
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_md,
+    .mg_fetch_json = .mock_fetch(),
+    .package = "marinegeo.utils"
+  )
+
+  # `data_index` is absent from the fake manifest's table_index, so the
+  # bundled copy is the intended source rather than a failure.
+  .mg_get_registry_table("data_index")
+  status <- utl_mg_registry_status()
+
+  expect_identical(status$source, "offline")
+  expect_false(status$fallback)
+  expect_identical(.mg_stale_registry_tables("data_index"), character(0))
+})
+
+test_that("status starts empty and reports one row per resolved table", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+
+  expect_identical(nrow(utl_mg_registry_status()), 0L)
+  expect_identical(
+    names(utl_mg_registry_status()),
+    c("table", "source", "fallback", "detail")
+  )
+
+  withr::local_options(marinegeo.utils.live_registry = FALSE)
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_md,
+    .mg_fetch_json = function(src) stop("should not fetch"),
+    .package = "marinegeo.utils"
+  )
+
+  .mg_get_registry_table("database_structure")
+  .mg_get_registry_table("database_structure")
+  .mg_get_registry_table("data_index")
+
+  # Keyed by table and overwritten, so a repeated resolution is one row.
+  expect_identical(nrow(utl_mg_registry_status()), 2L)
+})
