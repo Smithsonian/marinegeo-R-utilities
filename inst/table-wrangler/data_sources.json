@@ -175,7 +175,7 @@
           "grouping_order": 2,
           "location_type": "GitHub",
           "location_path": "marinegeo-oyster-monitoring/L1-data/oyster-monitoring-marinegeo/marinegeo-nonstandard/",
-		  "script_path": "marinegeo-seagrass-monitoring/scripts/",
+		  "script_path": "marinegeo-oyster-monitoring/scripts/",
           "label_strategy": {
             "type": "subdirectory",
             "description": "Use subdirectory folder names as labels for sorting individual files"
