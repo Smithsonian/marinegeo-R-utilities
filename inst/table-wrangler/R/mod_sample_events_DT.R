@@ -320,7 +320,7 @@ sample_event_server <- function(id, input_list) {
         
         req_cols <- c("sample_event_id", "site_name", "site_code", "date", "depth", "method", "block", "vis", "direction", "time", "photoquadrats","input_filename")
         
-        rls_l2_data <- marinegeo.utils::db_marinegeo_L2("reef-life-survey-data-marinegeo-v1") %>%
+        rls_l2_data <- marinegeo.utils::db_arrow_marinegeo("reef-life-survey-data-marinegeo-v1") %>%
           select(all_of(req_cols)) %>%
           distinct()
         
