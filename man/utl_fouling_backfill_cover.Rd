@@ -23,7 +23,7 @@ event.}
 \item{\code{deployment_date}}{Date. Date the panels were deployed.}
 \item{\code{retrieval_date}}{Date. Date the panels were retrieved and
 photographed; one value per \code{deployment_period} within an event.}
-\item{\code{deployment_period}}{Character. Soak time of the panel image
+\item{\code{deployment_period}}{Character. Deployment time of the panel image
 (e.g., \code{"30 day"}, \code{"60 day"}, \code{"90 day"}).}
 \item{\code{scientific_name}}{Character. Species or taxon name; used to
 determine fouling group membership.}
@@ -96,7 +96,7 @@ all from the panel image:
 \code{deployment_date}, \code{habitat}, \code{input_filename}) — the site the panels
 hung at and the paperwork describing the deployment.
 \item Deployment period level (\code{retrieval_date}) — one retrieval covers
-every panel pulled at that soak time, so a 30/60/90-day event carries
+every panel pulled at that deployment time, so a 30/60/90-day event carries
 three retrieval dates rather than one.
 \item Panel image level (\code{photo_filename}, \code{points_in_grid}) — the two
 fields that describe the photograph itself.
