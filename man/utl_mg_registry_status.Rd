@@ -9,7 +9,7 @@ utl_mg_registry_status()
 \value{
 A \link[tibble:tibble]{tibble} with one row per resolved table:
 \describe{
-\item{\code{table}}{Registry table name, e.g. \code{"aggregate_rules"}.}
+\item{\code{table}}{Registry table name, e.g. \code{"numeric_ranges"}.}
 \item{\code{source}}{\code{"local"}, \code{"live"} or \code{"offline"}.}
 \item{\code{fallback}}{\code{TRUE} only where live metadata was wanted and could
 not be read. Running offline on purpose, or reading a table the

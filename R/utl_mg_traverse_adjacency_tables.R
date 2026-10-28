@@ -117,7 +117,7 @@
   }
 
   # --- Lookup -----------------------------------------------------------------
-  # Shared normalization (see `.qc_norm_rank()` in R/qc_mg_taxon_sets.R). It
+  # Shared normalization (see `.qc_norm_rank()` in R/utl_mg_taxonomy.R). It
   # also folds "Subphylum (Subdivision)", which this function previously left
   # alone -- inert here, because the rank is only used as a list name and
   # Subphylum is not among the ranks this function retains.

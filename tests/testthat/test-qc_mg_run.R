@@ -202,8 +202,8 @@ test_that("CSV file path produces same result as passing a data frame", {
   )
 
   csv_path <- tempfile(fileext = ".csv")
-  # See the note in test-qc_mg_run_dataset.R: a bare on.exit() here would
-  # discard local_mocked_bindings()'s restore handler.
+  # A bare on.exit() here would discard local_mocked_bindings()'s restore
+  # handler, so the cleanup is deferred instead.
   withr::defer(unlink(csv_path))
   readr::write_csv(good_df, csv_path)
 
@@ -303,8 +303,7 @@ test_that("partial = TRUE skips the three table-scoped checks", {
     attr(result, "checks_skipped"),
     c(
       "qc_check_columns",
-      "qc_check_row_uniqueness",
-      "qc_check_aggregate"
+      "qc_check_row_uniqueness"
     )
   )
 })
@@ -461,19 +460,19 @@ test_that(".qc_report_lines distinguishes 'nothing ran' from a clean pass", {
   expect_false(any(grepl("PASS", lines)))
 })
 
-test_that(".qc_report_lines lists skipped checks and unevaluated rules", {
+test_that(".qc_report_lines lists skipped checks", {
   result <- new_qc_issues(
     NULL,
     table_id = "test_table_v1",
     n_rows = 3L,
     checks_run = "qc_check_data_types",
-    checks_skipped = c("qc_check_columns", "qc_check_aggregate"),
-    rules_skipped = "cond_7"
+    checks_skipped = c("qc_check_columns", "qc_check_row_uniqueness")
   )
   lines <- .qc_report_lines(result)
 
-  expect_true("  skipped: qc_check_columns, qc_check_aggregate" %in% lines)
-  expect_true("  rules_skipped: cond_7" %in% lines)
+  expect_true(
+    "  skipped: qc_check_columns, qc_check_row_uniqueness" %in% lines
+  )
 })
 
 test_that(".qc_report_lines tolerates the NULL attributes a bare check leaves", {
@@ -490,7 +489,7 @@ test_that(".qc_report_lines names every table of a multi-table result", {
     NULL,
     table_id = c("table_a", "table_b"),
     n_rows = 10L,
-    checks_run = "qc_check_cross_table"
+    checks_run = "qc_check_columns"
   )
   expect_match(
     .qc_report_lines(result)[[1]],

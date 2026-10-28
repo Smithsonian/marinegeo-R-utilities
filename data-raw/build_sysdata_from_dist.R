@@ -17,6 +17,14 @@
 # The two legacy_* tables are not published in dist/ -- they come from this
 # repo's own data-raw/legacy_taxonomic_data_rls/ -- so they are carried over
 # from the existing sysdata.rda unchanged.
+#
+# NOTE: the committed sysdata.rda still carries `qc_conditions`,
+# `aggregate_rules` and `cross_table_rules`, plus a `condition_id` column on
+# `categorical_values` and `numeric_ranges`. Those rule types were dropped when
+# table-metadata/ went back to CSV, so nothing reads them any more -- and the
+# carry-over logic below would preserve them. Expect this script to shrink the
+# object from 14 elements to 11 the next time it runs: that is the intended
+# cleanup, not a loss.
 
 # `repository_filepath` follows the convention the retired assembly script set:
 # it points at the PARENT directory holding the sibling repos, not at

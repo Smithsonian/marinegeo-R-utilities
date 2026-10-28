@@ -73,7 +73,7 @@
 # Constructor: normalize `rows` to the canonical schema, attach run metadata,
 # and stamp the qc_issues class. `rows` may be NULL, a zero-column/zero-row
 # frame (e.g. from bind_rows(list())), or a tibble of `.qc_issue()` chunks.
-# `checks_skipped`, `columns`, `rules_skipped` and `stale_registries` are only
+# `checks_skipped`, `columns` and `stale_registries` are only
 # populated by the dispatcher; the individual checks leave them NULL.
 new_qc_issues <- function(
   rows = NULL,
@@ -82,7 +82,6 @@ new_qc_issues <- function(
   checks_run = NULL,
   checks_skipped = NULL,
   columns = NULL,
-  rules_skipped = NULL,
   stale_registries = NULL
 ) {
   skeleton <- .qc_issues_skeleton()
@@ -101,7 +100,6 @@ new_qc_issues <- function(
   attr(out, "checks_run") <- checks_run
   attr(out, "checks_skipped") <- checks_skipped
   attr(out, "columns") <- columns
-  attr(out, "rules_skipped") <- rules_skipped
   attr(out, "stale_registries") <- stale_registries
   attr(out, "status") <- .qc_status(out)
   class(out) <- c("qc_issues", class(skeleton))
@@ -135,8 +133,7 @@ new_qc_issues <- function(
 #'     condition applied), or `NA`.}
 #'   \item{`table`}{Character. Which table the issue is in. `NA` for a
 #'     single-table run, where [qc_run()] records the table in the `table_id`
-#'     attribute instead; populated by [qc_run_dataset()], whose result spans
-#'     several tables.}
+#'     attribute instead.}
 #' }
 #'
 #' Because it is an ordinary tibble, results are inspected and subset with
@@ -150,18 +147,11 @@ new_qc_issues <- function(
 #'   \item{`checks_run`}{Checks that executed.}
 #'   \item{`checks_skipped`}{Checks that were not applicable to the input.
 #'     Populated by [qc_run()] with `partial = TRUE` and by
-#'     [qc_check_variable()], where the three table-scoped checks
-#'     (`qc_check_columns`, `qc_check_row_uniqueness`,
-#'     `qc_check_aggregate`) cannot run. Lets a caller distinguish
-#'     "not applicable" from "passed".}
+#'     [qc_check_variable()], where the two table-scoped checks
+#'     (`qc_check_columns`, `qc_check_row_uniqueness`) cannot run. Lets a
+#'     caller distinguish "not applicable" from "passed".}
 #'   \item{`columns`}{The column names that were validated — the only record of
 #'     what was checked when the result has zero rows.}
-#'   \item{`rules_skipped`}{`condition_id`s of conditional rules that could not
-#'     be evaluated because the column their condition tests was not among the
-#'     columns supplied. Populated by [qc_run()] with `partial = TRUE` and by
-#'     [qc_check_variable()], which only ever sees one column. Such a rule is
-#'     dropped rather than applied as if unconditional, so this attribute is
-#'     the only record that a bound exists but went unchecked.}
 #'   \item{`stale_registries`}{Names of the rule tables that were served from
 #'     the package's offline snapshot because the live `dist/` bundles could
 #'     not be read — see [utl_mg_registry_status()]. Those rules are as old as

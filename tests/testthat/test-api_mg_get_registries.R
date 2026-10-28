@@ -208,7 +208,10 @@ test_that("columns are built with their declared types", {
   )
 
   expect_s3_class(out, "tbl_df")
-  expect_identical(colnames(out), .mg_flat_schema$database_structure)
+  expect_identical(
+    colnames(out),
+    .mg_registry_required_cols$database_structure
+  )
   expect_true(is.character(out$protocol))
   # JSON cannot distinguish null from a typed NA, so types come from the
   # manifest. Inferring them would make an all-null column the wrong type.
@@ -250,6 +253,29 @@ test_that("a QC table missing a required column is an error", {
     .mg_coerce_registry_table(rows, schema, "database_structure"),
     "missing required column"
   )
+})
+
+test_that("the guard fires for every rule table, not just database_structure", {
+  # Each of these would otherwise reach the QC engine as a rule table it reads
+  # as empty -- a clean pass with the check silently skipped.
+  cases <- list(
+    categorical_values = c("table_id", "column_name"),
+    numeric_ranges = c("table_id", "column_name", "range_type")
+  )
+
+  for (table in names(cases)) {
+    cols <- cases[[table]]
+    schema <- list(
+      rows = 1L,
+      columns = lapply(cols, function(nm) list(name = nm, type = "character"))
+    )
+    rows <- list(stats::setNames(as.list(rep("x", length(cols))), cols))
+
+    expect_error(
+      .mg_coerce_registry_table(rows, schema, table),
+      "missing required column"
+    )
+  }
 })
 
 test_that("an unknown declared type is an error", {

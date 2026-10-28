@@ -29,10 +29,10 @@
   n_rows <- attr(x, "n_rows")
   checks_run <- attr(x, "checks_run")
   checks_skipped <- attr(x, "checks_skipped")
-  rules_skipped <- attr(x, "rules_skipped")
   stale_registries <- attr(x, "stale_registries")
 
-  # `table_id` is a vector for a qc_run_dataset() result.
+  # `table_id` may be a vector: new_qc_issues() accepts one result standing
+  # for several tables.
   label <- if (length(table_id) > 0) {
     .qc_report_join(table_id)
   } else {
@@ -74,14 +74,6 @@
 
   if (length(checks_skipped) > 0) {
     lines <- c(lines, paste0("  skipped: ", .qc_report_join(checks_skipped)))
-  }
-  # A conditional rule that could not be evaluated: a bound exists but went
-  # unchecked, which is exactly what a human needs to be told.
-  if (length(rules_skipped) > 0) {
-    lines <- c(
-      lines,
-      paste0("  rules_skipped: ", .qc_report_join(rules_skipped))
-    )
   }
   # Rules served from the package's offline snapshot. Anything added to
   # marinegeo-metadata since the package was built is simply not in them, and

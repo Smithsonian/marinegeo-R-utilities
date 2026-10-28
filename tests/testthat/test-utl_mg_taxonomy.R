@@ -1,4 +1,20 @@
 # ---------------------------------------------------------------------------
+# .qc_norm_rank
+# ---------------------------------------------------------------------------
+
+test_that(".qc_norm_rank folds the parenthetical WoRMS spellings, NA-safely", {
+  expect_equal(.qc_norm_rank("Phylum (Division)"), "Phylum")
+  expect_equal(.qc_norm_rank("Subphylum (Subdivision)"), "Subphylum")
+  expect_equal(.qc_norm_rank("Genus"), "Genus")
+  # NA must survive rather than erroring on an NA subscript assignment.
+  expect_equal(
+    .qc_norm_rank(c("Phylum (Division)", NA, "Class")),
+    c("Phylum", NA, "Class")
+  )
+  expect_equal(.qc_norm_rank(character(0)), character(0))
+})
+
+# ---------------------------------------------------------------------------
 # utl_mg_get_scientific_id
 # ---------------------------------------------------------------------------
 

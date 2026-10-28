@@ -2,13 +2,13 @@
 # repo, replacing the offline copies in `marinegeo_metadata` (R/sysdata.rda).
 #
 # The metadata repo publishes generated JSON bundles under dist/, built from
-# its authored sources (nested YAML for rule configs, CSV for the dense
-# registries) by R/generate-metadata-dist.R. This package reads those bundles.
+# its authored CSV sources by R/generate-metadata-dist.R. This package reads
+# those bundles.
 #
 # Bundles are split by how often they change, so a one-line rule edit does not
 # invalidate a cached taxonomy payload:
 #
-#   dist/qc-metadata.json   ~6 KB gz    volatile  6 QC rule tables
+#   dist/qc-metadata.json   ~5 KB gz    volatile  3 QC rule tables
 #   dist/sites.json         ~8 KB gz    medium    partners, sites, data index
 #   dist/taxonomy.json    ~122 KB gz    stable    machine-generated lookups
 #   dist/manifest.json                  index, hashes, and column type schemas
@@ -50,6 +50,36 @@
 # filtering to zero rules and reporting a clean pass having checked nothing --
 # the same silent failure, from the other direction.
 .mg_dist_schema_version_min <- 1L
+
+# The columns each published rule table must carry. A table read with a column
+# missing or renamed is read downstream as "no rules", so it is caught on the
+# way in rather than surfacing as a clean pass that checked nothing. Mirrors the
+# headers the metadata repo validates its table-metadata/ CSVs against
+# (`mg_rule_tables` in that repo's R/sources.R).
+#
+# Deliberately strict, unlike `.qc_registry_rules()` in R/qc_mg_rules.R, which
+# tolerates a table being absent so a not-yet-published rule table cannot break
+# a QC run. These two must not be unified.
+.mg_registry_required_cols <- list(
+  database_structure = c(
+    "protocol",
+    "table_id",
+    "column_name",
+    "data_type",
+    "missing_values",
+    "uuid_identity"
+  ),
+  categorical_values = c("table_id", "column_name", "value"),
+  numeric_ranges = c(
+    "table_id",
+    "column_name",
+    "range_type",
+    "max_fail",
+    "min_fail",
+    "max_warn",
+    "min_warn"
+  )
+)
 
 .mg_manifest_rel <- "dist/manifest.json"
 
@@ -294,7 +324,7 @@
 
   # A QC rule table missing a column is read downstream as "no rules", so the
   # mismatch is caught here instead.
-  required <- .mg_flat_schema[[table]]
+  required <- .mg_registry_required_cols[[table]]
   if (!is.null(required) && !all(required %in% names_)) {
     stop(
       "table '",
@@ -427,7 +457,7 @@
 #'
 #' @return A [tibble][tibble::tibble] with one row per resolved table:
 #'   \describe{
-#'     \item{`table`}{Registry table name, e.g. `"aggregate_rules"`.}
+#'     \item{`table`}{Registry table name, e.g. `"numeric_ranges"`.}
 #'     \item{`source`}{`"local"`, `"live"` or `"offline"`.}
 #'     \item{`fallback`}{`TRUE` only where live metadata was wanted and could
 #'       not be read. Running offline on purpose, or reading a table the

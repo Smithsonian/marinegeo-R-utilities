@@ -1,3 +1,19 @@
+# WoRMS spells a few ranks with a parenthetical synonym. Normalising both sides
+# lets a caller say `Phylum` and match a stored "Phylum (Division)" row.
+# NA-safe, and vectorised so it can normalise a whole column; shared by the
+# adjacency traversal and the ancestor-label code, which each applied this
+# mapping inline before.
+.qc_norm_rank <- function(x) {
+  x <- as.character(x)
+  repl <- c(
+    "Phylum (Division)" = "Phylum",
+    "Subphylum (Subdivision)" = "Subphylum"
+  )
+  hit <- !is.na(x) & x %in% names(repl)
+  x[hit] <- unname(repl[x[hit]])
+  x
+}
+
 .strip_rank_abbreviations <- function(x) {
   trimws(
     stringr::str_remove(

@@ -94,9 +94,7 @@ qc_flag_server <- function(id, input_list) {
         qc_check_missing_values = "Missing required values",
         qc_check_numeric_ranges = "Out-of-range numeric values",
         qc_check_lookup_values = "Unrecognized lookup values",
-        qc_check_row_uniqueness = "Duplicate rows",
-        qc_check_aggregate = "Invalid grouping aggregation",
-        qc_check_cross_table = "Records missing from a related table"
+        qc_check_row_uniqueness = "Duplicate rows"
       )
 
       STRUCTURAL_TESTS <- c("qc_check_columns", "qc_check_data_types")
