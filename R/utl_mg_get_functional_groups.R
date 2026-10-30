@@ -2,7 +2,7 @@
 #'
 #' @description
 #' Returns all functional group memberships for the supplied `scientific_ids`
-#' by traversing the `functional_group_lookup` edge-list stored in
+#' by traversing the `nested_labelsets` edge-list stored in
 #' `marinegeo_metadata` using the `data.tree` package. Each row in the result
 #' represents one group-level ancestor node that the queried ID belongs to.
 #'
@@ -14,7 +14,7 @@
 #'   a message.
 #' @param functional_group_tree Character scalar. Name of the functional group
 #'   tree to query (e.g. `"vegetation"`). Used to filter rows in
-#'   `marinegeo_metadata$functional_group_lookup` by the `tree_name` column.
+#'   `marinegeo_metadata$nested_labelsets` by the `tree_name` column.
 #'
 #' @return A data frame with one row per (`scientific_id`, group-level ancestor)
 #'   pair. Columns:
@@ -29,7 +29,7 @@
 #'   or if `scientific_ids` is empty after NA removal.
 #'
 #' @details
-#' The `functional_group_lookup` table in `marinegeo_metadata` is an edge-list
+#' The `nested_labelsets` table in `marinegeo_metadata` is an edge-list
 #' data frame with columns `from` (child node display name), `to` (parent node
 #' display name), `scientific_id` (the child node's scientific identifier),
 #' `type`, and `tree_name`. At query time the relevant tree is built from this

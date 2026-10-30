@@ -165,7 +165,7 @@
 #' Build a `data.tree` object for one functional group tree
 #'
 #' @description
-#' Fetches `functional_group_lookup`, restricts it to a single tree, and builds
+#' Fetches `nested_labelsets`, restricts it to a single tree, and builds
 #' the corresponding [data.tree::Node] object. Shared by
 #' [utl_mg_get_functional_groups()] and [utl_mg_assign_ancestor_labels()].
 #'
@@ -192,15 +192,15 @@
 #'
 #' @keywords internal
 .mg_build_fg_tree <- function(functional_group_tree) {
-  fg <- .mg_get_registry_table("functional_group_lookup") |>
+  fg <- .mg_get_registry_table("nested_labelsets") |>
     dplyr::filter(.data$tree_name == functional_group_tree)
 
   if (nrow(fg) == 0) {
     available <- sort(unique(
-      .mg_get_registry_table("functional_group_lookup")$tree_name
+      .mg_get_registry_table("nested_labelsets")$tree_name
     ))
     stop(
-      "No rows in `functional_group_lookup` for tree_name '",
+      "No rows in `nested_labelsets` for tree_name '",
       functional_group_tree,
       "'. Available trees: ",
       paste(available, collapse = ", "),

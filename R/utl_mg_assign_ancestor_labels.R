@@ -13,13 +13,13 @@
 #'
 #' @param fg_tree Character scalar. Name of the functional group tree to query
 #'   (e.g. `"vegetation"`), matched against the `tree_name` column of
-#'   `functional_group_lookup`.
+#'   `nested_labelsets`.
 #' @param scientific_names Character vector of scientific names to classify,
 #'   typically a column from a data frame passed through [dplyr::mutate()].
 #'   `NA` values are preserved as `NA` in the output without a message.
 #' @param ... One or more named `column = value` criteria identifying the
 #'   ancestor to return, e.g. `type = "primary"` or `rank = "Family"`. Each
-#'   name must be a column of `functional_group_lookup` other than `from`,
+#'   name must be a column of `nested_labelsets` other than `from`,
 #'   `to`, or `tree_name`; each value must be a length-1, non-`NA` atomic
 #'   value. When several criteria are given they are combined with **and** —
 #'   a single ancestor must satisfy all of them.

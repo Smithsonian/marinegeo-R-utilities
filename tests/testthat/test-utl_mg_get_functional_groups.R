@@ -1,4 +1,4 @@
-# Mock functional_group_lookup edge-list (new format).
+# Mock nested_labelsets edge-list (new format).
 #
 # Each row: from=child display name, to=parent display name, scientific_id=child's sci_id.
 # Root ("Life") has no scientific_id and never appears in `from`.
@@ -30,7 +30,7 @@ mock_fg_lookup <- data.frame(
   stringsAsFactors = FALSE
 )
 
-mock_metadata <- list(functional_group_lookup = mock_fg_lookup)
+mock_metadata <- list(nested_labelsets = mock_fg_lookup)
 
 # ---------------------------------------------------------------------------
 # Return type and column structure
@@ -301,7 +301,7 @@ mock_fg_lookup_aphia_group <- data.frame(
 )
 
 mock_metadata_aphia_group <- list(
-  functional_group_lookup = mock_fg_lookup_aphia_group
+  nested_labelsets = mock_fg_lookup_aphia_group
 )
 
 test_that("Aphia-ID group node (type == primary) is returned as an ancestor", {

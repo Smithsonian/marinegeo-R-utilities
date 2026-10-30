@@ -1,4 +1,4 @@
-# Mock functional_group_lookup edge-list.
+# Mock nested_labelsets edge-list.
 #
 # Each row: from=child display name, to=parent display name, scientific_id=child's sci_id.
 # Root ("Life") has no scientific_id and never appears in `from`, matching the
@@ -115,7 +115,7 @@ mock_obs_lookup <- data.frame(
 
 mock_metadata <- list(
   observation_lookup = mock_obs_lookup,
-  functional_group_lookup = mock_fg_lookup
+  nested_labelsets = mock_fg_lookup
 )
 
 use_mocks <- function(env = parent.frame()) {

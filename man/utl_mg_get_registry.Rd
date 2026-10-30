@@ -9,7 +9,7 @@ utl_mg_get_registry(table, ...)
 \arguments{
 \item{table}{Character scalar. The registry table to retrieve. Must be one
 of \code{"partner_codes"}, \code{"site_codes"}, \code{"observation_lookup"},
-\code{"taxonomic_lookup"}, \code{"functional_group_lookup"}, \code{"data_index"},
+\code{"taxonomic_lookup"}, \code{"nested_labelsets"}, \code{"data_index"},
 \code{"database_structure"}, \code{"column_ids"}, \code{"numeric_ranges"},
 \code{"controlled_vocabularies"}, or \code{"column_lookups"}.
 
@@ -73,7 +73,7 @@ MarineGEO datasets.
 \item \code{name} — Taxon name at this rank.
 }
 
-\strong{\code{functional_group_lookup}}
+\strong{\code{nested_labelsets}}
 
 An edge list holding several independent trees, one per \code{tree_name}. Each
 row describes a single child node and the parent it hangs from, so a tree's

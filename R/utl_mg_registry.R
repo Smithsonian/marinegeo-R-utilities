@@ -7,7 +7,7 @@
 #'
 #' @param table Character scalar. The registry table to retrieve. Must be one
 #'   of `"partner_codes"`, `"site_codes"`, `"observation_lookup"`,
-#'   `"taxonomic_lookup"`, `"functional_group_lookup"`, `"data_index"`,
+#'   `"taxonomic_lookup"`, `"nested_labelsets"`, `"data_index"`,
 #'   `"database_structure"`, `"column_ids"`, `"numeric_ranges"`,
 #'   `"controlled_vocabularies"`, or `"column_lookups"`.
 #'
@@ -56,7 +56,7 @@
 #' - `rank` — Taxonomic rank label (e.g., `"Species"`, `"Genus"`).
 #' - `name` — Taxon name at this rank.
 #'
-#' **`functional_group_lookup`**
+#' **`nested_labelsets`**
 #'
 #' An edge list holding several independent trees, one per `tree_name`. Each
 #' row describes a single child node and the parent it hangs from, so a tree's
@@ -185,7 +185,7 @@ utl_mg_get_registry <- function(table, ...) {
     "site_codes",
     "observation_lookup",
     "taxonomic_lookup",
-    "functional_group_lookup",
+    "nested_labelsets",
     "data_index",
     "database_structure",
     "column_ids",

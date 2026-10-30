@@ -36,7 +36,7 @@
 # snapshot, so the result can say which rules are stale instead of reporting a
 # clean pass over rules it never loaded.
 #
-# `taxonomic_lookup` and `functional_group_lookup` belong here because they are
+# `taxonomic_lookup` and `nested_labelsets` belong here because they are
 # now rule *inputs*: a scoped range resolves its taxa through them, so a stale
 # one narrows the matched set and the rule under-fires on a clean-looking pass.
 .qc_registry_tables <- c(
@@ -49,7 +49,7 @@
   "site_codes",
   "observation_lookup",
   "taxonomic_lookup",
-  "functional_group_lookup"
+  "nested_labelsets"
 )
 
 # The columns a resolved numeric-range rule frame carries, shared by the

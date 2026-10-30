@@ -36,7 +36,7 @@
   stringsAsFactors = FALSE
 )
 
-.functional_group_lookup <- data.frame(
+.nested_labelsets <- data.frame(
   scientific_id = c("FUNCTIONAL:1", "FUNCTIONAL:2"),
   parent_id = c(NA_character_, "FUNCTIONAL:1"),
   functional_group_name = c("Seagrasses", "Tropical seagrasses"),
@@ -121,7 +121,7 @@
   site_codes = .site_codes,
   observation_lookup = .observation_lookup,
   taxonomic_lookup = .taxonomic_lookup,
-  functional_group_lookup = .functional_group_lookup,
+  nested_labelsets = .nested_labelsets,
   data_index = .data_index,
   database_structure = .database_structure,
   column_ids = .column_ids,
@@ -205,13 +205,13 @@ test_that("returns full taxonomic_lookup table with expected columns", {
   expect_equal(nrow(result), nrow(.taxonomic_lookup))
 })
 
-test_that("returns full functional_group_lookup table with expected columns", {
+test_that("returns full nested_labelsets table with expected columns", {
   local_mocked_bindings(
     marinegeo_metadata = .mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_registry("functional_group_lookup")
+  result <- utl_mg_get_registry("nested_labelsets")
 
   expect_s3_class(result, "data.frame")
   expect_true(all(
@@ -223,7 +223,7 @@ test_that("returns full functional_group_lookup table with expected columns", {
     ) %in%
       colnames(result)
   ))
-  expect_equal(nrow(result), nrow(.functional_group_lookup))
+  expect_equal(nrow(result), nrow(.nested_labelsets))
 })
 
 test_that("returns full data_index table with expected columns", {

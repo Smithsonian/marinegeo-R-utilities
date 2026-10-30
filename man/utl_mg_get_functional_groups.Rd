@@ -13,7 +13,7 @@ a message.}
 
 \item{functional_group_tree}{Character scalar. Name of the functional group
 tree to query (e.g. \code{"vegetation"}). Used to filter rows in
-\code{marinegeo_metadata$functional_group_lookup} by the \code{tree_name} column.}
+\code{marinegeo_metadata$nested_labelsets} by the \code{tree_name} column.}
 }
 \value{
 A data frame with one row per (\code{scientific_id}, group-level ancestor)
@@ -30,7 +30,7 @@ or if \code{scientific_ids} is empty after NA removal.
 }
 \description{
 Returns all functional group memberships for the supplied \code{scientific_ids}
-by traversing the \code{functional_group_lookup} edge-list stored in
+by traversing the \code{nested_labelsets} edge-list stored in
 \code{marinegeo_metadata} using the \code{data.tree} package. Each row in the result
 represents one group-level ancestor node that the queried ID belongs to.
 
@@ -38,7 +38,7 @@ Both \code{"APHIA:X"} species IDs and \code{"FUNCTIONAL:X"} group IDs are accept
 input. IDs that do not appear in the tree produce zero rows, not an error.
 }
 \details{
-The \code{functional_group_lookup} table in \code{marinegeo_metadata} is an edge-list
+The \code{nested_labelsets} table in \code{marinegeo_metadata} is an edge-list
 data frame with columns \code{from} (child node display name), \code{to} (parent node
 display name), \code{scientific_id} (the child node's scientific identifier),
 \code{type}, and \code{tree_name}. At query time the relevant tree is built from this

@@ -1,4 +1,4 @@
-# Mock functional_group_lookup edge-list (new format).
+# Mock nested_labelsets edge-list (new format).
 #
 # Each row: from=child display name, to=parent display name, scientific_id=child's sci_id.
 # Root ("Life") has no scientific_id and never appears in `from`.
@@ -59,7 +59,7 @@ mock_obs_lookup <- data.frame(
 
 mock_metadata <- list(
   observation_lookup = mock_obs_lookup,
-  functional_group_lookup = mock_fg_lookup
+  nested_labelsets = mock_fg_lookup
 )
 
 # ---------------------------------------------------------------------------
@@ -363,7 +363,7 @@ mock_obs_lookup_aphia_group <- data.frame(
 
 mock_metadata_aphia_group <- list(
   observation_lookup = mock_obs_lookup_aphia_group,
-  functional_group_lookup = mock_fg_lookup_aphia_group
+  nested_labelsets = mock_fg_lookup_aphia_group
 )
 
 test_that("name matching an Aphia-ID-labeled candidate group is assigned that group", {

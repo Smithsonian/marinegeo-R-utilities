@@ -20,7 +20,7 @@ in its original \code{from} = child / \code{to} = parent orientation, with a
 }
 }
 \description{
-Fetches \code{functional_group_lookup}, restricts it to a single tree, and builds
+Fetches \code{nested_labelsets}, restricts it to a single tree, and builds
 the corresponding \link[data.tree:Node]{data.tree::Node} object. Shared by
 \code{\link[=utl_mg_get_functional_groups]{utl_mg_get_functional_groups()}} and \code{\link[=utl_mg_assign_ancestor_labels]{utl_mg_assign_ancestor_labels()}}.
 }

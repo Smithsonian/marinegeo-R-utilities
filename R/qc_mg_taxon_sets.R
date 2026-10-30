@@ -44,7 +44,7 @@
 }
 
 .qc_fg_lookup <- function() {
-  fg <- .mg_get_registry_table("functional_group_lookup")
+  fg <- .mg_get_registry_table("nested_labelsets")
   required <- c("from", "to", "scientific_id", "tree_name")
   if (
     is.null(fg) ||
@@ -229,7 +229,7 @@
   fg <- .qc_fg_lookup()
   if (is.null(fg)) {
     warning(
-      "`functional_group_lookup` is unavailable, so functional group ",
+      "`nested_labelsets` is unavailable, so functional group ",
       "scoped range rules were not applied."
     )
     return(NULL)
@@ -473,7 +473,7 @@
 #'   of their sets.
 #' @param hierarchy Which hierarchy to expand against: `"taxonomy"` (the
 #'   default, using `taxonomic_lookup`) or `"functional_group"` (using
-#'   `functional_group_lookup`). Stated explicitly rather than inferred,
+#'   `nested_labelsets`). Stated explicitly rather than inferred,
 #'   because `"Genus:Zostera"` and `"vegetation:Algae"` are the same shape.
 #'
 #' @return A data frame with columns `scientific_name` and `scientific_id`, one
@@ -482,7 +482,7 @@
 #'
 #' @details
 #' The result is derived from the registry, so it reflects whatever
-#' `taxonomic_lookup` / `functional_group_lookup` is in force. Offline, that is
+#' `taxonomic_lookup` / `nested_labelsets` is in force. Offline, that is
 #' the copy shipped in the package, which may be older than the live one — so a
 #' set can be narrower than it would be online. `getOption(
 #' "marinegeo.utils.live_registry")` tells you which you are seeing.
