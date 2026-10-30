@@ -73,7 +73,7 @@
 # Constructor: normalize `rows` to the canonical schema, attach run metadata,
 # and stamp the qc_issues class. `rows` may be NULL, a zero-column/zero-row
 # frame (e.g. from bind_rows(list())), or a tibble of `.qc_issue()` chunks.
-# `checks_skipped`, `columns` and `stale_registries` are only
+# `checks_skipped`, `columns`, `rules_skipped` and `stale_registries` are only
 # populated by the dispatcher; the individual checks leave them NULL.
 new_qc_issues <- function(
   rows = NULL,
@@ -82,6 +82,7 @@ new_qc_issues <- function(
   checks_run = NULL,
   checks_skipped = NULL,
   columns = NULL,
+  rules_skipped = NULL,
   stale_registries = NULL
 ) {
   skeleton <- .qc_issues_skeleton()
@@ -100,6 +101,7 @@ new_qc_issues <- function(
   attr(out, "checks_run") <- checks_run
   attr(out, "checks_skipped") <- checks_skipped
   attr(out, "columns") <- columns
+  attr(out, "rules_skipped") <- rules_skipped
   attr(out, "stale_registries") <- stale_registries
   attr(out, "status") <- .qc_status(out)
   class(out) <- c("qc_issues", class(skeleton))
@@ -124,10 +126,11 @@ new_qc_issues <- function(
 #'   \item{`value`}{Character. The offending value, or `NA`.}
 #'   \item{`issue`}{Character. Machine-readable code, e.g. `"out_of_range"`.}
 #'   \item{`rule_id`}{Character. Identifier of the metadata rule that produced
-#'     the issue, or `NA` when the rule is unconditional and carries no id.
-#'     Lets a finding be traced back to the CSV row that defined it, and tells
-#'     apart a conditional rule from the unconditional rule on the same
-#'     column.}
+#'     the issue. Every range, vocabulary and lookup rule carries one, derived
+#'     from its `column_id` and scope, so a finding can be traced back to the
+#'     CSV row that defined it and a scoped rule can be told apart from the
+#'     unconditional rule on the same column. `NA` only for issues that come
+#'     from no rule table, such as a missing column.}
 #'   \item{`detail`}{Character. One human-readable sentence of *why*, where a
 #'     machine-readable `issue` code is not self-explanatory (e.g. which
 #'     condition applied), or `NA`.}
@@ -152,6 +155,13 @@ new_qc_issues <- function(
 #'     caller distinguish "not applicable" from "passed".}
 #'   \item{`columns`}{The column names that were validated — the only record of
 #'     what was checked when the result has zero rows.}
+#'   \item{`rules_skipped`}{`rule_id`s of scoped range rules dropped because
+#'     `scientific_name`, the column their scope is evaluated against, was not
+#'     among the supplied columns. Populated by [qc_run()] with
+#'     `partial = TRUE` and by [qc_check_variable()], which only ever sees one
+#'     column. Such a rule is dropped rather than applied as if it were
+#'     unconditional, so this attribute is the only record that a bound exists
+#'     but went unchecked.}
 #'   \item{`stale_registries`}{Names of the rule tables that were served from
 #'     the package's offline snapshot because the live `dist/` bundles could
 #'     not be read — see [utl_mg_registry_status()]. Those rules are as old as

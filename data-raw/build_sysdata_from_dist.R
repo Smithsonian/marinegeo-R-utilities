@@ -18,13 +18,14 @@
 # repo's own data-raw/legacy_taxonomic_data_rls/ -- so they are carried over
 # from the existing sysdata.rda unchanged.
 #
-# NOTE: the committed sysdata.rda still carries `qc_conditions`,
-# `aggregate_rules` and `cross_table_rules`, plus a `condition_id` column on
-# `categorical_values` and `numeric_ranges`. Those rule types were dropped when
-# table-metadata/ went back to CSV, so nothing reads them any more -- and the
-# carry-over logic below would preserve them. Expect this script to shrink the
-# object from 14 elements to 11 the next time it runs: that is the intended
-# cleanup, not a loss.
+# NOTE: the carry-over logic below keeps only the tables this repo owns. Any
+# other element of the old object that dist/ no longer publishes is a retired
+# rule table and is dropped. Going from the table-keyed rule schema to the
+# `column_id`-keyed one, that is `categorical_values`, `qc_conditions`,
+# `aggregate_rules` and `cross_table_rules` out, and `column_ids`,
+# `controlled_vocabularies` and `column_lookups` in -- `numeric_ranges` keeps
+# its name and is replaced in place with the re-keyed schema, which is why the
+# count falls from 14 to 13 rather than to 12.
 
 # `repository_filepath` follows the convention the retired assembly script set:
 # it points at the PARENT directory holding the sibling repos, not at
@@ -55,17 +56,35 @@ get_table <- get(".mg_get_registry_table", envir = ns)
 prev <- new.env(parent = emptyenv())
 load("R/sysdata.rda", envir = prev)
 old <- prev$marinegeo_metadata
-element_order <- names(old)
 
 manifest <- jsonlite::fromJSON(
   file.path(metadata_repo, "dist", "manifest.json"),
   simplifyVector = FALSE
 )
 published <- names(manifest$table_index)
-carried <- setdiff(element_order, published)
+
+# The only tables with no published source are the legacy RLS ones built here
+# from data-raw/legacy_taxonomic_data_rls/. Everything else the old object
+# holds but dist/ no longer publishes is a retired rule table, and dropping it
+# is the point of the rebuild -- so carrying over `setdiff(old, published)`
+# wholesale would silently preserve exactly what should go.
+carried <- grep("^legacy_", names(old), value = TRUE)
+retired <- setdiff(names(old), c(published, carried))
+
+# A newly published table is absent from the old object, so the canonical order
+# has to be a union of the two rather than the old names alone -- otherwise the
+# new tables are dropped by the `[element_order]` subset below.
+element_order <- c(
+  intersect(names(old), published),
+  setdiff(published, names(old)),
+  carried
+)
 
 message("from dist/: ", paste(published, collapse = ", "))
 message("carried over: ", paste(carried, collapse = ", "))
+if (length(retired) > 0) {
+  message("dropped (no longer published): ", paste(retired, collapse = ", "))
+}
 
 withr::with_options(
   list(
@@ -88,7 +107,9 @@ stopifnot(
 for (nm in element_order) {
   d <- marinegeo_metadata[[nm]]
   o <- old[[nm]]
-  flag <- if (!identical(dim(d), dim(o))) {
+  flag <- if (is.null(o)) {
+    "  (new)"
+  } else if (!identical(dim(d), dim(o))) {
     sprintf("  (was %d x %d)", nrow(o), ncol(o))
   } else {
     ""

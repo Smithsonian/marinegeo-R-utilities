@@ -1,19 +1,31 @@
 # ---------------------------------------------------------------------------
 # Shared mock metadata helpers
+#
+# Every rule table is keyed on `column_id`, so `database_structure` must carry
+# one and a `column_ids` dictionary row must exist for each. The joins in
+# `.qc_resolve_rules()` go through that map, so a structure mock without
+# `column_id` resolves to no rules at all.
 # ---------------------------------------------------------------------------
 
 # Minimal database_structure for a mock table
 mock_db_struct <- data.frame(
   table_id = c("test_table_v1", "test_table_v1", "test_table_v1"),
   column_name = c("site_name", "survey_date", "cover"),
+  column_id = c("site_name_marinegeo", "survey_date", "cover"),
   data_type = c("STRING", "DATE", "DOUBLE"),
   stringsAsFactors = FALSE
 )
 
-# Categorical rules for the same mock table
+mock_column_ids <- data.frame(
+  column_id = c("site_name_marinegeo", "survey_date", "cover"),
+  label = c("Site name", "Survey date", "Cover"),
+  unit = c(NA_character_, NA_character_, "percent"),
+  stringsAsFactors = FALSE
+)
+
+# Controlled vocabulary for the same mock table
 mock_cat_vals <- data.frame(
-  table_id = c("test_table_v1", "test_table_v1"),
-  column_name = c("site_name", "site_name"),
+  column_id = c("site_name_marinegeo", "site_name_marinegeo"),
   value = c("Site A", "Site B"),
   stringsAsFactors = FALSE
 )
@@ -31,11 +43,13 @@ good_df <- data.frame(
 make_mock_metadata <- function(
   db_struct = mock_db_struct,
   cat_vals = mock_cat_vals,
-  num_ranges = NULL
+  num_ranges = NULL,
+  column_ids = mock_column_ids
 ) {
   out <- list(
     database_structure = db_struct,
-    categorical_values = cat_vals
+    column_ids = column_ids,
+    controlled_vocabularies = cat_vals
   )
   if (!is.null(num_ranges)) {
     out$numeric_ranges <- num_ranges
@@ -48,6 +62,7 @@ make_mock_metadata <- function(
 mock_db_struct_full <- data.frame(
   table_id = rep("test_table_v1", 3),
   column_name = c("site_name", "survey_date", "cover"),
+  column_id = c("site_name_marinegeo", "survey_date", "cover"),
   data_type = c("STRING", "DATE", "DOUBLE"),
   missing_values = c("fail", "warn", "allow"),
   uuid_identity = c(TRUE, TRUE, NA),
@@ -55,8 +70,10 @@ mock_db_struct_full <- data.frame(
 )
 
 mock_num_ranges <- data.frame(
-  table_id = "test_table_v1",
-  column_name = "cover",
+  rule_id = "cover",
+  column_id = "cover",
+  scope_type = NA_character_,
+  scope_value = NA_character_,
   range_type = "inclusive",
   max_fail = 100,
   min_fail = 0,
@@ -67,8 +84,7 @@ mock_num_ranges <- data.frame(
 
 empty_cat_vals <- function() {
   data.frame(
-    table_id = character(0),
-    column_name = character(0),
+    column_id = character(0),
     value = character(0),
     stringsAsFactors = FALSE
   )
@@ -583,7 +599,7 @@ test_that("qc_run names the rule tables that fell back to the offline copy", {
 
   stale <- attr(result, "stale_registries")
   expect_true("database_structure" %in% stale)
-  expect_true("categorical_values" %in% stale)
+  expect_true("controlled_vocabularies" %in% stale)
 
   # And the human-facing report says so, rather than claiming a clean pass.
   expect_match(
@@ -608,4 +624,72 @@ test_that("a deliberately offline run reports no stale rule tables", {
     paste(.qc_report_lines(result), collapse = "\n"),
     "offline rules:"
   )
+})
+
+# ---------------------------------------------------------------------------
+# Per-column registry binding
+#
+# Lookup bindings are declared per `column_id` in `column_lookups`, not by
+# column name system-wide. A table that uses a partner organisation's own site
+# coding carries a different `column_id` and so is absent from that table --
+# which is the whole opt-out. Reef Life Survey is the real case.
+# ---------------------------------------------------------------------------
+
+rls_metadata <- function() {
+  list(
+    database_structure = data.frame(
+      table_id = c("rls_data_v1", "sav_cover_v1"),
+      column_name = c("site_code", "site_code"),
+      column_id = c("site_code_partner", "site_code_marinegeo"),
+      data_type = c("STRING", "STRING"),
+      stringsAsFactors = FALSE
+    ),
+    column_ids = data.frame(
+      column_id = c("site_code_partner", "site_code_marinegeo"),
+      label = c("Partner site code", "MarineGEO site code"),
+      unit = c(NA_character_, NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    # Only the MarineGEO id is bound; the partner-coded one is simply absent.
+    column_lookups = data.frame(
+      column_id = "site_code_marinegeo",
+      registry_table = "site_codes",
+      registry_column = "site_code",
+      stringsAsFactors = FALSE
+    ),
+    site_codes = data.frame(
+      partner_code = "USA-MDA",
+      site_code = "BIS-001",
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+partner_coded_df <- data.frame(
+  site_code = c("RLS-1001", "RLS-1002"),
+  stringsAsFactors = FALSE
+)
+
+test_that("a partner-coded site_code is exempt from the MarineGEO registry", {
+  local_mocked_bindings(
+    marinegeo_metadata = rls_metadata(),
+    .package = "marinegeo.utils"
+  )
+  result <- qc_run(partner_coded_df, table_id = "rls_data_v1")
+
+  expect_false("qc_check_lookup_values" %in% attr(result, "checks_run"))
+  expect_equal(nrow(result[result$issue == "unknown_lookup", ]), 0L)
+})
+
+test_that("the same values under a MarineGEO-coded column_id still fail", {
+  local_mocked_bindings(
+    marinegeo_metadata = rls_metadata(),
+    .package = "marinegeo.utils"
+  )
+  result <- qc_run(partner_coded_df, table_id = "sav_cover_v1")
+
+  expect_true("qc_check_lookup_values" %in% attr(result, "checks_run"))
+  bad <- result[result$issue == "unknown_lookup", ]
+  expect_equal(nrow(bad), 2L)
+  expect_equal(sort(bad$value), c("RLS-1001", "RLS-1002"))
 })

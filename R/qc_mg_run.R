@@ -241,6 +241,7 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
       checks_run = character(0),
       checks_skipped = checks_skipped,
       columns = colnames(data),
+      rules_skipped = rules_skipped,
       stale_registries = stale_registries
     )
   }
@@ -380,6 +381,7 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
     checks_run = names(results),
     checks_skipped = checks_skipped,
     columns = colnames(data),
+    rules_skipped = rules_skipped,
     stale_registries = stale_registries
   )
 }

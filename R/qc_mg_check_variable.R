@@ -20,7 +20,7 @@
 #'   every value passes). `row` is the 1-based index into `x`, `column` is
 #'   `variable`, and `col_index` is always `1`. Run-level metadata rides along
 #'   as attributes: `table_id`, `n_rows`, `checks_run`, `checks_skipped`,
-#'   `columns`, and `status`. See [qc_issues].
+#'   `columns`, `rules_skipped`, and `status`. See [qc_issues].
 #'
 #' @details
 #' **Which checks run.** Five of the eight MarineGEO checks work on a column in
@@ -35,6 +35,14 @@
 #' [qc_check_row_uniqueness()]). They are skipped and reported in the
 #' `checks_skipped` attribute, so an empty result can be distinguished from a
 #' clean one.
+#'
+#' **Taxon-scoped range rules are dropped, not guessed.** A numeric range whose
+#' `scope_type` restricts it to a clade is evaluated against `scientific_name`,
+#' which a single column never supplies. Rather than apply such a bound to
+#' every row as though it were unconditional, the rule is dropped and its
+#' `rule_id` reported in the `rules_skipped` attribute — the only record that a
+#' bound exists for the variable but went unchecked. Validate the whole table
+#' with [qc_run()], or pass `scientific_name` alongside, to exercise it.
 #'
 #' **Why `table_id` is required.** Metadata is keyed on
 #' `(table_id, column_name)`, and rules genuinely differ between table types for

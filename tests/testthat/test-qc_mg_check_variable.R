@@ -1,32 +1,53 @@
 # ---------------------------------------------------------------------------
 # Mock metadata for a single fake table. `cover` carries every kind of rule;
 # `notes` carries none beyond its type.
+#
+# Rules are keyed on `column_id`, not `(table_id, column_name)`, so the mock
+# needs `database_structure$column_id` to join through and a `column_ids`
+# dictionary row per id. `column_lookups` is what binds `scientific_name` to
+# the observation registry: without a row there, no registry QC runs.
 # ---------------------------------------------------------------------------
 
 var_db_struct <- data.frame(
   table_id = rep("test_table_v1", 4),
   column_name = c("site_name", "cover", "notes", "scientific_name"),
+  column_id = c("site_name_marinegeo", "cover", "notes", "scientific_name"),
   data_type = c("STRING", "DOUBLE", "STRING", "STRING"),
   missing_values = c("fail", "warn", "allow", "allow"),
   uuid_identity = c(TRUE, NA, NA, NA),
   stringsAsFactors = FALSE
 )
 
+var_column_ids <- data.frame(
+  column_id = c("site_name_marinegeo", "cover", "notes", "scientific_name"),
+  label = c("Site name", "Cover", "Notes", "Scientific name"),
+  unit = c(NA_character_, "percent", NA_character_, NA_character_),
+  stringsAsFactors = FALSE
+)
+
 var_cat_vals <- data.frame(
-  table_id = rep("test_table_v1", 2),
-  column_name = c("site_name", "site_name"),
+  column_id = c("site_name_marinegeo", "site_name_marinegeo"),
   value = c("Site A", "Site B"),
   stringsAsFactors = FALSE
 )
 
 var_num_ranges <- data.frame(
-  table_id = "test_table_v1",
-  column_name = "cover",
+  rule_id = "cover",
+  column_id = "cover",
+  scope_type = NA_character_,
+  scope_value = NA_character_,
   range_type = "inclusive",
   max_fail = 100,
   min_fail = 0,
   max_warn = 80,
   min_warn = NA_real_,
+  stringsAsFactors = FALSE
+)
+
+var_column_lookups <- data.frame(
+  column_id = "scientific_name",
+  registry_table = "observation_lookup",
+  registry_column = "scientific_name",
   stringsAsFactors = FALSE
 )
 
@@ -39,8 +60,10 @@ var_obs_lookup <- data.frame(
 make_var_metadata <- function() {
   list(
     database_structure = var_db_struct,
-    categorical_values = var_cat_vals,
+    column_ids = var_column_ids,
+    controlled_vocabularies = var_cat_vals,
     numeric_ranges = var_num_ranges,
+    column_lookups = var_column_lookups,
     observation_lookup = var_obs_lookup
   )
 }
@@ -338,4 +361,47 @@ test_that("cover_code validates against the bundled seagrass metadata", {
   ))
   # No numeric_ranges row exists for cover_code, so that check must not run.
   expect_false("qc_check_numeric_ranges" %in% attr(result, "checks_run"))
+})
+
+# ---------------------------------------------------------------------------
+# Taxon-scoped range rules in column scope
+#
+# A scoped rule is evaluated against `scientific_name`, which a single column
+# never supplies. The rule must be dropped and reported, never applied as
+# though it were unconditional -- that would validate every row against one
+# clade's bounds.
+# ---------------------------------------------------------------------------
+
+test_that("a scoped range rule is dropped, reported, and fires on no rows", {
+  scoped <- data.frame(
+    rule_id = "cover__taxon_within__genus_zostera",
+    column_id = "cover",
+    scope_type = "taxon_within",
+    scope_value = "Genus:Zostera",
+    range_type = "inclusive",
+    max_fail = 1,
+    min_fail = 0,
+    max_warn = NA_real_,
+    min_warn = NA_real_,
+    stringsAsFactors = FALSE
+  )
+  meta <- make_var_metadata()
+  meta$numeric_ranges <- scoped
+  local_mocked_bindings(
+    marinegeo_metadata = meta,
+    .package = "marinegeo.utils"
+  )
+
+  result <- qc_check_variable(
+    c(500, 900),
+    variable = "cover",
+    table_id = "test_table_v1"
+  )
+
+  expect_false("qc_check_numeric_ranges" %in% attr(result, "checks_run"))
+  expect_equal(
+    attr(result, "rules_skipped"),
+    "cover__taxon_within__genus_zostera"
+  )
+  expect_equal(nrow(result[result$check == "qc_check_numeric_ranges", ]), 0L)
 })

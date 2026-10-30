@@ -23,7 +23,7 @@ A \link{qc_issues} tibble with one row per offending value (zero rows if
 every value passes). \code{row} is the 1-based index into \code{x}, \code{column} is
 \code{variable}, and \code{col_index} is always \code{1}. Run-level metadata rides along
 as attributes: \code{table_id}, \code{n_rows}, \code{checks_run}, \code{checks_skipped},
-\code{columns}, and \code{status}. See \link{qc_issues}.
+\code{columns}, \code{rules_skipped}, and \code{status}. See \link{qc_issues}.
 }
 \description{
 Validates the values of one MarineGEO variable against the metadata rules
@@ -45,6 +45,14 @@ The two remaining checks need the whole table (\code{\link[=qc_check_columns]{qc
 \code{\link[=qc_check_row_uniqueness]{qc_check_row_uniqueness()}}). They are skipped and reported in the
 \code{checks_skipped} attribute, so an empty result can be distinguished from a
 clean one.
+
+\strong{Taxon-scoped range rules are dropped, not guessed.} A numeric range whose
+\code{scope_type} restricts it to a clade is evaluated against \code{scientific_name},
+which a single column never supplies. Rather than apply such a bound to
+every row as though it were unconditional, the rule is dropped and its
+\code{rule_id} reported in the \code{rules_skipped} attribute — the only record that a
+bound exists for the variable but went unchecked. Validate the whole table
+with \code{\link[=qc_run]{qc_run()}}, or pass \code{scientific_name} alongside, to exercise it.
 
 \strong{Why \code{table_id} is required.} Metadata is keyed on
 \verb{(table_id, column_name)}, and rules genuinely differ between table types for

@@ -8,7 +8,8 @@
 #' @param table Character scalar. The registry table to retrieve. Must be one
 #'   of `"partner_codes"`, `"site_codes"`, `"observation_lookup"`,
 #'   `"taxonomic_lookup"`, `"functional_group_lookup"`, `"data_index"`,
-#'   `"database_structure"`, `"categorical_values"`, or `"numeric_ranges"`.
+#'   `"database_structure"`, `"column_ids"`, `"numeric_ranges"`,
+#'   `"controlled_vocabularies"`, or `"column_lookups"`.
 #'
 #'   Wide-form taxonomic classifications are no longer a registry table; use
 #'   [utl_mg_get_taxonomic_classifications()] instead.
@@ -87,21 +88,61 @@
 #' - `table_id` — Links to `data_index`.
 #' - `column_name` — Expected column name in the data table.
 #' - `data_type` — SQL-style type name (e.g., `"STRING"`, `"DOUBLE"`, `"DATE"`).
+#' - `missing_values` — `"fail"`, `"warn"`, or `"allow"`: how a missing value
+#'   in this column is reported.
+#' - `uuid_identity` — Marks the columns whose values together identify a row.
+#' - `column_id` — What the column *holds*, independent of where it sits.
+#'   Required and non-blank on every row. This is the key the three rule tables
+#'   below are addressed by, so two columns that share a `column_id` share
+#'   their rules even under different names or tables, and two columns that
+#'   share only a name do not.
 #'
-#' **`categorical_values`**
-#' - `table_id` — Links to `data_index` and `database_structure`.
-#' - `column_name` — Column whose values are restricted.
-#' - `value` — A permitted value for that column.
+#' **`column_ids`**
+#'
+#' The dictionary of `column_id` values: one row per identifier, regardless of
+#' how many columns use it.
+#' - `column_id` — The identifier.
+#' - `label` — Human-readable label (e.g., `"Decimal latitude"`).
+#' - `definition` — Prose definition, where one exists, otherwise `NA`.
+#' - `unit` — Unit of measure (e.g., `"mm"`, `"degree"`), otherwise `NA`.
 #'
 #' **`numeric_ranges`**
-#' - `table_id` — Links to `data_index` and `database_structure`.
-#' - `column_name` — Column whose values are range-checked.
+#' - `rule_id` — Unique identifier of the rule, derived from its `column_id`
+#'   and scope (e.g., `"leaf_length_mm__taxon_within__genus_zostera"`).
+#'   Reported in the `rule_id` column of a [qc_issues] result.
+#' - `column_id` — Links to `column_ids` and `database_structure`.
+#' - `scope_type` — `NA` for a rule that applies wherever the `column_id`
+#'   does, or `"taxon_within"` / `"taxon_not_within"` for a rule restricted to
+#'   a clade.
+#' - `scope_value` — `Rank:Name` or `tree:Label` naming the clade a scoped rule
+#'   applies within (e.g., `"Genus:Zostera"`); `NA` when `scope_type` is.
+#'   Expand one with [utl_mg_expand_taxon_set()].
 #' - `min_fail` — Lower bound that triggers a fail (may be `NA`).
 #' - `max_fail` — Upper bound that triggers a fail (may be `NA`).
 #' - `min_warn` — Lower bound that triggers a warning (may be `NA`).
 #' - `max_warn` — Upper bound that triggers a warning (may be `NA`).
 #' - `range_type` — `"inclusive"` or `"exclusive"` boundary evaluation; `NA`
 #'   rows are skipped by QC functions.
+#'
+#'   A `column_id` may carry more than one rule — typically one unconditional
+#'   and one per clade — and every applicable rule is evaluated, so a single
+#'   value can produce more than one issue.
+#'
+#' **`controlled_vocabularies`**
+#' - `column_id` — Links to `column_ids`; the values of every column carrying
+#'   this `column_id` are restricted to this vocabulary.
+#' - `value` — A permitted value.
+#'
+#' **`column_lookups`**
+#'
+#' Binds a `column_id` to a registry table its values must appear in. A
+#' `column_id` absent from this table gets no registry QC at all, which is how
+#' a table using a partner organisation's own site coding opts out.
+#' - `column_id` — Links to `column_ids`.
+#' - `registry_table` — Registry the values are looked up in (e.g.,
+#'   `"site_codes"`).
+#' - `registry_column` — Column of that registry to match against (e.g.,
+#'   `"site_code"`).
 #'
 #' ## Filtering
 #' Filter values are matched with `%in%`, so a character vector matches any of
@@ -127,11 +168,14 @@
 #' # Look up observation IDs for a known species
 #' # utl_mg_get_registry("observation_lookup", scientific_name = "Zostera marina")
 #'
-#' # Retrieve categorical values for a specific table
-#' # utl_mg_get_registry("categorical_values", table_id = "sav_cover_v1")
+#' # Retrieve the controlled vocabulary for one column_id
+#' # utl_mg_get_registry("controlled_vocabularies", column_id = "cover_code")
 #'
-#' # Retrieve numeric range rules for a specific table
-#' # utl_mg_get_registry("numeric_ranges", table_id = "sav_cover_v1")
+#' # Retrieve numeric range rules for one column_id
+#' # utl_mg_get_registry("numeric_ranges", column_id = "leaf_length_mm")
+#'
+#' # Which column_ids are bound to a registry lookup
+#' # utl_mg_get_registry("column_lookups")
 #'
 #' # Retrieve database structure for a specific protocol
 #' # utl_mg_get_registry("database_structure", protocol = "seagrass")
@@ -144,8 +188,10 @@ utl_mg_get_registry <- function(table, ...) {
     "functional_group_lookup",
     "data_index",
     "database_structure",
-    "categorical_values",
-    "numeric_ranges"
+    "column_ids",
+    "numeric_ranges",
+    "controlled_vocabularies",
+    "column_lookups"
   )
 
   if (!is.character(table) || length(table) != 1L || is.na(table)) {

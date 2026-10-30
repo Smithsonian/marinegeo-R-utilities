@@ -60,26 +60,59 @@
     "sav_density_v1"
   ),
   column_name = c("site_code", "site_name", "percent_cover", "shoot_density"),
+  column_id = c(
+    "site_code_marinegeo",
+    "site_name_marinegeo",
+    "percent_cover",
+    "shoot_density"
+  ),
   data_type = c("STRING", "STRING", "DOUBLE", "DOUBLE"),
   uuid_identity = c(FALSE, FALSE, FALSE, FALSE),
   stringsAsFactors = FALSE
 )
 
-.categorical_values <- data.frame(
-  table_id = c("sav_cover_v1", "sav_cover_v1", "sav_density_v1"),
-  column_name = c("habitat", "habitat", "habitat"),
+.column_ids <- data.frame(
+  column_id = c(
+    "site_code_marinegeo",
+    "site_name_marinegeo",
+    "percent_cover",
+    "shoot_density",
+    "habitat"
+  ),
+  label = c(
+    "Site code",
+    "Site name",
+    "Percent cover",
+    "Shoot density",
+    "Habitat"
+  ),
+  unit = c(NA_character_, NA_character_, "percent", "shoots/m2", NA_character_),
+  stringsAsFactors = FALSE
+)
+
+.controlled_vocabularies <- data.frame(
+  column_id = c("habitat", "habitat", "percent_cover"),
   value = c("seagrass", "mixed", "seagrass"),
   stringsAsFactors = FALSE
 )
 
 .numeric_ranges <- data.frame(
-  table_id = c("sav_cover_v1", "sav_cover_v1"),
-  column_name = c("percent_cover", "shoot_density"),
+  rule_id = c("percent_cover", "shoot_density"),
+  column_id = c("percent_cover", "shoot_density"),
+  scope_type = c(NA_character_, NA_character_),
+  scope_value = c(NA_character_, NA_character_),
   min_fail = c(0, NA_real_),
   max_fail = c(100, 500),
   min_warn = c(NA_real_, NA_real_),
   max_warn = c(80, 300),
   range_type = c("inclusive", "inclusive"),
+  stringsAsFactors = FALSE
+)
+
+.column_lookups <- data.frame(
+  column_id = c("site_code_marinegeo", "site_name_marinegeo"),
+  registry_table = c("site_codes", "site_codes"),
+  registry_column = c("site_code", "site_name"),
   stringsAsFactors = FALSE
 )
 
@@ -91,8 +124,10 @@
   functional_group_lookup = .functional_group_lookup,
   data_index = .data_index,
   database_structure = .database_structure,
-  categorical_values = .categorical_values,
-  numeric_ranges = .numeric_ranges
+  column_ids = .column_ids,
+  controlled_vocabularies = .controlled_vocabularies,
+  numeric_ranges = .numeric_ranges,
+  column_lookups = .column_lookups
 )
 
 # ---------------------------------------------------------------------------
@@ -228,17 +263,45 @@ test_that("returns full database_structure table with expected columns", {
   expect_equal(nrow(result), nrow(.database_structure))
 })
 
-test_that("returns full categorical_values table with expected columns", {
+test_that("returns full controlled_vocabularies table with expected columns", {
   local_mocked_bindings(
     marinegeo_metadata = .mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_registry("categorical_values")
+  result <- utl_mg_get_registry("controlled_vocabularies")
 
   expect_s3_class(result, "data.frame")
-  expect_true(all(c("table_id", "column_name", "value") %in% colnames(result)))
-  expect_equal(nrow(result), nrow(.categorical_values))
+  expect_true(all(c("column_id", "value") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.controlled_vocabularies))
+})
+
+test_that("returns full column_ids dictionary with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("column_ids")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(c("column_id", "label", "unit") %in% colnames(result)))
+  expect_equal(nrow(result), nrow(.column_ids))
+})
+
+test_that("returns full column_lookups table with expected columns", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("column_lookups")
+
+  expect_s3_class(result, "data.frame")
+  expect_true(all(
+    c("column_id", "registry_table", "registry_column") %in% colnames(result)
+  ))
+  expect_equal(nrow(result), nrow(.column_lookups))
 })
 
 test_that("returns full numeric_ranges table with expected columns", {
@@ -252,8 +315,10 @@ test_that("returns full numeric_ranges table with expected columns", {
   expect_s3_class(result, "data.frame")
   expect_true(all(
     c(
-      "table_id",
-      "column_name",
+      "rule_id",
+      "column_id",
+      "scope_type",
+      "scope_value",
       "min_fail",
       "max_fail",
       "min_warn",
@@ -281,31 +346,45 @@ test_that("single filter returns matching subset", {
   expect_true(all(result$partner_code == "USA-MDA"))
 })
 
-test_that("filtering categorical_values by table_id returns matching rows", {
+test_that("filtering controlled_vocabularies by column_id returns matching rows", {
   local_mocked_bindings(
     marinegeo_metadata = .mock_metadata,
     .package = "marinegeo.utils"
   )
 
   result <- utl_mg_get_registry(
-    "categorical_values",
-    table_id = "sav_density_v1"
+    "controlled_vocabularies",
+    column_id = "percent_cover"
   )
 
   expect_equal(nrow(result), 1L)
-  expect_true(all(result$table_id == "sav_density_v1"))
+  expect_true(all(result$column_id == "percent_cover"))
 })
 
-test_that("filtering numeric_ranges by table_id returns matching rows", {
+test_that("filtering numeric_ranges by column_id returns matching rows", {
   local_mocked_bindings(
     marinegeo_metadata = .mock_metadata,
     .package = "marinegeo.utils"
   )
 
-  result <- utl_mg_get_registry("numeric_ranges", table_id = "sav_cover_v1")
+  result <- utl_mg_get_registry("numeric_ranges", column_id = "percent_cover")
 
-  expect_equal(nrow(result), 2L)
-  expect_true(all(result$table_id == "sav_cover_v1"))
+  expect_equal(nrow(result), 1L)
+  expect_true(all(result$column_id == "percent_cover"))
+})
+
+test_that("rules are no longer addressable by table_id", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  # The re-key means a rule has no table of its own; asking for one is an
+  # error rather than a silently unfiltered table.
+  expect_error(
+    utl_mg_get_registry("numeric_ranges", table_id = "sav_cover_v1"),
+    "Unknown filter column"
+  )
 })
 
 # ---------------------------------------------------------------------------

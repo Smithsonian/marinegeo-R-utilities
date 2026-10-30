@@ -21,9 +21,9 @@ DT/DataTables users should subtract 1 for JavaScript cell callbacks.
 }
 \description{
 Validates that columns in a data frame contain only values listed in the
-MarineGEO controlled vocabulary (\code{categorical_values} metadata). Designed
-for use in MarineGEO QA/QC pipelines and can be called directly or via
-\code{\link[=qc_run]{qc_run()}}.
+MarineGEO controlled vocabulary (\code{controlled_vocabularies} metadata).
+Designed for use in MarineGEO QA/QC pipelines and can be called directly or
+via \code{\link[=qc_run]{qc_run()}}.
 }
 \details{
 Only columns named in \code{rules$column_name} that also exist in \code{data} are

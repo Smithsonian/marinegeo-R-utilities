@@ -10,7 +10,8 @@ utl_mg_get_registry(table, ...)
 \item{table}{Character scalar. The registry table to retrieve. Must be one
 of \code{"partner_codes"}, \code{"site_codes"}, \code{"observation_lookup"},
 \code{"taxonomic_lookup"}, \code{"functional_group_lookup"}, \code{"data_index"},
-\code{"database_structure"}, \code{"categorical_values"}, or \code{"numeric_ranges"}.
+\code{"database_structure"}, \code{"column_ids"}, \code{"numeric_ranges"},
+\code{"controlled_vocabularies"}, or \code{"column_lookups"}.
 
 Wide-form taxonomic classifications are no longer a registry table; use
 \code{\link[=utl_mg_get_taxonomic_classifications]{utl_mg_get_taxonomic_classifications()}} instead.}
@@ -109,25 +110,69 @@ Additional columns may be present (e.g., data level, storage location).
 \item \code{table_id} — Links to \code{data_index}.
 \item \code{column_name} — Expected column name in the data table.
 \item \code{data_type} — SQL-style type name (e.g., \code{"STRING"}, \code{"DOUBLE"}, \code{"DATE"}).
+\item \code{missing_values} — \code{"fail"}, \code{"warn"}, or \code{"allow"}: how a missing value
+in this column is reported.
+\item \code{uuid_identity} — Marks the columns whose values together identify a row.
+\item \code{column_id} — What the column \emph{holds}, independent of where it sits.
+Required and non-blank on every row. This is the key the three rule tables
+below are addressed by, so two columns that share a \code{column_id} share
+their rules even under different names or tables, and two columns that
+share only a name do not.
 }
 
-\strong{\code{categorical_values}}
+\strong{\code{column_ids}}
+
+The dictionary of \code{column_id} values: one row per identifier, regardless of
+how many columns use it.
 \itemize{
-\item \code{table_id} — Links to \code{data_index} and \code{database_structure}.
-\item \code{column_name} — Column whose values are restricted.
-\item \code{value} — A permitted value for that column.
+\item \code{column_id} — The identifier.
+\item \code{label} — Human-readable label (e.g., \code{"Decimal latitude"}).
+\item \code{definition} — Prose definition, where one exists, otherwise \code{NA}.
+\item \code{unit} — Unit of measure (e.g., \code{"mm"}, \code{"degree"}), otherwise \code{NA}.
 }
 
 \strong{\code{numeric_ranges}}
 \itemize{
-\item \code{table_id} — Links to \code{data_index} and \code{database_structure}.
-\item \code{column_name} — Column whose values are range-checked.
+\item \code{rule_id} — Unique identifier of the rule, derived from its \code{column_id}
+and scope (e.g., \code{"leaf_length_mm__taxon_within__genus_zostera"}).
+Reported in the \code{rule_id} column of a \link{qc_issues} result.
+\item \code{column_id} — Links to \code{column_ids} and \code{database_structure}.
+\item \code{scope_type} — \code{NA} for a rule that applies wherever the \code{column_id}
+does, or \code{"taxon_within"} / \code{"taxon_not_within"} for a rule restricted to
+a clade.
+\item \code{scope_value} — \code{Rank:Name} or \code{tree:Label} naming the clade a scoped rule
+applies within (e.g., \code{"Genus:Zostera"}); \code{NA} when \code{scope_type} is.
+Expand one with \code{\link[=utl_mg_expand_taxon_set]{utl_mg_expand_taxon_set()}}.
 \item \code{min_fail} — Lower bound that triggers a fail (may be \code{NA}).
 \item \code{max_fail} — Upper bound that triggers a fail (may be \code{NA}).
 \item \code{min_warn} — Lower bound that triggers a warning (may be \code{NA}).
 \item \code{max_warn} — Upper bound that triggers a warning (may be \code{NA}).
 \item \code{range_type} — \code{"inclusive"} or \code{"exclusive"} boundary evaluation; \code{NA}
 rows are skipped by QC functions.
+
+A \code{column_id} may carry more than one rule — typically one unconditional
+and one per clade — and every applicable rule is evaluated, so a single
+value can produce more than one issue.
+}
+
+\strong{\code{controlled_vocabularies}}
+\itemize{
+\item \code{column_id} — Links to \code{column_ids}; the values of every column carrying
+this \code{column_id} are restricted to this vocabulary.
+\item \code{value} — A permitted value.
+}
+
+\strong{\code{column_lookups}}
+
+Binds a \code{column_id} to a registry table its values must appear in. A
+\code{column_id} absent from this table gets no registry QC at all, which is how
+a table using a partner organisation's own site coding opts out.
+\itemize{
+\item \code{column_id} — Links to \code{column_ids}.
+\item \code{registry_table} — Registry the values are looked up in (e.g.,
+\code{"site_codes"}).
+\item \code{registry_column} — Column of that registry to match against (e.g.,
+\code{"site_code"}).
 }
 }
 
@@ -155,11 +200,14 @@ error.
 # Look up observation IDs for a known species
 # utl_mg_get_registry("observation_lookup", scientific_name = "Zostera marina")
 
-# Retrieve categorical values for a specific table
-# utl_mg_get_registry("categorical_values", table_id = "sav_cover_v1")
+# Retrieve the controlled vocabulary for one column_id
+# utl_mg_get_registry("controlled_vocabularies", column_id = "cover_code")
 
-# Retrieve numeric range rules for a specific table
-# utl_mg_get_registry("numeric_ranges", table_id = "sav_cover_v1")
+# Retrieve numeric range rules for one column_id
+# utl_mg_get_registry("numeric_ranges", column_id = "leaf_length_mm")
+
+# Which column_ids are bound to a registry lookup
+# utl_mg_get_registry("column_lookups")
 
 # Retrieve database structure for a specific protocol
 # utl_mg_get_registry("database_structure", protocol = "seagrass")
