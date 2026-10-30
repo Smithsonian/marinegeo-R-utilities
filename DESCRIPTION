@@ -1,6 +1,6 @@
 Package: marinegeo.utils
 Title: MarineGEO R Utilities
-Version: 0.0.0.9001
+Version: 0.0.0.9002
 Authors@R: person("Michael", "Lonneman", email = "marinegeo-data@si.edu",
   role = c("aut", "cre"))
 Description: R tools to support MarineGEO Data Management.
