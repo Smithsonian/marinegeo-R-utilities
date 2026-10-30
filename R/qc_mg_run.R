@@ -51,18 +51,20 @@
 #'     for `table_id`.
 #'   \item Data type test: runs if `database_structure` has rows with non-`NA`
 #'     `data_type` values for `table_id`.
-#'   \item Categorical values test: runs if `categorical_values` has rows for
-#'     `table_id`.
+#'   \item Categorical values test: runs if `controlled_vocabularies` has rows
+#'     for one of the `column_id` values this table defines.
 #'   \item Missing values test: runs if `database_structure` has rows with
 #'     `missing_values` equal to `"fail"` or `"warn"` for `table_id`.
 #'   \item Numeric ranges test: runs if `numeric_ranges` has rows with non-`NA`
-#'     `range_type` for `table_id`.
-#'   \item Lookup values test: runs if `data` contains any of the columns
-#'     `partner_code`, `site_name`, `site_code`, or `scientific_name`, which are
-#'     validated against the corresponding global entity registries in
-#'     `marinegeo_metadata` (`partner_codes`, `site_codes`,
-#'     `observation_lookup`).
+#'     `range_type` for one of this table's `column_id` values.
+#'   \item Lookup values test: runs for each column this table binds to an
+#'     entity registry in `column_lookups` (e.g. `site_code` to `site_codes`).
+#'     A column absent from `column_lookups` gets no registry check, which is
+#'     how a table using a partner's own coding opts out.
 #' }
+#' The rule tables are keyed on `column_id` -- what a column holds -- and
+#' resolved to column names through this table's `database_structure` rows, so
+#' two columns sharing a name but not a meaning no longer share rules.
 #' Adding a new table type requires only updating the metadata CSVs and
 #' rebuilding sysdata — no R code changes required.
 #'
@@ -320,17 +322,7 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   if (nrow(tbl_ranges) > 0) {
     results$qc_check_numeric_ranges <- qc_check_numeric_ranges(
       data = data,
-      rules = .qc_keep_cols(
-        tbl_ranges,
-        c(
-          "column_name",
-          "max_fail",
-          "min_fail",
-          "max_warn",
-          "min_warn",
-          "range_type"
-        )
-      )
+      rules = .qc_keep_cols(tbl_ranges, .qc_range_rule_cols)
     )
   }
 

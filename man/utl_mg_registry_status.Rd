@@ -24,13 +24,6 @@ Zero rows before any registry table has been resolved.
 Reports, for every registry table resolved so far in this session, whether it
 came from a local \code{marinegeo-metadata} checkout, the live \verb{dist/} bundles on
 GitHub, or the offline copy baked into the package.
-
-The offline copy is a fallback, not an equivalent: it is a snapshot taken
-when the package was built, so a rule added to \code{marinegeo-metadata} since
-then is simply absent. Because a QC check reads a rule table it could not
-load as "no rules to apply", that shows up as a clean pass rather than an
-error. Call this when a rule you know exists in the metadata repo does not
-appear to fire.
 }
 \examples{
 \dontrun{

@@ -63,18 +63,20 @@ Instead, the dispatcher queries \code{marinegeo_metadata} for the given
 for \code{table_id}.
 \item Data type test: runs if \code{database_structure} has rows with non-\code{NA}
 \code{data_type} values for \code{table_id}.
-\item Categorical values test: runs if \code{categorical_values} has rows for
-\code{table_id}.
+\item Categorical values test: runs if \code{controlled_vocabularies} has rows
+for one of the \code{column_id} values this table defines.
 \item Missing values test: runs if \code{database_structure} has rows with
 \code{missing_values} equal to \code{"fail"} or \code{"warn"} for \code{table_id}.
 \item Numeric ranges test: runs if \code{numeric_ranges} has rows with non-\code{NA}
-\code{range_type} for \code{table_id}.
-\item Lookup values test: runs if \code{data} contains any of the columns
-\code{partner_code}, \code{site_name}, \code{site_code}, or \code{scientific_name}, which are
-validated against the corresponding global entity registries in
-\code{marinegeo_metadata} (\code{partner_codes}, \code{site_codes},
-\code{observation_lookup}).
+\code{range_type} for one of this table's \code{column_id} values.
+\item Lookup values test: runs for each column this table binds to an
+entity registry in \code{column_lookups} (e.g. \code{site_code} to \code{site_codes}).
+A column absent from \code{column_lookups} gets no registry check, which is
+how a table using a partner's own coding opts out.
 }
+The rule tables are keyed on \code{column_id} -- what a column holds -- and
+resolved to column names through this table's \code{database_structure} rows, so
+two columns sharing a name but not a meaning no longer share rules.
 Adding a new table type requires only updating the metadata CSVs and
 rebuilding sysdata — no R code changes required.
 
