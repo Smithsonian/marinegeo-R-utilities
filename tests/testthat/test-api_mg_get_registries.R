@@ -549,6 +549,7 @@ test_that("a live resolution records the ref it came from", {
   expect_identical(status$source, "live")
   expect_identical(status$detail, "some-branch")
   expect_false(status$fallback)
+  expect_identical(status$schema_version, 1L)
   expect_identical(
     .mg_stale_registry_tables("database_structure"),
     character(0)
@@ -603,6 +604,8 @@ test_that("offline on purpose is not reported as a stale fallback", {
   # deliberately offline run must not cry stale.
   expect_identical(status$source, "offline")
   expect_false(status$fallback)
+  # No manifest was read, and the baked copy carries no version of its own.
+  expect_identical(status$schema_version, NA_integer_)
   expect_identical(
     .mg_stale_registry_tables("database_structure"),
     character(0)
@@ -639,7 +642,7 @@ test_that("status starts empty and reports one row per resolved table", {
   expect_identical(nrow(utl_mg_registry_status()), 0L)
   expect_identical(
     names(utl_mg_registry_status()),
-    c("table", "source", "fallback", "detail")
+    c("table", "source", "fallback", "schema_version", "detail")
   )
 
   withr::local_options(marinegeo.utils.live_registry = FALSE)
@@ -655,4 +658,131 @@ test_that("status starts empty and reports one row per resolved table", {
 
   # Keyed by table and overwritten, so a repeated resolution is one row.
   expect_identical(nrow(utl_mg_registry_status()), 2L)
+})
+
+# ---------------------------------------------------------------------------
+# Schema version label
+#
+# What the QC console footer prints. Built from the same provenance record, so
+# these seed it directly rather than resolving tables.
+# ---------------------------------------------------------------------------
+
+.seed_source <- function(...) {
+  .mg_registry_env$source <- list(...)
+}
+
+test_that("a live resolution labels the schema version and the ref", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  .seed_source(
+    database_structure = list(
+      source = "live",
+      detail = "main",
+      fallback = FALSE,
+      schema_version = 1L
+    )
+  )
+
+  expect_identical(
+    .mg_rules_schema_label("database_structure"),
+    "rules schema v1, ref main"
+  )
+})
+
+test_that("a local checkout is named rather than spelled out", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  .seed_source(
+    database_structure = list(
+      source = "local",
+      detail = "/home/someone/marinegeo-metadata",
+      fallback = FALSE,
+      schema_version = 1L
+    )
+  )
+
+  # The checkout path is noise in a console footer; the version is the point.
+  expect_identical(
+    .mg_rules_schema_label("database_structure"),
+    "rules schema v1, local checkout"
+  )
+})
+
+test_that("rules served entirely from the offline copy report no version", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  .seed_source(
+    database_structure = list(
+      source = "offline",
+      detail = "live registry disabled",
+      fallback = FALSE,
+      schema_version = NA_integer_
+    )
+  )
+
+  expect_identical(
+    .mg_rules_schema_label("database_structure"),
+    "rules schema: offline"
+  )
+})
+
+test_that("a part-offline run does not let the version stand for everything", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  .seed_source(
+    database_structure = list(
+      source = "live",
+      detail = "main",
+      fallback = FALSE,
+      schema_version = 1L
+    ),
+    controlled_vocabularies = list(
+      source = "offline",
+      detail = "not published in dist/",
+      fallback = FALSE,
+      schema_version = NA_integer_
+    )
+  )
+
+  expect_identical(
+    .mg_rules_schema_label(
+      c("database_structure", "controlled_vocabularies")
+    ),
+    "rules schema v1, ref main; some offline"
+  )
+})
+
+test_that("two schema versions in one session are both reported", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+  .seed_source(
+    database_structure = list(
+      source = "live",
+      detail = "main",
+      fallback = FALSE,
+      schema_version = 2L
+    ),
+    controlled_vocabularies = list(
+      source = "live",
+      detail = "main",
+      fallback = FALSE,
+      schema_version = 1L
+    )
+  )
+
+  # A discrepancy is surfaced, not collapsed to whichever came first.
+  expect_identical(
+    .mg_rules_schema_label(
+      c("database_structure", "controlled_vocabularies")
+    ),
+    "rules schema v1/2, ref main"
+  )
+})
+
+test_that("nothing resolved yields no label at all", {
+  .clear_registry_sources()
+  withr::defer(.clear_registry_sources())
+
+  # A caller that never touched the registry must print nothing, not "offline".
+  expect_null(.mg_rules_schema_label("database_structure"))
 })

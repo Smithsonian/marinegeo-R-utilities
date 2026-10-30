@@ -30,6 +30,7 @@
   checks_run <- attr(x, "checks_run")
   checks_skipped <- attr(x, "checks_skipped")
   stale_registries <- attr(x, "stale_registries")
+  rules_schema <- attr(x, "rules_schema")
 
   # `table_id` may be a vector: new_qc_issues() accepts one result standing
   # for several tables.
@@ -93,8 +94,10 @@
   # Footer. Nothing having run is not a pass — it is the case this whole report
   # exists to make visible.
   if (length(checks_run) == 0) {
-    lines <- c(lines, "Status: NOT CHECKED - no checks ran")
-    return(lines)
+    return(.qc_report_stamp(
+      c(lines, "Status: NOT CHECKED - no checks ran"),
+      rules_schema
+    ))
   }
 
   n_issues <- nrow(x)
@@ -114,6 +117,25 @@
       )
     )
   }
+  .qc_report_stamp(lines, rules_schema)
+}
+
+# Stamp the schema version onto the footer -- the last line, whichever of the
+# three it is -- so the rules behind a verdict are read in the same glance as
+# the verdict. A bare qc_check_*() result has no `rules_schema` attribute and is
+# left exactly as it was.
+.qc_report_stamp <- function(lines, rules_schema) {
+  if (
+    length(lines) == 0 || length(rules_schema) != 1 || !nzchar(rules_schema)
+  ) {
+    return(lines)
+  }
+  lines[[length(lines)]] <- paste0(
+    lines[[length(lines)]],
+    " (",
+    rules_schema,
+    ")"
+  )
   lines
 }
 

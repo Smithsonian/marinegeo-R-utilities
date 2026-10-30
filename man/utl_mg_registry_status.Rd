@@ -15,6 +15,9 @@ A \link[tibble:tibble]{tibble} with one row per resolved table:
 not be read. Running offline on purpose, or reading a table the
 manifest does not publish, is \code{FALSE} — those are correct outcomes,
 not degraded ones.}
+\item{\code{schema_version}}{Integer. The \verb{dist/} schema major version the
+manifest declared, or \code{NA} for an offline table — the baked copy
+records no version of its own.}
 \item{\code{detail}}{The checkout path, the git ref, or the reason the live
 fetch failed.}
 }

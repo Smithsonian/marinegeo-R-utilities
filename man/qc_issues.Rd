@@ -62,6 +62,11 @@ the installed package, so a rule added to \code{marinegeo-metadata} since it
 was built did not run. Since a rule table that failed to load is read as
 "no rules", this attribute is the only thing separating that from a
 genuine pass. \code{NULL} when every table came from live or local metadata.}
+\item{\code{rules_schema}}{One line naming the \verb{dist/} schema major version the
+rule bundles were published under and where they came from, e.g.
+\code{"rules schema v1, ref main"}, or \code{"rules schema: offline"} when no
+manifest was read. Printed in the console report's footer. \code{NULL} for a
+bare \verb{qc_check_*()} result, which resolves no rules of its own.}
 \item{\code{status}}{The worst severity present: \code{"fail"} > \code{"warn"} >
 \code{"pass"}.}
 }

@@ -73,8 +73,9 @@
 # Constructor: normalize `rows` to the canonical schema, attach run metadata,
 # and stamp the qc_issues class. `rows` may be NULL, a zero-column/zero-row
 # frame (e.g. from bind_rows(list())), or a tibble of `.qc_issue()` chunks.
-# `checks_skipped`, `columns`, `rules_skipped` and `stale_registries` are only
-# populated by the dispatcher; the individual checks leave them NULL.
+# `checks_skipped`, `columns`, `rules_skipped`, `stale_registries` and
+# `rules_schema` are only populated by the dispatcher; the individual checks
+# leave them NULL.
 new_qc_issues <- function(
   rows = NULL,
   table_id = NULL,
@@ -83,7 +84,8 @@ new_qc_issues <- function(
   checks_skipped = NULL,
   columns = NULL,
   rules_skipped = NULL,
-  stale_registries = NULL
+  stale_registries = NULL,
+  rules_schema = NULL
 ) {
   skeleton <- .qc_issues_skeleton()
 
@@ -103,6 +105,7 @@ new_qc_issues <- function(
   attr(out, "columns") <- columns
   attr(out, "rules_skipped") <- rules_skipped
   attr(out, "stale_registries") <- stale_registries
+  attr(out, "rules_schema") <- rules_schema
   attr(out, "status") <- .qc_status(out)
   class(out) <- c("qc_issues", class(skeleton))
   out
@@ -169,6 +172,11 @@ new_qc_issues <- function(
 #'     was built did not run. Since a rule table that failed to load is read as
 #'     "no rules", this attribute is the only thing separating that from a
 #'     genuine pass. `NULL` when every table came from live or local metadata.}
+#'   \item{`rules_schema`}{One line naming the `dist/` schema major version the
+#'     rule bundles were published under and where they came from, e.g.
+#'     `"rules schema v1, ref main"`, or `"rules schema: offline"` when no
+#'     manifest was read. Printed in the console report's footer. `NULL` for a
+#'     bare `qc_check_*()` result, which resolves no rules of its own.}
 #'   \item{`status`}{The worst severity present: `"fail"` > `"warn"` >
 #'     `"pass"`.}
 #' }

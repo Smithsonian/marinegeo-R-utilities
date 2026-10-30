@@ -26,7 +26,7 @@
 
 # The columns each published rule table must carry. A table read with a column
 # missing or renamed is read downstream as "no rules", so it is caught on the
-# way in rather than surfacing as a clean pass that checked nothing. 
+# way in rather than surfacing as a clean pass that checked nothing.
 #
 # Two entries differ from that repo's authored headers on purpose:
 #   * `numeric_ranges` requires `rule_id`, which is NOT authored -- the metadata
@@ -312,12 +312,14 @@
 #'
 #' @param locate Function taking a repo-relative path and returning a URL or
 #'   local path.
-#' @return A tibble, or `NULL` when the manifest does not distribute `table`.
+#' @return A tibble carrying the manifest's schema version in an
+#'   `mg_schema_version` attribute, or `NULL` when the manifest does not
+#'   distribute `table`.
 #' @noRd
 .mg_registry_from_dist <- function(table, locate) {
   man_src <- locate(.mg_manifest_rel)
   manifest <- .mg_fetch_json(man_src)
-  .mg_check_schema_version(manifest, man_src)
+  ver <- .mg_check_schema_version(manifest, man_src)
 
   bname <- manifest$table_index[[table]]
   if (is.null(bname)) {
@@ -337,11 +339,17 @@
   }
 
   bundle <- .mg_fetch_json(locate(paste0("dist/", bname, ".json")))
-  .mg_coerce_registry_table(
+  out <- .mg_coerce_registry_table(
     bundle$tables[[table]],
     entry$tables[[table]],
     table
   )
+
+  # Ride the version back to the caller on the table itself rather than through
+  # a second manifest read. .mg_get_registry_table() records it and strips the
+  # attribute, so it never reaches a caller of the registry.
+  attr(out, "mg_schema_version") <- ver
+  out
 }
 
 # ---------------------------------------------------------------------------
@@ -359,16 +367,22 @@
 # `fallback` separates the two ways a table ends up offline. Asking for offline
 # mode, or reading a table the manifest simply does not publish, is a correct
 # outcome.
+#
+# `schema_version` is the dist/ schema major version the manifest declared, or
+# NA for an offline table -- no manifest was read, and the baked copy records no
+# version of its own.
 .mg_note_registry_source <- function(
   table,
   source,
   detail = NA_character_,
-  fallback = FALSE
+  fallback = FALSE,
+  schema_version = NA_integer_
 ) {
   .mg_registry_env$source[[table]] <- list(
     source = source,
     detail = detail,
-    fallback = fallback
+    fallback = fallback,
+    schema_version = schema_version
   )
   invisible(NULL)
 }
@@ -386,6 +400,17 @@
     table = if (length(recorded) == 0) character(0) else names(recorded),
     source = pluck(function(x) x$source, character(1)),
     fallback = pluck(function(x) isTRUE(x$fallback), logical(1)),
+    # Tolerant of a record written before this field existed.
+    schema_version = pluck(
+      function(x) {
+        if (is.null(x$schema_version)) {
+          NA_integer_
+        } else {
+          as.integer(x$schema_version)
+        }
+      },
+      integer(1)
+    ),
     detail = pluck(function(x) as.character(x$detail), character(1))
   )
 }
@@ -399,6 +424,76 @@
   )]
   stale <- vapply(recorded, function(x) isTRUE(x$fallback), logical(1))
   names(recorded)[stale]
+}
+
+# A one-line description of the dist/ schema version behind `tables`, for the
+# QC console report: "rules schema v1, ref main", "rules schema v1, local
+# checkout", or "rules schema: offline" when nothing read a manifest. NULL when
+# none of `tables` has been resolved this session, so a caller that never
+# touched the registry prints nothing at all.
+#
+# A session that switches ref or checkout mid-run can hold two versions at once;
+# they are listed rather than hidden.
+.mg_rules_schema_label <- function(tables) {
+  recorded <- .mg_registry_env$source[intersect(
+    tables,
+    names(.mg_registry_env$source)
+  )]
+  if (length(recorded) == 0) {
+    return(NULL)
+  }
+
+  vers <- vapply(
+    recorded,
+    function(x) {
+      if (is.null(x$schema_version)) {
+        NA_integer_
+      } else {
+        as.integer(x$schema_version)
+      }
+    },
+    integer(1),
+    USE.NAMES = FALSE
+  )
+  known <- !is.na(vers)
+  if (!any(known)) {
+    return("rules schema: offline")
+  }
+
+  label <- paste0(
+    "rules schema v",
+    paste(sort(unique(vers[known])), collapse = "/")
+  )
+
+  # Where those versioned tables came from. `detail` holds the ref for a live
+  # table and the checkout path for a local one; the path is not worth printing,
+  # so a local read is named rather than spelled out.
+  srcs <- vapply(
+    recorded[known],
+    function(x) as.character(x$source),
+    character(1),
+    USE.NAMES = FALSE
+  )
+  refs <- vapply(
+    recorded[known],
+    function(x) as.character(x$detail),
+    character(1),
+    USE.NAMES = FALSE
+  )
+  origin <- unique(ifelse(
+    srcs == "live",
+    paste("ref", refs),
+    "local checkout"
+  ))
+  label <- paste0(label, ", ", paste(origin, collapse = "/"))
+
+  # Some rules versioned, some not: the report already names the offline tables
+  # on their own line, so this only has to stop the version reading as though it
+  # covered everything.
+  if (any(!known)) {
+    label <- paste0(label, "; some offline")
+  }
+  label
 }
 
 #' Where registry tables were loaded from this session
@@ -417,6 +512,9 @@
 #'       not be read. Running offline on purpose, or reading a table the
 #'       manifest does not publish, is `FALSE` — those are correct outcomes,
 #'       not degraded ones.}
+#'     \item{`schema_version`}{Integer. The `dist/` schema major version the
+#'       manifest declared, or `NA` for an offline table — the baked copy
+#'       records no version of its own.}
 #'     \item{`detail`}{The checkout path, the git ref, or the reason the live
 #'       fetch failed.}
 #'   }
@@ -476,7 +574,13 @@ utl_mg_registry_status <- function() {
       )
       return(marinegeo_metadata[[table]])
     }
-    .mg_note_registry_source(table, "local", local_root)
+    .mg_note_registry_source(
+      table,
+      "local",
+      local_root,
+      schema_version = attr(out, "mg_schema_version")
+    )
+    attr(out, "mg_schema_version") <- NULL
     return(out)
   }
 
@@ -529,6 +633,12 @@ utl_mg_registry_status <- function() {
     )
     return(marinegeo_metadata[[table]])
   }
-  .mg_note_registry_source(table, "live", ref)
+  .mg_note_registry_source(
+    table,
+    "live",
+    ref,
+    schema_version = attr(out, "mg_schema_version")
+  )
+  attr(out, "mg_schema_version") <- NULL
   out
 }

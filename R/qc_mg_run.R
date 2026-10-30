@@ -234,6 +234,10 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   # so without this the result would claim a clean pass having checked nothing.
   stale_registries <- .mg_stale_registry_tables(.qc_registry_tables)
 
+  # Which dist/ schema version those rule tables were published under, for the
+  # report footer. NULL when no registry table was resolved this session.
+  rules_schema <- .mg_rules_schema_label(.qc_registry_tables)
+
   empty_result <- function() {
     new_qc_issues(
       table_id = table_id,
@@ -242,7 +246,8 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
       checks_skipped = checks_skipped,
       columns = colnames(data),
       rules_skipped = rules_skipped,
-      stale_registries = stale_registries
+      stale_registries = stale_registries,
+      rules_schema = rules_schema
     )
   }
 
@@ -382,6 +387,7 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
     checks_skipped = checks_skipped,
     columns = colnames(data),
     rules_skipped = rules_skipped,
-    stale_registries = stale_registries
+    stale_registries = stale_registries,
+    rules_schema = rules_schema
   )
 }

@@ -491,6 +491,53 @@ test_that(".qc_report_lines lists skipped checks", {
   )
 })
 
+test_that(".qc_report_lines stamps the rule schema onto the footer", {
+  result <- new_qc_issues(
+    NULL,
+    table_id = "test_table_v1",
+    n_rows = 142L,
+    checks_run = "qc_check_columns",
+    rules_schema = "rules schema v1, ref main"
+  )
+  lines <- .qc_report_lines(result)
+
+  # The version rides on the verdict, so both are read in one glance.
+  expect_equal(
+    lines[[length(lines)]],
+    "Status: PASS - no issues (rules schema v1, ref main)"
+  )
+  # And the header is left alone.
+  expect_equal(lines[[1]], "QC: test_table_v1 (142 rows, 1 checks)")
+})
+
+test_that(".qc_report_lines stamps the schema onto a NOT CHECKED footer too", {
+  result <- new_qc_issues(
+    NULL,
+    table_id = "nonexistent_table",
+    n_rows = 2L,
+    checks_run = character(0),
+    rules_schema = "rules schema: offline"
+  )
+
+  # The run that checked nothing is exactly where the rules' provenance matters.
+  expect_equal(
+    .qc_report_lines(result)[[2]],
+    "Status: NOT CHECKED - no checks ran (rules schema: offline)"
+  )
+})
+
+test_that(".qc_report_lines omits the schema when a bare check left none", {
+  bare <- new_qc_issues(
+    .qc_issue("qc_check_columns", "fail", "missing_column"),
+    checks_run = "qc_check_columns"
+  )
+  lines <- .qc_report_lines(bare)
+
+  # A bare qc_check_*() resolves no rules, so it must not claim a schema.
+  expect_equal(lines[[length(lines)]], "Status: FAIL - 1 issue across 1 check")
+  expect_false(any(grepl("rules schema", lines, fixed = TRUE)))
+})
+
 test_that(".qc_report_lines tolerates the NULL attributes a bare check leaves", {
   bare <- new_qc_issues(
     .qc_issue("qc_check_columns", "fail", "missing_column"),
@@ -606,6 +653,22 @@ test_that("qc_run names the rule tables that fell back to the offline copy", {
     paste(.qc_report_lines(result), collapse = "\n"),
     "offline rules:.*database_structure"
   )
+})
+
+test_that("qc_run stamps the rule schema version onto its printed footer", {
+  .mg_registry_env$source <- list()
+  withr::defer(.mg_registry_env$source <- list())
+  withr::local_options(marinegeo.utils.live_registry = FALSE)
+  local_mocked_bindings(
+    marinegeo_metadata = make_mock_metadata(),
+    .package = "marinegeo.utils"
+  )
+
+  expect_message(
+    result <- qc_run(good_df, "test_table_v1"),
+    "Status: PASS - no issues \\(rules schema: offline\\)"
+  )
+  expect_identical(attr(result, "rules_schema"), "rules schema: offline")
 })
 
 test_that("a deliberately offline run reports no stale rule tables", {
