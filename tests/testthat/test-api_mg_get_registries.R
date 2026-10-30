@@ -13,6 +13,7 @@
   data_type = "STRING",
   missing_values = NA_character_,
   uuid_identity = NA,
+  column_id = "bundled_col_id",
   stringsAsFactors = FALSE
 )
 
@@ -36,7 +37,8 @@
     column_name = "a",
     data_type = "STRING",
     missing_values = "fail",
-    uuid_identity = TRUE
+    uuid_identity = TRUE,
+    column_id = "a_id"
   ),
   list(
     protocol = "live",
@@ -44,7 +46,8 @@
     column_name = "b",
     data_type = "INT",
     missing_values = NULL,
-    uuid_identity = NULL
+    uuid_identity = NULL,
+    column_id = "b_id"
   )
 )
 
@@ -56,7 +59,8 @@
     list(name = "column_name", type = "character"),
     list(name = "data_type", type = "character"),
     list(name = "missing_values", type = "character"),
-    list(name = "uuid_identity", type = "logical")
+    list(name = "uuid_identity", type = "logical"),
+    list(name = "column_id", type = "character")
   )
 )
 
@@ -259,8 +263,10 @@ test_that("the guard fires for every rule table, not just database_structure", {
   # Each of these would otherwise reach the QC engine as a rule table it reads
   # as empty -- a clean pass with the check silently skipped.
   cases <- list(
-    categorical_values = c("table_id", "column_name"),
-    numeric_ranges = c("table_id", "column_name", "range_type")
+    column_ids = c("column_id", "label"),
+    numeric_ranges = c("rule_id", "column_id", "range_type"),
+    controlled_vocabularies = "column_id",
+    column_lookups = c("column_id", "registry_table")
   )
 
   for (table in names(cases)) {
@@ -276,6 +282,31 @@ test_that("the guard fires for every rule table, not just database_structure", {
       "missing required column"
     )
   }
+})
+
+test_that("numeric_ranges without the scope columns is refused", {
+  # The dangerous direction: a rule table read without scope_type/scope_value
+  # looks like a table of unconditional rules, so a clade-scoped band would be
+  # applied to every taxon rather than skipped.
+  cols <- c(
+    "rule_id",
+    "column_id",
+    "range_type",
+    "max_fail",
+    "min_fail",
+    "max_warn",
+    "min_warn"
+  )
+  schema <- list(
+    rows = 1L,
+    columns = lapply(cols, function(nm) list(name = nm, type = "character"))
+  )
+  rows <- list(stats::setNames(as.list(rep("x", length(cols))), cols))
+
+  expect_error(
+    .mg_coerce_registry_table(rows, schema, "numeric_ranges"),
+    "scope_type"
+  )
 })
 
 test_that("an unknown declared type is an error", {
