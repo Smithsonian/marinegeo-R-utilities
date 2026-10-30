@@ -223,6 +223,11 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
     .qc_table_scoped_checks()
   }
 
+  # Scoped range rules dropped because their predicate column was not supplied.
+  # Populated in column scope only; empty_result() closes over it, so it is
+  # declared before that closure.
+  rules_skipped <- character(0)
+
   # Rule tables that came from the offline snapshot rather than live metadata.
   # Recorded as a side effect of .qc_resolve_rules() above. A rule table that
   # could not be loaded is indistinguishable downstream from one with no rules,
@@ -259,6 +264,21 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
     tbl_struct <- .qc_filter_by_column(tbl_struct, present)
     tbl_cats <- .qc_filter_by_column(tbl_cats, present)
     tbl_ranges <- .qc_filter_by_column(tbl_ranges, present)
+
+    # A scoped range rule needs its predicate column, `scientific_name`, which
+    # a column subset may not include. Such a rule is dropped rather than
+    # applied as though it were unconditional -- that would validate
+    # `leaf_length_mm` against Zostera bounds for every species -- and is
+    # reported in `rules_skipped`. This is the path qc_check_variable() takes,
+    # where only one column is ever supplied.
+    scoped <- if ("scope_type" %in% colnames(tbl_ranges)) {
+      !is.na(tbl_ranges$scope_type) & nzchar(trimws(tbl_ranges$scope_type))
+    } else {
+      rep(FALSE, nrow(tbl_ranges))
+    }
+    unavail <- scoped & !("scientific_name" %in% present)
+    rules_skipped <- unique(as.character(tbl_ranges$rule_id[unavail]))
+    tbl_ranges <- tbl_ranges[!unavail, , drop = FALSE]
 
     nothing_checkable <- nrow(tbl_struct) == 0 &&
       nrow(tbl_cats) == 0 &&
