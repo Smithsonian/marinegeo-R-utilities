@@ -45,7 +45,7 @@ The functions below retrieves `scientific_id` values.
 ## Review `scientific_id` for each observation
 
 `utl_mg_get_scientific_id()` matches each provided `scientific_name` value against the
-`observation_lookup` table bundled with the package and returns a `scientific_id`
+`observation_lookup` table shipped with the package and returns a `scientific_id`
 value. Input values that are not in the lookup receive `NA` and trigger a
 warning.
 

@@ -1,7 +1,7 @@
 .onLoad <- function(libname, pkgname) {
-  # Memoise live registry fetches for the lifetime of the session. See
-  # R/api_mg_get_registries.R for the fetch functions and resolver. The tree
-  # listing is cached once per session; CSV reads are cached keyed by URL vector.
-  .mg_fetch_tree <<- memoise::memoise(.mg_list_repo_tree)
-  .mg_fetch_registry <<- memoise::memoise(.mg_read_remote_csv)
+  # Memoise bundle fetches for the lifetime of the session, keyed by source.
+  # The manifest and each dist/ bundle are therefore fetched once, so a QC
+  # run touching several tables in one bundle costs a single request. See
+  # R/api_mg_get_registries.R for the resolver.
+  .mg_fetch_json <<- memoise::memoise(.mg_read_json)
 }

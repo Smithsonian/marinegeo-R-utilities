@@ -17,9 +17,17 @@
     column = character(0),
     col_index = integer(0),
     value = character(0),
-    issue = character(0)
+    issue = character(0),
+    rule_id = character(0),
+    detail = character(0),
+    table = character(0)
   )
 }
+
+# The `missing_values` values that actually produce an issue. The third value,
+# "allow", declares no rule. Since the rename these ARE severities, so a rule's
+# value is used as the issue's severity verbatim.
+.qc_missing_active <- c("fail", "warn")
 
 # Derive the worst severity present: fail > warn > pass.
 .qc_status <- function(issues) {
@@ -43,7 +51,10 @@
   row = NA_integer_,
   column = NA_character_,
   col_index = NA_integer_,
-  value = NA_character_
+  value = NA_character_,
+  rule_id = NA_character_,
+  detail = NA_character_,
+  table = NA_character_
 ) {
   tibble::tibble(
     check = as.character(check),
@@ -52,18 +63,29 @@
     column = as.character(column),
     col_index = as.integer(col_index),
     value = as.character(value),
-    issue = as.character(issue)
+    issue = as.character(issue),
+    rule_id = as.character(rule_id),
+    detail = as.character(detail),
+    table = as.character(table)
   )
 }
 
 # Constructor: normalize `rows` to the canonical schema, attach run metadata,
 # and stamp the qc_issues class. `rows` may be NULL, a zero-column/zero-row
 # frame (e.g. from bind_rows(list())), or a tibble of `.qc_issue()` chunks.
+# `checks_skipped`, `columns`, `rules_skipped`, `stale_registries` and
+# `rules_schema` are only populated by the dispatcher; the individual checks
+# leave them NULL.
 new_qc_issues <- function(
   rows = NULL,
   table_id = NULL,
   n_rows = NULL,
-  checks_run = NULL
+  checks_run = NULL,
+  checks_skipped = NULL,
+  columns = NULL,
+  rules_skipped = NULL,
+  stale_registries = NULL,
+  rules_schema = NULL
 ) {
   skeleton <- .qc_issues_skeleton()
 
@@ -79,6 +101,11 @@ new_qc_issues <- function(
   attr(out, "table_id") <- table_id
   attr(out, "n_rows") <- n_rows
   attr(out, "checks_run") <- checks_run
+  attr(out, "checks_skipped") <- checks_skipped
+  attr(out, "columns") <- columns
+  attr(out, "rules_skipped") <- rules_skipped
+  attr(out, "stale_registries") <- stale_registries
+  attr(out, "rules_schema") <- rules_schema
   attr(out, "status") <- .qc_status(out)
   class(out) <- c("qc_issues", class(skeleton))
   out
@@ -101,6 +128,18 @@ new_qc_issues <- function(
 #'   \item{`col_index`}{Integer. 1-based column position, or `NA`.}
 #'   \item{`value`}{Character. The offending value, or `NA`.}
 #'   \item{`issue`}{Character. Machine-readable code, e.g. `"out_of_range"`.}
+#'   \item{`rule_id`}{Character. Identifier of the metadata rule that produced
+#'     the issue. Every range, vocabulary and lookup rule carries one, derived
+#'     from its `column_id` and scope, so a finding can be traced back to the
+#'     CSV row that defined it and a scoped rule can be told apart from the
+#'     unconditional rule on the same column. `NA` only for issues that come
+#'     from no rule table, such as a missing column.}
+#'   \item{`detail`}{Character. One human-readable sentence of *why*, where a
+#'     machine-readable `issue` code is not self-explanatory (e.g. which
+#'     condition applied), or `NA`.}
+#'   \item{`table`}{Character. Which table the issue is in. `NA` for a
+#'     single-table run, where [qc_run()] records the table in the `table_id`
+#'     attribute instead.}
 #' }
 #'
 #' Because it is an ordinary tibble, results are inspected and subset with
@@ -108,9 +147,39 @@ new_qc_issues <- function(
 #' any other tibble.
 #'
 #' Run-level metadata is attached as attributes, read with [base::attr()]:
-#' `table_id`, `n_rows` (rows in the validated data), `checks_run` (checks that
-#' executed), and `status` (the worst severity present: `"fail"` > `"warn"` >
-#' `"pass"`).
+#' \describe{
+#'   \item{`table_id`}{The table identifier the data was validated against.}
+#'   \item{`n_rows`}{Rows in the validated data.}
+#'   \item{`checks_run`}{Checks that executed.}
+#'   \item{`checks_skipped`}{Checks that were not applicable to the input.
+#'     Populated by [qc_run()] with `partial = TRUE` and by
+#'     [qc_check_variable()], where the two table-scoped checks
+#'     (`qc_check_columns`, `qc_check_row_uniqueness`) cannot run. Lets a
+#'     caller distinguish "not applicable" from "passed".}
+#'   \item{`columns`}{The column names that were validated — the only record of
+#'     what was checked when the result has zero rows.}
+#'   \item{`rules_skipped`}{`rule_id`s of scoped range rules dropped because
+#'     `scientific_name`, the column their scope is evaluated against, was not
+#'     among the supplied columns. Populated by [qc_run()] with
+#'     `partial = TRUE` and by [qc_check_variable()], which only ever sees one
+#'     column. Such a rule is dropped rather than applied as if it were
+#'     unconditional, so this attribute is the only record that a bound exists
+#'     but went unchecked.}
+#'   \item{`stale_registries`}{Names of the rule tables that were served from
+#'     the package's offline snapshot because the live `dist/` bundles could
+#'     not be read — see [utl_mg_registry_status()]. Those rules are as old as
+#'     the installed package, so a rule added to `marinegeo-metadata` since it
+#'     was built did not run. Since a rule table that failed to load is read as
+#'     "no rules", this attribute is the only thing separating that from a
+#'     genuine pass. `NULL` when every table came from live or local metadata.}
+#'   \item{`rules_schema`}{One line naming the `dist/` schema major version the
+#'     rule bundles were published under and where they came from, e.g.
+#'     `"rules schema v1, ref main"`, or `"rules schema: offline"` when no
+#'     manifest was read. Printed in the console report's footer. `NULL` for a
+#'     bare `qc_check_*()` result, which resolves no rules of its own.}
+#'   \item{`status`}{The worst severity present: `"fail"` > `"warn"` >
+#'     `"pass"`.}
+#' }
 #'
 #' @name qc_issues
 #' @keywords internal

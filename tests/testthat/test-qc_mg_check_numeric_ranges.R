@@ -4,7 +4,10 @@ make_range_rules <- function(
   max_fail = 10,
   min_warn = NA_real_,
   max_warn = NA_real_,
-  range_type = "inclusive"
+  range_type = "inclusive",
+  scope_type = NA_character_,
+  scope_value = NA_character_,
+  ...
 ) {
   data.frame(
     column_name = column_name,
@@ -13,6 +16,9 @@ make_range_rules <- function(
     min_warn = min_warn,
     max_warn = max_warn,
     range_type = range_type,
+    scope_type = scope_type,
+    scope_value = scope_value,
+    ...,
     stringsAsFactors = FALSE
   )
 }
@@ -184,4 +190,122 @@ test_that("rules missing required columns throws error", {
     ),
     "must have columns"
   )
+})
+
+test_that("rules without scope columns throws error", {
+  # Fails closed: a rule frame whose scope columns were stripped upstream must
+  # not be treated as a set of unconditional rules.
+  rules <- make_range_rules()
+  rules$scope_type <- NULL
+  rules$scope_value <- NULL
+  expect_error(
+    qc_check_numeric_ranges(data.frame(x = 1), rules),
+    "must have columns"
+  )
+})
+
+test_that("rule_id and description ride onto the issue", {
+  rules <- make_range_rules(
+    rule_id = "x__floor",
+    description = "x must be non-negative"
+  )
+  result <- qc_check_numeric_ranges(data.frame(x = c(5, -1)), rules)
+  expect_equal(result$rule_id, "x__floor")
+  expect_equal(result$detail, "x must be non-negative")
+})
+
+test_that("two rules on one column both fire, with distinct rule_ids", {
+  rules <- rbind(
+    make_range_rules(
+      min_fail = 0,
+      max_fail = NA_real_,
+      range_type = "exclusive",
+      rule_id = "x__floor"
+    ),
+    make_range_rules(
+      min_fail = NA_real_,
+      max_fail = NA_real_,
+      min_warn = 20,
+      max_warn = 1200,
+      rule_id = "x__band"
+    )
+  )
+  result <- qc_check_numeric_ranges(data.frame(x = c(100, -5)), rules)
+  expect_equal(nrow(result), 2L)
+  expect_equal(sort(result$rule_id), c("x__band", "x__floor"))
+  expect_equal(unique(result$row), 2L)
+  expect_equal(sort(result$severity), c("fail", "warn"))
+})
+
+test_that("a scoped rule without scientific_name warns and fires on no rows", {
+  rules <- make_range_rules(
+    min_fail = 0,
+    max_fail = 10,
+    scope_type = "taxon_within",
+    scope_value = "Genus:Zostera",
+    rule_id = "x__zostera"
+  )
+  expect_warning(
+    result <- qc_check_numeric_ranges(data.frame(x = c(-5, 500)), rules),
+    "scientific_name"
+  )
+  expect_equal(nrow(result), 0L)
+})
+
+test_that("a scope_value without a scope_type is refused", {
+  rules <- make_range_rules(scope_value = "Genus:Zostera")
+  expect_error(
+    qc_check_numeric_ranges(data.frame(x = c(1, 2)), rules),
+    "no scope_type"
+  )
+})
+
+test_that("an unknown scope_type warns and fires on no rows", {
+  rules <- make_range_rules(
+    scope_type = "nonsense",
+    scope_value = "Genus:Zostera"
+  )
+  expect_warning(
+    result <- qc_check_numeric_ranges(
+      data.frame(x = c(-5, 500), scientific_name = c("a", "b")),
+      rules
+    ),
+    "Unknown QC range scope_type"
+  )
+  expect_equal(nrow(result), 0L)
+})
+
+test_that("a scoped rule reports true row numbers against the bundled taxonomy", {
+  # The acceptance case for the whole feature: a Zostera-only leaf band on a
+  # table whose only in-clade row is row 3, and whose species is in the genus
+  # by hierarchy rather than by name. A rule applied to a subsetted copy of
+  # `data` would report row 1 here.
+  d <- data.frame(
+    scientific_name = c(
+      "Halodule wrightii",
+      "Halodule wrightii",
+      "Heterozostera nigricaulis"
+    ),
+    leaf_length_mm = c(5000, 5000, 5000),
+    stringsAsFactors = FALSE
+  )
+  rules <- make_range_rules(
+    column_name = "leaf_length_mm",
+    min_fail = NA_real_,
+    max_fail = NA_real_,
+    min_warn = 20,
+    max_warn = 1200,
+    scope_type = "taxon_within",
+    scope_value = "Genus:Zostera",
+    rule_id = "leaf_length_mm__zostera"
+  )
+
+  result <- qc_check_numeric_ranges(d, rules)
+
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$row, 3L)
+  expect_equal(result$col_index, 2L)
+  expect_equal(result$severity, "warn")
+  expect_equal(result$rule_id, "leaf_length_mm__zostera")
+  expect_true(grepl("Zostera", result$detail))
 })

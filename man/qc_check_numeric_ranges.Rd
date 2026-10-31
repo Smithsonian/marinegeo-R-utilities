@@ -10,8 +10,9 @@ qc_check_numeric_ranges(data, rules)
 \item{data}{A data frame to validate.}
 
 \item{rules}{A data frame with columns \code{column_name}, \code{max_fail},
-\code{min_fail}, \code{max_warn}, \code{min_warn}, and \code{range_type}. Each row specifies
-the range rule for one column:
+\code{min_fail}, \code{max_warn}, \code{min_warn}, \code{range_type}, \code{scope_type}, and
+\code{scope_value}. Each row specifies one range rule, and a column may carry
+more than one rule:
 \itemize{
 \item \code{range_type == "inclusive"}: fail if \code{value > max_fail} or
 \code{value < min_fail}; warn if outside warn bounds but within fail bounds.
@@ -20,7 +21,17 @@ the range rule for one column:
 \item \code{range_type == NA}: row is silently skipped.
 }
 Bound columns (\code{max_fail}, \code{min_fail}, \code{max_warn}, \code{min_warn}) may be \code{NA}
-individually — only non-\code{NA} bounds are applied.}
+individually — only non-\code{NA} bounds are applied.
+
+\code{scope_type} and \code{scope_value} are \strong{required columns}, but both may be
+\code{NA}, which makes the rule unconditional. A non-\code{NA} \code{scope_type} is one of
+\code{"taxon_within"}, \code{"taxon_not_within"}, \code{"in_functional_group"}, or
+\code{"not_in_functional_group"}, and limits the rule to the rows whose
+\code{scientific_name} falls inside (or outside) the clade or functional group
+named by \code{scope_value} — see \code{\link[=utl_mg_expand_taxon_set]{utl_mg_expand_taxon_set()}}.
+
+The optional columns \code{rule_id} and \code{description}, when present, are carried
+onto each issue as \code{rule_id} and \code{detail}.}
 }
 \value{
 A \link{qc_issues} tibble with one row per out-of-range value
@@ -32,14 +43,14 @@ a warn threshold are \code{"warn"} rows. \code{row} and \code{col_index} are 1-b
 \description{
 Validates that numeric columns in a data frame fall within expected bounds
 defined in \code{numeric_ranges} metadata. Supports both inclusive and exclusive
-range types, separate fail and warn thresholds, and per-column NA-safe
-evaluation. Designed for use in MarineGEO QA/QC pipelines and can be called
-directly or via \code{\link[=qc_run]{qc_run()}}.
+range types, separate fail and warn thresholds, taxonomy-aware rule scopes,
+and per-column NA-safe evaluation. Designed for use in MarineGEO QA/QC
+pipelines and can be called directly or via \code{\link[=qc_run]{qc_run()}}.
 }
 \details{
-Only columns named in \code{rules$column_name} that also exist in \code{data} are
-validated; other columns are silently skipped. Rows in \code{rules} with
-\code{range_type == NA} are also silently skipped.
+Only rules whose \code{column_name} exists in \code{data} are evaluated; the rest are
+silently skipped. Rows in \code{rules} with \code{range_type == NA} are also silently
+skipped.
 
 \code{NA} values in the data column being evaluated are silently ignored and not
 counted as violations.
@@ -48,6 +59,12 @@ Fail thresholds are evaluated first. A value that breaches a fail threshold
 is recorded as \code{"fail"} and not additionally evaluated for warn. A value
 that does not breach any fail threshold but breaches a warn threshold is
 recorded as \code{"warn"}.
+
+A scoped rule is evaluated against the whole table and the out-of-scope rows
+are masked out, so \code{row} is always the row number in \code{data}. A scope that
+cannot be honoured — an unknown \code{scope_type}, an unresolvable \code{scope_value},
+no \code{scientific_name} column, or no taxonomy registry — warns and matches \strong{no
+rows}, so the rule reports nothing rather than firing on every species.
 
 \code{col_index} reflects the column's position in the original \code{data} argument,
 not its rank among only the validated columns.
@@ -69,6 +86,8 @@ rules <- data.frame(
   min_warn    = c(NA, NA),
   max_warn    = c(80,  30),
   range_type  = c("inclusive", "inclusive"),
+  scope_type  = c(NA_character_, NA_character_),
+  scope_value = c(NA_character_, NA_character_),
   stringsAsFactors = FALSE
 )
 

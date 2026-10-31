@@ -12,7 +12,7 @@ qc_check_missing_values(data, rules)
 \item{rules}{A data frame with columns \code{column_name} and \code{missing_values}.
 Each row specifies the missing-value rule for one column:
 \itemize{
-\item \code{"enforce"} — \code{NA} values are a \strong{fail}.
+\item \code{"fail"} — \code{NA} values are a \strong{fail}.
 \item \code{"warn"} — \code{NA} values produce a \strong{warn}.
 \item \code{"allow"} or \code{NA} — column is skipped (caller should pre-filter,
 but these rows are silently ignored if present).
@@ -21,8 +21,8 @@ but these rows are silently ignored if present).
 \value{
 A \link{qc_issues} tibble with one row per offending \code{NA} cell
 (\code{issue = "missing_value"}), or zero rows if no required values are
-missing. Cells in \code{"enforce"} columns are \code{"fail"} rows; cells in \code{"warn"}
-columns are \code{"warn"} rows. \code{row} and \code{col_index} are 1-based; \code{value} is
+missing. The rule value is the issue's severity: cells in \code{"fail"}
+columns are \code{"fail"} rows and cells in \code{"warn"} columns are \code{"warn"} rows. \code{row} and \code{col_index} are 1-based; \code{value} is
 \code{NA} (the cell is empty by definition).
 }
 \description{
@@ -39,7 +39,7 @@ equal to \code{"allow"} or \code{NA} are also silently skipped.
 not its rank among only the validated columns.
 
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} when the
-\code{database_structure} metadata contains \code{"enforce"} or \code{"warn"} rules for
+\code{database_structure} metadata contains \code{"fail"} or \code{"warn"} rules for
 the given \code{table_id}.
 }
 \examples{
@@ -51,10 +51,10 @@ df <- data.frame(
 
 rules <- data.frame(
   column_name    = c("site_name", "survey_date", "cover"),
-  missing_values = c("enforce", "warn", "allow"),
+  missing_values = c("fail", "warn", "allow"),
   stringsAsFactors = FALSE
 )
 
-# site_name has an NA and is "enforce" -> one fail row
+# site_name has an NA and is "fail" -> one fail row
 qc_check_missing_values(df, rules)
 }

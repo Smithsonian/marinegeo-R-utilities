@@ -1,12 +1,10 @@
 Package: marinegeo.utils
-Title: What the Package Does (One Line, Title Case)
-Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
-License: `use_mit_license()`, `use_gpl3_license()` or friends to pick a
-    license
+Title: MarineGEO R Utilities
+Version: 0.0.0.9002
+Authors@R: person("Michael", "Lonneman", email = "marinegeo-data@si.edu",
+  role = c("aut", "cre"))
+Description: R tools to support MarineGEO Data Management.
+License: PLACEHOLDER - license not yet chosen
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 Imports:
@@ -23,7 +21,7 @@ Imports:
     memoise,
     plotly,
     purrr,
-    worrms,
+    shiny,
     data.tree
 Depends: 
     R (>= 3.5)
@@ -37,4 +35,4 @@ Suggests:
     writexl
 VignetteBuilder: knitr
 Config/testthat/edition: 3
-Config/roxygen2/version: 8.1.0
+Config/roxygen2/version: 8.1.1

@@ -4,7 +4,7 @@
 \alias{qc_check_lookup_values}
 \title{Check column values against system-wide entity registries}
 \usage{
-qc_check_lookup_values(data, lookups)
+qc_check_lookup_values(data, lookups, scopes = list())
 }
 \arguments{
 \item{data}{A data frame to validate.}
@@ -21,11 +21,30 @@ Example:
   scientific_name = c("Zostera marina", ...)
 )
 }\if{html}{\out{</div>}}}
+
+\item{scopes}{An optional named list, in the same shape as \code{lookups}, giving
+the narrower set a column is actually allowed to draw from. A column named
+here must additionally hold a value from \code{scopes[[col]]}; a column absent
+from it is only required to be in its registry. Entries whose name is not
+also in \code{lookups} are ignored.
+
+This is how a column bound to the whole species registry is restricted to
+one branch of a labelset — the seagrass leaf table's \code{scientific_name}
+accepts a registered name only if it is a seagrass.}
 }
 \value{
-A \link{qc_issues} tibble with one \code{"fail"} row per offending cell
-(\code{issue = "unknown_lookup"}), or zero rows if every value is recognized.
-\code{row} and \code{col_index} are 1-based and \code{value} holds the unrecognized entry.
+A \link{qc_issues} tibble with one \code{"fail"} row per offending cell, or
+zero rows if every value is recognized. \code{row} and \code{col_index} are 1-based
+and \code{value} holds the offending entry. The \code{issue} distinguishes the two
+ways a value can be wrong:
+\itemize{
+\item \code{"unknown_lookup"} — not in the registry at all, e.g. a misspelling.
+\item \code{"out_of_labelset"} — a registered value, but outside the narrower set
+\code{scopes} allows for that column, e.g. an oyster in a seagrass table.
+}
+
+The two are mutually exclusive, so an offending cell yields exactly one
+row.
 }
 \description{
 Validates that values in designated columns belong to MarineGEO's global
@@ -37,7 +56,9 @@ vocabularies. \code{NA} values are always ignored.
 \details{
 This function is called automatically by \code{\link[=qc_run]{qc_run()}} whenever \code{data}
 contains one or more of the recognized lookup columns (\code{partner_code},
-\code{site_name}, \code{site_code}, \code{scientific_name}).
+\code{site_name}, \code{site_code}, \code{scientific_name}). Both \code{lookups} and \code{scopes}
+are resolved from the \code{column_lookups} registry table, which declares each
+binding and its optional scope per \code{column_id}.
 }
 \examples{
 df <- data.frame(
@@ -52,4 +73,18 @@ lookups <- list(
 )
 
 qc_check_lookup_values(df, lookups)
+
+# The same registry, narrowed: a real species in the wrong table
+leaves <- data.frame(
+  scientific_name = c("Zostera marina", "Crassostrea virginica"),
+  stringsAsFactors = FALSE
+)
+
+qc_check_lookup_values(
+  leaves,
+  lookups = list(
+    scientific_name = c("Zostera marina", "Crassostrea virginica")
+  ),
+  scopes = list(scientific_name = "Zostera marina")
+)
 }

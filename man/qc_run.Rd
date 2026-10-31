@@ -4,7 +4,7 @@
 \alias{qc_run}
 \title{Run all applicable QC tests on a MarineGEO data table}
 \usage{
-qc_run(x, table_id, sheet = 1L)
+qc_run(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{x}{A data frame, tibble, file path (character string), Arrow Dataset,
@@ -16,14 +16,30 @@ columns, data types, and controlled vocabularies.}
 
 \item{sheet}{Integer or character. Only used when \code{x} is an \code{.xlsx} or
 \code{.xls} file path. Passed to \code{\link[readxl:read_excel]{readxl::read_excel()}}. Defaults to \code{1}.}
+
+\item{partial}{Logical scalar. If \code{FALSE} (the default), \code{x} is treated as a
+complete table and all applicable checks run. If \code{TRUE}, \code{x} is treated as
+a subset of the table's columns: the two table-scoped checks
+(\code{qc_check_columns()}, \code{qc_check_row_uniqueness()}) are skipped rather
+than reporting the absent columns as failures, and are listed in the
+result's \code{checks_skipped} attribute.}
+
+\item{verbose}{Logical scalar. If \code{TRUE} (the default), a summary of the run
+is written to the console with \code{\link[=message]{message()}}: one line per check that ran
+with its status (\code{PASS}, \code{WARN} or \code{FAIL}) and issue count, then an overall
+status footer. Purely informational — it does not affect the returned
+object. Use \code{verbose = FALSE} or wrap the call in \code{\link[=suppressMessages]{suppressMessages()}} to
+silence it.}
 }
 \value{
 A \link{qc_issues} tibble: one row per detected problem across all
 applicable checks (zero rows if the data is clean), with the producing
 check in the \code{check} column. Run-level metadata rides along as attributes
 — \code{table_id}, \code{n_rows} (rows validated), \code{checks_run} (which checks
-executed), and \code{status} (the worst severity present: \code{"fail"} > \code{"warn"} >
-\code{"pass"}). See \link{qc_issues} for the full column description.
+executed), \code{checks_skipped} (checks not applicable to the input),
+\code{columns} (the columns validated), and \code{status} (the worst severity
+present: \code{"fail"} > \code{"warn"} > \code{"pass"}). See \link{qc_issues} for the full
+column description.
 }
 \description{
 Single entry point for the MarineGEO QA/QC test suite. Given a data object
@@ -33,6 +49,10 @@ structured result list.
 
 Accepts a data frame, a file path (CSV, XLSX, Parquet), or an Arrow
 Dataset/Table.
+
+With \code{partial = TRUE} it also accepts an arbitrary \strong{subset} of a table's
+columns, running only the checks that work on a column in isolation. To
+validate a single field, see \code{\link[=qc_check_variable]{qc_check_variable()}}.
 }
 \details{
 \strong{Metadata-driven dispatch:} Tests are not hard-coded to table types.
@@ -43,20 +63,35 @@ Instead, the dispatcher queries \code{marinegeo_metadata} for the given
 for \code{table_id}.
 \item Data type test: runs if \code{database_structure} has rows with non-\code{NA}
 \code{data_type} values for \code{table_id}.
-\item Categorical values test: runs if \code{categorical_values} has rows for
-\code{table_id}.
+\item Categorical values test: runs if \code{controlled_vocabularies} has rows
+for one of the \code{column_id} values this table defines.
 \item Missing values test: runs if \code{database_structure} has rows with
-\code{missing_values} equal to \code{"enforce"} or \code{"warn"} for \code{table_id}.
+\code{missing_values} equal to \code{"fail"} or \code{"warn"} for \code{table_id}.
 \item Numeric ranges test: runs if \code{numeric_ranges} has rows with non-\code{NA}
-\code{range_type} for \code{table_id}.
-\item Lookup values test: runs if \code{data} contains any of the columns
-\code{partner_code}, \code{site_name}, \code{site_code}, or \code{scientific_name}, which are
-validated against the corresponding global entity registries in
-\code{marinegeo_metadata} (\code{partner_codes}, \code{site_codes},
-\code{observation_lookup}).
+\code{range_type} for one of this table's \code{column_id} values.
+\item Lookup values test: runs for each column this table binds to an
+entity registry in \code{column_lookups} (e.g. \code{site_code} to \code{site_codes}).
+A column absent from \code{column_lookups} gets no registry check, which is
+how a table using a partner's own coding opts out.
 }
+The rule tables are keyed on \code{column_id} -- what a column holds -- and
+resolved to column names through this table's \code{database_structure} rows, so
+two columns sharing a name but not a meaning no longer share rules.
 Adding a new table type requires only updating the metadata CSVs and
 rebuilding sysdata — no R code changes required.
+
+\strong{Partial tables:} under \code{partial = TRUE} each rule set is additionally
+narrowed to the columns actually supplied, so a check appears in
+\code{checks_run} only when a rule applied to one of them. If none of the
+supplied columns are defined for \code{table_id}, a warning is emitted — an empty
+result there means "nothing was checkable", not "clean".
+
+\strong{Console report:} because the result holds one row per \emph{problem}, a clean
+run is an empty tibble, which is indistinguishable at a glance from a run
+where nothing was checked. With \code{verbose = TRUE} the run therefore reports
+which checks executed and how each fared, so a passing check is visible
+rather than merely silent. A run where no checks applied reports
+\verb{NOT CHECKED} instead of a pass.
 
 \strong{Arrow support:} Arrow Datasets and Tables are collected into memory via
 \code{\link[dplyr:collect]{dplyr::collect()}} before testing. This requires the \code{arrow} package.
@@ -75,4 +110,10 @@ df <- data.frame(
 
 # Supply a valid table_id from marinegeo_metadata$data_index
 # result <- qc_run(df, table_id = "sav_cover_v1")
+
+# Validate only the columns present, ignoring the rest of the table
+# result <- qc_run(df, table_id = "sav_cover_v1", partial = TRUE)
+}
+\seealso{
+\code{\link[=qc_check_variable]{qc_check_variable()}} to validate a single variable's values.
 }

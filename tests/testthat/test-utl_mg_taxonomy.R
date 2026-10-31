@@ -1,4 +1,20 @@
 # ---------------------------------------------------------------------------
+# .qc_norm_rank
+# ---------------------------------------------------------------------------
+
+test_that(".qc_norm_rank folds the parenthetical WoRMS spellings, NA-safely", {
+  expect_equal(.qc_norm_rank("Phylum (Division)"), "Phylum")
+  expect_equal(.qc_norm_rank("Subphylum (Subdivision)"), "Subphylum")
+  expect_equal(.qc_norm_rank("Genus"), "Genus")
+  # NA must survive rather than erroring on an NA subscript assignment.
+  expect_equal(
+    .qc_norm_rank(c("Phylum (Division)", NA, "Class")),
+    c("Phylum", NA, "Class")
+  )
+  expect_equal(.qc_norm_rank(character(0)), character(0))
+})
+
+# ---------------------------------------------------------------------------
 # utl_mg_get_scientific_id
 # ---------------------------------------------------------------------------
 
@@ -11,7 +27,6 @@
 test_that("happy path: returns matched scientific_ids as a character vector", {
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = .obs_lookup_get),
-    .mg_fetch_registry = function(url) .obs_lookup_get,
     .package = "marinegeo.utils"
   )
 
@@ -25,7 +40,6 @@ test_that("happy path: returns matched scientific_ids as a character vector", {
 test_that("unmatched names return NA and trigger a warning", {
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = .obs_lookup_get),
-    .mg_fetch_registry = function(url) .obs_lookup_get,
     .package = "marinegeo.utils"
   )
 
@@ -40,7 +54,6 @@ test_that("unmatched names return NA and trigger a warning", {
 test_that("NA input elements pass through as NA without a warning", {
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = .obs_lookup_get),
-    .mg_fetch_registry = function(url) .obs_lookup_get,
     .package = "marinegeo.utils"
   )
 
@@ -60,7 +73,6 @@ test_that("drop_abbreviations strips trailing sp. / spp. before matching", {
 
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = obs_lookup_genus),
-    .mg_fetch_registry = function(url) obs_lookup_genus,
     .package = "marinegeo.utils"
   )
 
@@ -71,7 +83,6 @@ test_that("drop_abbreviations strips trailing sp. / spp. before matching", {
 test_that("drop_abbreviations = FALSE does not strip abbreviations", {
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = .obs_lookup_get),
-    .mg_fetch_registry = function(url) .obs_lookup_get,
     .package = "marinegeo.utils"
   )
 
@@ -88,7 +99,6 @@ test_that("drop_abbreviations = FALSE does not strip abbreviations", {
 test_that("output length always matches input length", {
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = .obs_lookup_get),
-    .mg_fetch_registry = function(url) .obs_lookup_get,
     .package = "marinegeo.utils"
   )
 
@@ -105,7 +115,6 @@ test_that("works inside dplyr::mutate()", {
 
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = .obs_lookup_get),
-    .mg_fetch_registry = function(url) .obs_lookup_get,
     .package = "marinegeo.utils"
   )
 
@@ -134,7 +143,6 @@ test_that("stops on invalid drop_abbreviations value", {
 test_that("empty character vector returns empty character vector", {
   local_mocked_bindings(
     marinegeo_metadata = list(observation_lookup = .obs_lookup_get),
-    .mg_fetch_registry = function(url) .obs_lookup_get,
     .package = "marinegeo.utils"
   )
 

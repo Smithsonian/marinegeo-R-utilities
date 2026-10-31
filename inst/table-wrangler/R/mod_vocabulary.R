@@ -7,7 +7,7 @@ vocabulary_UI <- function(id) {
       nav_panel("Partner Codes", DTOutput(ns("partner_codes_tbl"))),
       nav_panel("Site Codes", DTOutput(ns("site_codes_tbl"))),
       nav_panel("Observation Lookup", DTOutput(ns("obs_lookup_tbl"))),
-      nav_panel("Categorical Vocab", DTOutput(ns("cat_vals_tbl"))),
+      nav_panel("Controlled Vocabularies", DTOutput(ns("cat_vals_tbl"))),
       nav_panel("Numeric Ranges", DTOutput(ns("num_range_tbl"))),
       
     )
@@ -20,7 +20,7 @@ vocabulary_server <- function(id) {
     partner_codes <- utl_mg_get_registry("partner_codes")
     site_codes <- utl_mg_get_registry("site_codes")
     obs_lookup <- utl_mg_get_registry("observation_lookup")
-    categorical_vocab <- utl_mg_get_registry("categorical_values")
+    categorical_vocab <- utl_mg_get_registry("controlled_vocabularies")
     numeric_ranges <- utl_mg_get_registry("numeric_ranges")
 
     active_registry <- reactive({
@@ -28,7 +28,7 @@ vocabulary_server <- function(id) {
         "Partner Codes" = partner_codes,
         "Site Codes" = site_codes,
         "Observation Lookup" = obs_lookup,
-        "Categorical Vocab" = categorical_vocab,
+        "Controlled Vocabularies" = categorical_vocab,
         "Numeric Ranges" = numeric_ranges,
         partner_codes
       )
@@ -68,7 +68,7 @@ vocabulary_server <- function(id) {
     output$partner_codes_tbl <- render_tbl("Partner Codes")
     output$site_codes_tbl <- render_tbl("Site Codes")
     output$obs_lookup_tbl <- render_tbl("Observation Lookup")
-    output$cat_vals_tbl <- render_tbl("Categorical Vocab")
+    output$cat_vals_tbl <- render_tbl("Controlled Vocabularies")
     output$num_range_tbl <- render_tbl("Numeric Ranges")
     
   })

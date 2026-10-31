@@ -18,6 +18,18 @@ for table- or column-level issues (e.g. a missing column).}
 \item{\code{col_index}}{Integer. 1-based column position, or \code{NA}.}
 \item{\code{value}}{Character. The offending value, or \code{NA}.}
 \item{\code{issue}}{Character. Machine-readable code, e.g. \code{"out_of_range"}.}
+\item{\code{rule_id}}{Character. Identifier of the metadata rule that produced
+the issue. Every range, vocabulary and lookup rule carries one, derived
+from its \code{column_id} and scope, so a finding can be traced back to the
+CSV row that defined it and a scoped rule can be told apart from the
+unconditional rule on the same column. \code{NA} only for issues that come
+from no rule table, such as a missing column.}
+\item{\code{detail}}{Character. One human-readable sentence of \emph{why}, where a
+machine-readable \code{issue} code is not self-explanatory (e.g. which
+condition applied), or \code{NA}.}
+\item{\code{table}}{Character. Which table the issue is in. \code{NA} for a
+single-table run, where \code{\link[=qc_run]{qc_run()}} records the table in the \code{table_id}
+attribute instead.}
 }
 
 Because it is an ordinary tibble, results are inspected and subset with
@@ -25,8 +37,38 @@ standard \code{dplyr} (e.g. \code{dplyr::filter()}, \code{dplyr::count()}) and p
 any other tibble.
 
 Run-level metadata is attached as attributes, read with \code{\link[base:attr]{base::attr()}}:
-\code{table_id}, \code{n_rows} (rows in the validated data), \code{checks_run} (checks that
-executed), and \code{status} (the worst severity present: \code{"fail"} > \code{"warn"} >
-\code{"pass"}).
+\describe{
+\item{\code{table_id}}{The table identifier the data was validated against.}
+\item{\code{n_rows}}{Rows in the validated data.}
+\item{\code{checks_run}}{Checks that executed.}
+\item{\code{checks_skipped}}{Checks that were not applicable to the input.
+Populated by \code{\link[=qc_run]{qc_run()}} with \code{partial = TRUE} and by
+\code{\link[=qc_check_variable]{qc_check_variable()}}, where the two table-scoped checks
+(\code{qc_check_columns}, \code{qc_check_row_uniqueness}) cannot run. Lets a
+caller distinguish "not applicable" from "passed".}
+\item{\code{columns}}{The column names that were validated — the only record of
+what was checked when the result has zero rows.}
+\item{\code{rules_skipped}}{\code{rule_id}s of scoped range rules dropped because
+\code{scientific_name}, the column their scope is evaluated against, was not
+among the supplied columns. Populated by \code{\link[=qc_run]{qc_run()}} with
+\code{partial = TRUE} and by \code{\link[=qc_check_variable]{qc_check_variable()}}, which only ever sees one
+column. Such a rule is dropped rather than applied as if it were
+unconditional, so this attribute is the only record that a bound exists
+but went unchecked.}
+\item{\code{stale_registries}}{Names of the rule tables that were served from
+the package's offline snapshot because the live \verb{dist/} bundles could
+not be read — see \code{\link[=utl_mg_registry_status]{utl_mg_registry_status()}}. Those rules are as old as
+the installed package, so a rule added to \code{marinegeo-metadata} since it
+was built did not run. Since a rule table that failed to load is read as
+"no rules", this attribute is the only thing separating that from a
+genuine pass. \code{NULL} when every table came from live or local metadata.}
+\item{\code{rules_schema}}{One line naming the \verb{dist/} schema major version the
+rule bundles were published under and where they came from, e.g.
+\code{"rules schema v1, ref main"}, or \code{"rules schema: offline"} when no
+manifest was read. Printed in the console report's footer. \code{NULL} for a
+bare \verb{qc_check_*()} result, which resolves no rules of its own.}
+\item{\code{status}}{The worst severity present: \code{"fail"} > \code{"warn"} >
+\code{"pass"}.}
+}
 }
 \keyword{internal}

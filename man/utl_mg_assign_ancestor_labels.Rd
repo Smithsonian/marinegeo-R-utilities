@@ -9,7 +9,7 @@ utl_mg_assign_ancestor_labels(fg_tree, scientific_names, ...)
 \arguments{
 \item{fg_tree}{Character scalar. Name of the functional group tree to query
 (e.g. \code{"vegetation"}), matched against the \code{tree_name} column of
-\code{functional_group_lookup}.}
+\code{nested_labelsets}.}
 
 \item{scientific_names}{Character vector of scientific names to classify,
 typically a column from a data frame passed through \code{\link[dplyr:mutate]{dplyr::mutate()}}.
@@ -17,7 +17,7 @@ typically a column from a data frame passed through \code{\link[dplyr:mutate]{dp
 
 \item{...}{One or more named \code{column = value} criteria identifying the
 ancestor to return, e.g. \code{type = "primary"} or \code{rank = "Family"}. Each
-name must be a column of \code{functional_group_lookup} other than \code{from},
+name must be a column of \code{nested_labelsets} other than \code{from},
 \code{to}, or \code{tree_name}; each value must be a length-1, non-\code{NA} atomic
 value. When several criteria are given they are combined with \strong{and} —
 a single ancestor must satisfy all of them.}

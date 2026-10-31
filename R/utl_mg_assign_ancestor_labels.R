@@ -13,13 +13,13 @@
 #'
 #' @param fg_tree Character scalar. Name of the functional group tree to query
 #'   (e.g. `"vegetation"`), matched against the `tree_name` column of
-#'   `functional_group_lookup`.
+#'   `nested_labelsets`.
 #' @param scientific_names Character vector of scientific names to classify,
 #'   typically a column from a data frame passed through [dplyr::mutate()].
 #'   `NA` values are preserved as `NA` in the output without a message.
 #' @param ... One or more named `column = value` criteria identifying the
 #'   ancestor to return, e.g. `type = "primary"` or `rank = "Family"`. Each
-#'   name must be a column of `functional_group_lookup` other than `from`,
+#'   name must be a column of `nested_labelsets` other than `from`,
 #'   `to`, or `tree_name`; each value must be a length-1, non-`NA` atomic
 #'   value. When several criteria are given they are combined with **and** —
 #'   a single ancestor must satisfy all of them.
@@ -165,14 +165,11 @@ utl_mg_assign_ancestor_labels <- function(fg_tree, scientific_names, ...) {
   }
 
   # Normalize the two WoRMS rank spellings that carry a parenthetical, so
-  # `rank = "Phylum"` also matches plant and algae lineages. Mirrors the
-  # remapping in `.get_taxonomic_classifications()`.
+  # `rank = "Phylum"` also matches plant and algae lineages. Shared with
+  # `.get_taxonomic_classifications()` and the taxon conditions via
+  # `.qc_norm_rank()` (R/utl_mg_taxonomy.R), so the three cannot drift.
   if ("rank" %in% names(fg)) {
-    fg$rank <- dplyr::case_when(
-      fg$rank == "Phylum (Division)" ~ "Phylum",
-      fg$rank == "Subphylum (Subdivision)" ~ "Subphylum",
-      TRUE ~ fg$rank
-    )
+    fg$rank <- .qc_norm_rank(fg$rank)
   }
 
   # Labels of every node satisfying all criteria. NA cells never match.

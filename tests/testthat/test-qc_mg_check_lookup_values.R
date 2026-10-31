@@ -124,3 +124,139 @@ test_that("unnamed lookups stops with informative error", {
     "fully named list"
   )
 })
+
+# --- scopes -----------------------------------------------------------------
+#
+# A scoped column has two ways to be wrong, and the whole point of the second
+# issue code is that a submitter looking at `out_of_labelset` does not go
+# hunting for a misspelling in a name that is spelled correctly.
+
+test_that("omitting scopes leaves the result unchanged", {
+  df <- data.frame(
+    scientific_name = c("Zostera marina", "Nothing Real"),
+    stringsAsFactors = FALSE
+  )
+  lookups <- list(
+    scientific_name = c("Zostera marina", "Crassostrea virginica")
+  )
+  expect_identical(
+    qc_check_lookup_values(df, lookups),
+    qc_check_lookup_values(df, lookups, scopes = list())
+  )
+})
+
+test_that("a registered value outside the scope -> out_of_labelset", {
+  df <- data.frame(
+    scientific_name = c("Zostera marina", "Crassostrea virginica"),
+    stringsAsFactors = FALSE
+  )
+  result <- qc_check_lookup_values(
+    df,
+    lookups = list(
+      scientific_name = c("Zostera marina", "Crassostrea virginica")
+    ),
+    scopes = list(scientific_name = "Zostera marina")
+  )
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$row, 2L)
+  expect_equal(result$value, "Crassostrea virginica")
+  expect_equal(result$issue, "out_of_labelset")
+  expect_equal(result$severity, "fail")
+  expect_equal(qc_status(result), "fail")
+})
+
+test_that("an unregistered value is unknown_lookup, not out_of_labelset", {
+  df <- data.frame(
+    scientific_name = c("Zostera marinaa", "Crassostrea virginica"),
+    stringsAsFactors = FALSE
+  )
+  result <- qc_check_lookup_values(
+    df,
+    lookups = list(
+      scientific_name = c("Zostera marina", "Crassostrea virginica")
+    ),
+    scopes = list(scientific_name = "Zostera marina")
+  )
+  expect_equal(nrow(result), 2L)
+  expect_equal(
+    result$issue[match(c(1L, 2L), result$row)],
+    c("unknown_lookup", "out_of_labelset")
+  )
+})
+
+test_that("a scoped column reports each bad cell exactly once", {
+  df <- data.frame(
+    scientific_name = c("Nope", "Nope"),
+    stringsAsFactors = FALSE
+  )
+  result <- qc_check_lookup_values(
+    df,
+    lookups = list(scientific_name = "Zostera marina"),
+    scopes = list(scientific_name = "Zostera marina")
+  )
+  expect_equal(nrow(result), 2L)
+  expect_equal(unique(result$issue), "unknown_lookup")
+})
+
+test_that("abbreviation stripping applies to the scope too", {
+  df <- data.frame(
+    scientific_name = c("Zostera sp.", "Crassostrea spp."),
+    stringsAsFactors = FALSE
+  )
+  result <- qc_check_lookup_values(
+    df,
+    lookups = list(scientific_name = c("Zostera", "Crassostrea")),
+    scopes = list(scientific_name = "Zostera")
+  )
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$value, "Crassostrea spp.")
+  expect_equal(result$issue, "out_of_labelset")
+})
+
+test_that("NA is not an out_of_labelset violation", {
+  df <- data.frame(
+    scientific_name = c("Zostera marina", NA),
+    stringsAsFactors = FALSE
+  )
+  result <- qc_check_lookup_values(
+    df,
+    lookups = list(scientific_name = "Zostera marina"),
+    scopes = list(scientific_name = "Zostera marina")
+  )
+  expect_equal(nrow(result), 0L)
+})
+
+test_that("a scope on a column with no registry binding is ignored", {
+  df <- data.frame(
+    scientific_name = "Crassostrea virginica",
+    stringsAsFactors = FALSE
+  )
+  result <- qc_check_lookup_values(
+    df,
+    lookups = list(),
+    scopes = list(scientific_name = "Zostera marina")
+  )
+  expect_equal(nrow(result), 0L)
+})
+
+test_that("non-list scopes stops with informative error", {
+  expect_error(
+    qc_check_lookup_values(
+      data.frame(x = 1),
+      list(x = "a"),
+      scopes = "not a list"
+    ),
+    "`scopes` must be a named list"
+  )
+})
+
+test_that("unnamed scopes stops with informative error", {
+  expect_error(
+    qc_check_lookup_values(
+      data.frame(x = 1),
+      list(x = "a"),
+      scopes = list("Zostera marina")
+    ),
+    "fully named list"
+  )
+})

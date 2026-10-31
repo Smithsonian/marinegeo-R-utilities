@@ -2,9 +2,9 @@
 #'
 #' @description
 #' Validates that columns in a data frame contain only values listed in the
-#' MarineGEO controlled vocabulary (`categorical_values` metadata). Designed
-#' for use in MarineGEO QA/QC pipelines and can be called directly or via
-#' [qc_run()].
+#' MarineGEO controlled vocabulary (`controlled_vocabularies` metadata).
+#' Designed for use in MarineGEO QA/QC pipelines and can be called directly or
+#' via [qc_run()].
 #'
 #' @param data A data frame to validate.
 #' @param rules A data frame with columns `column_name` and `value`. Each row
