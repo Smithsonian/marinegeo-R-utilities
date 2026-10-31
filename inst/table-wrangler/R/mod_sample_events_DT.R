@@ -61,6 +61,12 @@ sample_event_server <- function(id, input_list) {
               card("Check functional group enrollment",
                    DTOutput(session$ns("sav_functional_groups")),
                    full_screen = TRUE)
+            ),
+            nav_panel(
+              title = "Grouped Totals",
+              card("Groups whose totals do not add up. Each row is one failing group: the observed aggregate against the total the group declares.",
+                   DTOutput(session$ns("grouped_totals")),
+                   full_screen = TRUE)
             )
           )
         } else if(input_list$output_table_id %in%  c("oyster-count-monitoring-v1",
@@ -88,6 +94,12 @@ sample_event_server <- function(id, input_list) {
               title = "Functional Groups",
               card("Check functional group enrollment",
                    DTOutput(session$ns("oyster_functional_groups")),
+                   full_screen = TRUE)
+            ),
+            nav_panel(
+              title = "Grouped Totals",
+              card("Groups whose totals do not add up. Each row is one failing group: the observed aggregate against the total the group declares.",
+                   DTOutput(session$ns("grouped_totals")),
                    full_screen = TRUE)
             )
           )
@@ -119,6 +131,13 @@ sample_event_server <- function(id, input_list) {
               title = "Fouling Deployment Periods",
               card(DTOutput(session$ns("fouling_deployment_periods")),
                    full_screen = T)
+            ),
+            
+            nav_panel(
+              title = "Grouped Totals",
+              card("Groups whose totals do not add up. Each row is one failing group: the observed aggregate against the total the group declares.",
+                   DTOutput(session$ns("grouped_totals")),
+                   full_screen = TRUE)
             )
             
           )
@@ -157,6 +176,62 @@ sample_event_server <- function(id, input_list) {
         df %>%
           DT::datatable(
             style = "default"
+          )
+      })
+      
+      # Aggregation QC results: the grouped findings the sidebar alert counts.
+      # Every aggregation registered for the loaded table is reported, so a
+      # table that gains a second one needs no change here. The frames list
+      # failing groups only -- that is the .qc_agg_* contract -- so an empty
+      # frame is the pass state and gets a status row instead of a blank table.
+      output$grouped_totals <- renderDT({
+        
+        results <- input_list$agg_failures
+        
+        if (length(results) == 0) {
+          df <- tibble(status = "No grouped total check applies to this table")
+          
+        } else {
+          
+          # The aggregate is named by the column it is reported in, so naming it
+          # again in its own column only helps when two are stacked.
+          name_aggregate <- length(results) > 1
+          
+          df <- purrr::imap(results, function(failures, label) {
+            
+            if (is.null(failures)) {
+              out <- tibble(
+                status = "Check did not run - the table is empty or a required column is missing"
+              )
+              
+            } else if (nrow(failures) == 0) {
+              out <- tibble(status = "All grouped totals add up")
+              
+            } else {
+              out <- failures %>%
+                rename(
+                  !!label := observed,
+                  !!attr(failures, "expected_column") := expected
+                )
+            }
+            
+            if (name_aggregate) {
+              out <- out %>%
+                mutate(aggregate = label) %>%
+                relocate(aggregate)
+            }
+            
+            out
+            
+          }) %>%
+            bind_rows()
+          
+        }
+        
+        df %>%
+          DT::datatable(
+            style = "default",
+            options = list(pageLength = 50)
           )
       })
       

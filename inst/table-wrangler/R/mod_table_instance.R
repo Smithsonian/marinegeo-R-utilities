@@ -38,7 +38,8 @@ mod_table_instance_server <- function(id, bundle) {
       load_code_chain_flag = 0,
       flush_code_chain_ids = NULL,
       table_selections = list(),
-      display_col_order = NULL
+      display_col_order = NULL,
+      agg_failures = NULL
     )
 
     general_sidebar_server("general_settings", input_list)

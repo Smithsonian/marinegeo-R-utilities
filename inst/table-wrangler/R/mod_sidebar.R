@@ -75,6 +75,7 @@ qc_flag_UI <- function(id) {
   tagList(
     uiOutput(ns("registry_warning")), # stale (offline) QC rules alert
     uiOutput(ns("structural_warnings")), # structural test alerts
+    uiOutput(ns("table_level_warnings")), # table-scoped test alerts
     uiOutput(ns("select_flag")),
     uiOutput(ns("hide_warn_toggle")), # hide-warns checkbox
     uiOutput(ns("details_button"))
@@ -95,7 +96,7 @@ qc_flag_server <- function(id, input_list) {
         qc_check_numeric_ranges = "Out-of-range numeric values",
         qc_check_lookup_values = "Unrecognized or out-of-scope lookup values",
         qc_check_row_uniqueness = "Duplicate rows",
-        qc_check_aggregation = "Grouped totals that do not add up"
+        qc_check_aggregation = "Grouped total do not add up"
       )
 
       STRUCTURAL_TESTS <- c("qc_check_columns", "qc_check_data_types")
@@ -114,15 +115,20 @@ qc_flag_server <- function(id, input_list) {
           .rows = 0
         )
 
-        if (is.null(input_list$out_df)) {
+        if (is.null(input_list$out_df) || nrow(input_list$out_df) == 0) {
           qc_flags_list(NULL)
-        } else if (nrow(input_list$out_df) > 0) {
+          input_list$agg_failures <- NULL
+        } else {
           qc_flags_list(utl_run_all_qc(
             input_list$out_df,
             input_list$output_table_id
           ))
-        } else {
-          qc_flags_list(NULL)
+          # The same grouped result the Sample Event Summary tab renders. Held
+          # on input_list so the sidebar count and that table can never disagree.
+          input_list$agg_failures <- marinegeo.utils::qc_aggregation_failures(
+            input_list$out_df,
+            input_list$output_table_id
+          )
         }
       })
 
@@ -141,6 +147,52 @@ qc_flag_server <- function(id, input_list) {
           pull(check) %>%
           unique()
       })
+
+      # Table-scoped findings: real issues that belong to no single row, so
+      # they match neither the structural alerts nor the row-level flag table
+      # and would otherwise vanish. qc_check_aggregation is the only such check
+      # today -- each of its issues spans a group of rows.
+      table_level_issues <- reactive({
+        req(qc_flags_list())
+        qc_flags_list() %>%
+          filter(!check %in% STRUCTURAL_TESTS, is.na(row))
+      })
+
+      # Counts for the aggregation alert, taken from the tidy grouped result
+      # rather than from the issue rows: the group key survives in `detail` only
+      # as prose, so the number of affected sample events is not recoverable
+      # from qc_issues without parsing it back out.
+      agg_failure_summary <- reactive({
+        failures <- dplyr::bind_rows(purrr::compact(input_list$agg_failures))
+        if (nrow(failures) == 0) {
+          return(NULL)
+        }
+        list(
+          n_groups = nrow(failures),
+          n_events = if ("sample_event_id" %in% names(failures)) {
+            dplyr::n_distinct(failures$sample_event_id)
+          } else {
+            NA_integer_
+          }
+        )
+      })
+
+      pluralize <- function(n, unit) {
+        paste0(n, " ", unit, if (n == 1) "" else "s")
+      }
+
+      agg_summary_text <- function(summary) {
+        scope <- if (is.na(summary$n_events)) {
+          pluralize(summary$n_groups, "group")
+        } else {
+          paste0(
+            pluralize(summary$n_events, "sample event"),
+            ", ",
+            pluralize(summary$n_groups, "group")
+          )
+        }
+        paste0(scope, " - see sample event summary tab")
+      }
 
       failures_to_flag_table <- function(issues) {
         # severity is always present on issue rows, so colour directly.
@@ -291,6 +343,88 @@ qc_flag_server <- function(id, input_list) {
               class = "alert alert-warning",
               style = "font-size: 0.85em; padding: 6px 10px; margin-bottom: 4px;",
               tags$strong(QC_TEST_LABELS[chk]),
+              tags$ul(
+                style = "margin: 4px 0 0 0; padding-left: 18px;",
+                purrr::map(bullets, tags$li)
+              )
+            )
+          })
+        )
+      })
+
+      # One alert box per table-scoped check.
+      #
+      # Aggregation findings are summarised to a single sentence: one bullet per
+      # failing group names the whole group key, which on a real file filled the
+      # sidebar and pushed everything else out of view. The groups themselves
+      # are in the Sample Event Summary tab. Any other table-scoped check still
+      # gets bullets from `detail`, which reads as a sentence where the issue
+      # code and column alone would not say which group failed.
+      output$table_level_warnings <- renderUI({
+        req(qc_flags_list())
+
+        issues <- table_level_issues()
+        if (nrow(issues) == 0) {
+          return(NULL)
+        }
+
+        # A large file can fail many groups at once and the sidebar is narrow.
+        MAX_BULLETS <- 10L
+
+        alert_box <- function(chk, sub, body) {
+          tags$div(
+            class = if (any(sub$severity == "fail", na.rm = TRUE)) {
+              "alert alert-danger"
+            } else {
+              "alert alert-warning"
+            },
+            style = "font-size: 0.85em; padding: 6px 10px; margin-bottom: 4px;",
+            tags$strong(dplyr::coalesce(
+              unname(QC_TEST_LABELS[chk]),
+              gsub("_", " ", chk)
+            )),
+            body
+          )
+        }
+
+        tags$div(
+          purrr::map(unique(issues$check), function(chk) {
+            sub <- issues[issues$check == chk, , drop = FALSE]
+
+            summary <- if (chk == "qc_check_aggregation") {
+              agg_failure_summary()
+            } else {
+              NULL
+            }
+
+            # Falling through to the bullets when the summary is unavailable
+            # keeps the finding visible rather than dropping it.
+            if (!is.null(summary)) {
+              return(alert_box(
+                chk,
+                sub,
+                tags$div(
+                  style = "margin-top: 4px;",
+                  agg_summary_text(summary)
+                )
+              ))
+            }
+
+            bullets <- dplyr::coalesce(
+              sub$detail,
+              paste0(sub$issue, ": ", sub$column)
+            )
+            n_hidden <- max(0L, length(bullets) - MAX_BULLETS)
+            if (n_hidden > 0L) {
+              bullets <- c(
+                bullets[seq_len(MAX_BULLETS)],
+                paste0("...and ", n_hidden, " more")
+              )
+            }
+
+            alert_box(
+              chk,
+              sub,
               tags$ul(
                 style = "margin: 4px 0 0 0; padding-left: 18px;",
                 purrr::map(bullets, tags$li)

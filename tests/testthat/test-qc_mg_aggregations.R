@@ -16,6 +16,95 @@
   stringsAsFactors = FALSE
 )
 
+# --- qc_aggregation_failures() ----------------------------------------------
+#
+# The tidy view the Table Wrangler app renders. It must stay distinguishable
+# between "did not run" and "ran and passed": the app shows different messages
+# for the two, and a NULL that read as a pass would hide a check that never ran.
+
+test_that("failing groups come back as a tidy frame with the group key", {
+  result <- qc_aggregation_failures(.agg_panel, "fouling-cover-v1")
+
+  expect_length(result, 1L)
+  expect_named(result, "sum(point_count)")
+
+  failures <- result[["sum(point_count)"]]
+  expect_s3_class(failures, "data.frame")
+  expect_equal(nrow(failures), 1L)
+  expect_equal(failures$panel_id, "P2")
+  expect_equal(failures$observed, 90)
+  expect_equal(failures$expected, 100)
+  expect_equal(failures$issue, "aggregate_mismatch")
+  expect_true(
+    all(
+      c("sample_event_id", "panel_id", "deployment_period") %in% names(failures)
+    )
+  )
+})
+
+test_that("the registry metadata rides along as attributes", {
+  failures <- qc_aggregation_failures(.agg_panel, "fouling-cover-v1")[[1]]
+
+  expect_equal(attr(failures, "label"), "sum(point_count)")
+  expect_equal(attr(failures, "expected_column"), "points_in_grid")
+  expect_equal(attr(failures, "column"), "point_count")
+  expect_equal(attr(failures, "severity"), "fail")
+})
+
+test_that("a table whose groups all add up returns zero rows, not NULL", {
+  clean <- .agg_panel
+  clean$point_count <- c(60L, 40L, 60L, 40L)
+
+  result <- qc_aggregation_failures(clean, "fouling-cover-v1")
+
+  expect_length(result, 1L)
+  expect_false(is.null(result[[1]]))
+  expect_equal(nrow(result[[1]]), 0L)
+})
+
+test_that("an aggregation that cannot run returns NULL for that element", {
+  no_total <- .agg_panel
+  no_total$points_in_grid <- NULL
+
+  result <- qc_aggregation_failures(no_total, "fouling-cover-v1")
+
+  expect_length(result, 1L)
+  expect_null(result[[1]])
+
+  # Zero rows is also "did not run": there are no groups to aggregate.
+  expect_null(qc_aggregation_failures(.agg_panel[0, ], "fouling-cover-v1")[[1]])
+})
+
+test_that("an unregistered table is a zero-length list, not an error", {
+  # qc_check_aggregation() errors here on purpose; this function is called by
+  # the app for whatever table happens to be loaded.
+  expect_equal(
+    qc_aggregation_failures(.agg_panel, "seagrass-biomass-monitoring-v1"),
+    list()
+  )
+})
+
+test_that("bad arguments are rejected", {
+  expect_error(
+    qc_aggregation_failures("not a frame", "fouling-cover-v1"),
+    "must be a data frame"
+  )
+  expect_error(
+    qc_aggregation_failures(.agg_panel, c("a", "b")),
+    "single non-NA character string"
+  )
+})
+
+test_that("the tidy result and the issue rows describe the same groups", {
+  issues <- qc_check_aggregation(.agg_panel, "fouling-cover-v1")
+  failures <- qc_aggregation_failures(.agg_panel, "fouling-cover-v1")[[1]]
+
+  expect_equal(nrow(issues), nrow(failures))
+  expect_equal(issues$value, as.character(failures$observed))
+  expect_equal(issues$issue, failures$issue)
+  expect_true(all(grepl(failures$panel_id, issues$detail, fixed = TRUE)))
+})
+
 # --- qc_check_aggregation() contract ---------------------------------------
 
 test_that("the result is a well-formed qc_issues table", {

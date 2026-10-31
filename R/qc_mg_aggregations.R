@@ -176,6 +176,93 @@
   )
 }
 
+#' Grouped aggregation results as a tidy table
+#'
+#' @description
+#' The failing groups behind [qc_check_aggregation()], as the tidy frame the
+#' check computes internally, rather than as `qc_issues` rows. Use this when a
+#' consumer needs the group key as *data* — to count the affected sample events,
+#' or to render the result as a table — since the [qc_issues] schema is fixed and
+#' keeps the group key only as prose inside `detail`.
+#'
+#' @param data A data frame to validate.
+#' @param table_id Character scalar. The MarineGEO table identifier. Unlike
+#'   [qc_check_aggregation()], an unregistered identifier is **not** an error:
+#'   callers that run against whatever table is loaded (the Table Wrangler app)
+#'   need to ask without knowing the answer first.
+#'
+#' @return A named list with one element per aggregation registered for
+#'   `table_id`, named after the aggregate as it reads in a message, e.g.
+#'   `"sum(point_count)"`. Each element is either
+#'   \describe{
+#'     \item{a data frame}{one row per **failing** group — the grouping columns
+#'       the aggregation uses, plus `observed`, `expected` and `issue`. Zero rows
+#'       means the aggregation ran and every group added up.}
+#'     \item{`NULL`}{the aggregation did not apply: a column it needs is absent
+#'       (missing columns are [qc_check_columns()]'s to report), or `data` has no
+#'       rows.}
+#'   }
+#'   Each element carries the registry metadata needed to label it as attributes
+#'   `label`, `expected_column`, `column` and `severity`. A table with no
+#'   registered aggregation returns a zero-length list.
+#'
+#' @seealso [qc_check_aggregation()], which turns these groups into `qc_issues`
+#'   rows; [qc_issues] for that format.
+#'
+#' @export
+#'
+#' @examples
+#' # The same two panels as in qc_check_aggregation(); the second is short.
+#' panels <- data.frame(
+#'   sample_event_id = "USA-XYZ_SITE-001_2025",
+#'   panel_id = c("P1", "P1", "P1", "P2", "P2"),
+#'   deployment_period = "3-month",
+#'   point_count = c(40L, 30L, 30L, 50L, 40L),
+#'   points_in_grid = 100L,
+#'   stringsAsFactors = FALSE
+#' )
+#'
+#' qc_aggregation_failures(panels, table_id = "fouling-cover-v1")
+qc_aggregation_failures <- function(data, table_id) {
+  if (!is.data.frame(data)) {
+    stop("`data` must be a data frame.")
+  }
+  if (!is.character(table_id) || length(table_id) != 1L || is.na(table_id)) {
+    stop("`table_id` must be a single non-NA character string.")
+  }
+
+  if (!.qc_has_aggregations(table_id)) {
+    return(list())
+  }
+
+  # One spec per table today, so the list is length 1. Returning a list anyway
+  # means a second aggregation on one table needs no change in any caller.
+  specs <- list(.qc_aggregations()[[table_id]])
+
+  out <- lapply(specs, function(spec) {
+    # Same not-applicable contract as qc_check_aggregation(): an aggregation
+    # that cannot see its grouping key did not run, which is not the same as
+    # having run and passed, so the two are distinguishable here.
+    if (!all(spec$requires %in% colnames(data)) || nrow(data) == 0L) {
+      return(NULL)
+    }
+
+    failures <- spec$fn(data)
+    if (!is.data.frame(failures)) {
+      failures <- tibble::tibble()
+    }
+
+    attr(failures, "label") <- spec$label
+    attr(failures, "expected_column") <- spec$expected_column
+    attr(failures, "column") <- spec$column
+    attr(failures, "severity") <- spec$severity
+    failures
+  })
+
+  names(out) <- vapply(specs, function(spec) spec$label, character(1))
+  out
+}
+
 #' Check that grouped aggregates match their declared totals
 #'
 #' @description
@@ -293,8 +380,10 @@ qc_check_aggregation <- function(data, table_id) {
     return(empty())
   }
 
-  failures <- spec$fn(data)
-  if (!is.data.frame(failures) || nrow(failures) == 0L) {
+  # The failing groups themselves come from qc_aggregation_failures(), so the
+  # tidy result and these issue rows can never describe different groups.
+  failures <- qc_aggregation_failures(data, table_id)[[spec$label]]
+  if (is.null(failures) || nrow(failures) == 0L) {
     return(empty())
   }
 
