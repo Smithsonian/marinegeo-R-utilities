@@ -470,12 +470,6 @@ utl_rls_fill_missing_metadata_deprecated <- function(df) {
 #'
 #' @returns a list of unique date, depth, vis, and sitecode combinations with other dive-metadata variables and True-False statements for method-Block combinations
 #' @export
-#'
-#' @examples
-#' filepath <- "inst/extdata/test_rls_data_EPA_two_header_rows.xlsx"
-#' df <- utl_rls_load_excel(filepath)
-#' summary_df <- utl_rls_summarize_table(df)
-
 
 utl_rls_sample_event_summary <- function(df){
   

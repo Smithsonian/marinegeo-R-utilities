@@ -110,7 +110,8 @@ test_that("the three table-scoped checks are reported as skipped", {
     attr(result, "checks_skipped"),
     c(
       "qc_check_columns",
-      "qc_check_row_uniqueness"
+      "qc_check_row_uniqueness",
+      "qc_check_aggregation"
     )
   )
   expect_false(any(

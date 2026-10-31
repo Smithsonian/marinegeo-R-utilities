@@ -153,9 +153,10 @@ new_qc_issues <- function(
 #'   \item{`checks_run`}{Checks that executed.}
 #'   \item{`checks_skipped`}{Checks that were not applicable to the input.
 #'     Populated by [qc_run()] with `partial = TRUE` and by
-#'     [qc_check_variable()], where the two table-scoped checks
-#'     (`qc_check_columns`, `qc_check_row_uniqueness`) cannot run. Lets a
-#'     caller distinguish "not applicable" from "passed".}
+#'     [qc_check_variable()], where the three table-scoped checks
+#'     (`qc_check_columns`, `qc_check_row_uniqueness`,
+#'     `qc_check_aggregation`) cannot run. Lets a caller distinguish
+#'     "not applicable" from "passed".}
 #'   \item{`columns`}{The column names that were validated — the only record of
 #'     what was checked when the result has zero rows.}
 #'   \item{`rules_skipped`}{`rule_id`s of scoped range rules dropped because

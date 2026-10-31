@@ -31,10 +31,10 @@
 #' attribute when metadata actually defines that kind of rule for the variable
 #' — `cover_code`, for instance, has categorical values but no numeric range.
 #'
-#' The two remaining checks need the whole table ([qc_check_columns()],
-#' [qc_check_row_uniqueness()]). They are skipped and reported in the
-#' `checks_skipped` attribute, so an empty result can be distinguished from a
-#' clean one.
+#' The three remaining checks need the whole table ([qc_check_columns()],
+#' [qc_check_row_uniqueness()], [qc_check_aggregation()]). They are skipped and
+#' reported in the `checks_skipped` attribute, so an empty result can be
+#' distinguished from a clean one.
 #'
 #' **Taxon-scoped range rules are dropped, not guessed.** A numeric range whose
 #' `scope_type` restricts it to a clade is evaluated against `scientific_name`,

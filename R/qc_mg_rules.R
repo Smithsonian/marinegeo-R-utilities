@@ -20,6 +20,7 @@
 .qc_check_scopes <- c(
   qc_check_columns = "table",
   qc_check_row_uniqueness = "table",
+  qc_check_aggregation = "table",
   qc_check_data_types = "column",
   qc_check_categorical_values = "column",
   qc_check_missing_values = "column",

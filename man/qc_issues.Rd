@@ -43,9 +43,10 @@ Run-level metadata is attached as attributes, read with \code{\link[base:attr]{b
 \item{\code{checks_run}}{Checks that executed.}
 \item{\code{checks_skipped}}{Checks that were not applicable to the input.
 Populated by \code{\link[=qc_run]{qc_run()}} with \code{partial = TRUE} and by
-\code{\link[=qc_check_variable]{qc_check_variable()}}, where the two table-scoped checks
-(\code{qc_check_columns}, \code{qc_check_row_uniqueness}) cannot run. Lets a
-caller distinguish "not applicable" from "passed".}
+\code{\link[=qc_check_variable]{qc_check_variable()}}, where the three table-scoped checks
+(\code{qc_check_columns}, \code{qc_check_row_uniqueness},
+\code{qc_check_aggregation}) cannot run. Lets a caller distinguish
+"not applicable" from "passed".}
 \item{\code{columns}}{The column names that were validated — the only record of
 what was checked when the result has zero rows.}
 \item{\code{rules_skipped}}{\code{rule_id}s of scoped range rules dropped because

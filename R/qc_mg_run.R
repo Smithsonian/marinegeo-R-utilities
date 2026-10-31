@@ -380,6 +380,18 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
     }
   }
 
+  # --- Test 8: grouped aggregations ------------------------------------------
+  # Table-scoped: an aggregation needs its whole grouping key present, which a
+  # column subset cannot guarantee. Unlike every other check here the rules are
+  # hand-authored in R/qc_mg_agg_*.R rather than resolved from the metadata
+  # repo, so the gate is the code registry rather than a rule table's row count.
+  if (table_scope && .qc_has_aggregations(table_id)) {
+    results$qc_check_aggregation <- qc_check_aggregation(
+      data = data,
+      table_id = table_id
+    )
+  }
+
   # --- Combine into a single issues table ------------------------------------
   # Each check returns a qc_issues tibble; bind them and re-wrap with run-level
   # metadata. `status` is derived from the combined rows (fail > warn > pass).

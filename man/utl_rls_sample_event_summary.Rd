@@ -12,8 +12,3 @@ a list of unique date, depth, vis, and sitecode combinations with other dive-met
 \description{
 lists the unique survey metadata combinations. Check for the existance of method/block 1 and 2.
 }
-\examples{
-filepath <- "inst/extdata/test_rls_data_EPA_two_header_rows.xlsx"
-df <- utl_rls_load_excel(filepath)
-summary_df <- utl_rls_summarize_table(df)
-}

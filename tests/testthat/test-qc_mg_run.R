@@ -319,9 +319,65 @@ test_that("partial = TRUE skips the three table-scoped checks", {
     attr(result, "checks_skipped"),
     c(
       "qc_check_columns",
-      "qc_check_row_uniqueness"
+      "qc_check_row_uniqueness",
+      "qc_check_aggregation"
     )
   )
+})
+
+# ---------------------------------------------------------------------------
+# Grouped aggregations
+#
+# These need no metadata mock: the aggregation registry lives in R/ rather than
+# in a rule table, so a real table_id resolves its structure from the bundled
+# offline snapshot and the check is gated purely on the registry.
+# ---------------------------------------------------------------------------
+
+agg_panel_df <- data.frame(
+  sample_event_id = "USA-XYZ_SITE-001_2025",
+  panel_id = c("P1", "P1", "P2", "P2"),
+  deployment_period = "3-month",
+  point_count = c(60L, 40L, 50L, 40L),
+  points_in_grid = 100L,
+  stringsAsFactors = FALSE
+)
+
+test_that("qc_run dispatches the aggregation check for a registered table", {
+  result <- qc_run(agg_panel_df, table_id = "fouling-cover-v1", verbose = FALSE)
+
+  expect_true("qc_check_aggregation" %in% attr(result, "checks_run"))
+  expect_equal(sum(result$check == "qc_check_aggregation"), 1L)
+  expect_equal(attr(result, "status"), "fail")
+})
+
+test_that("qc_run does not list the aggregation check for other tables", {
+  result <- qc_run(
+    agg_panel_df,
+    table_id = "fouling-biomass-v1",
+    verbose = FALSE
+  )
+
+  expect_false("qc_check_aggregation" %in% attr(result, "checks_run"))
+  expect_false("qc_check_aggregation" %in% attr(result, "checks_skipped"))
+})
+
+test_that("the aggregation check is skipped on a column subset", {
+  result <- suppressWarnings(qc_run(
+    agg_panel_df[, "point_count", drop = FALSE],
+    table_id = "fouling-cover-v1",
+    partial = TRUE,
+    verbose = FALSE
+  ))
+
+  expect_true("qc_check_aggregation" %in% attr(result, "checks_skipped"))
+  expect_false("qc_check_aggregation" %in% attr(result, "checks_run"))
+})
+
+test_that("the console report lists the aggregation check", {
+  result <- qc_run(agg_panel_df, table_id = "fouling-cover-v1", verbose = FALSE)
+  lines <- .qc_report_lines(result)
+
+  expect_true(any(grepl("FAIL  qc_check_aggregation \\(1 issue\\)", lines)))
 })
 
 test_that("partial = FALSE leaves checks_skipped empty", {
