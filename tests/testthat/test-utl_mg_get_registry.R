@@ -110,9 +110,15 @@
 )
 
 .column_lookups <- data.frame(
-  column_id = c("site_code_marinegeo", "site_name_marinegeo"),
-  registry_table = c("site_codes", "site_codes"),
-  registry_column = c("site_code", "site_name"),
+  column_id = c(
+    "site_code_marinegeo",
+    "site_name_marinegeo",
+    "scientific_name_seagrass_only"
+  ),
+  registry_table = c("site_codes", "site_codes", "observation_lookup"),
+  registry_column = c("site_code", "site_name", "scientific_name"),
+  scope_type = c(NA_character_, NA_character_, "in_labelset"),
+  scope_value = c(NA_character_, NA_character_, "vegetation:Seagrass"),
   stringsAsFactors = FALSE
 )
 
@@ -299,9 +305,28 @@ test_that("returns full column_lookups table with expected columns", {
 
   expect_s3_class(result, "data.frame")
   expect_true(all(
-    c("column_id", "registry_table", "registry_column") %in% colnames(result)
+    c(
+      "column_id",
+      "registry_table",
+      "registry_column",
+      "scope_type",
+      "scope_value"
+    ) %in%
+      colnames(result)
   ))
   expect_equal(nrow(result), nrow(.column_lookups))
+})
+
+test_that("column_lookups filters on scope_type", {
+  local_mocked_bindings(
+    marinegeo_metadata = .mock_metadata,
+    .package = "marinegeo.utils"
+  )
+
+  result <- utl_mg_get_registry("column_lookups", scope_type = "in_labelset")
+
+  expect_equal(nrow(result), 1L)
+  expect_equal(result$column_id, "scientific_name_seagrass_only")
 })
 
 test_that("returns full numeric_ranges table with expected columns", {

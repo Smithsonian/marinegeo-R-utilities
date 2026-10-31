@@ -194,6 +194,110 @@ test_that("an unknown tree or label is refused", {
 })
 
 # ---------------------------------------------------------------------------
+# The `type=` selector
+#
+# Asserted against the bundled `vegetation` tree, where `type == "primary"` sits
+# on exactly `Seagrass` and `Algae` -- the contents are the behaviour being
+# bought, the same way the clade cases are.
+# ---------------------------------------------------------------------------
+
+test_that("tree:type= selects every node of that type and their descendants", {
+  primary <- utl_mg_expand_taxon_set(
+    "vegetation:type=primary",
+    hierarchy = "functional_group"
+  )
+  seagrass <- utl_mg_expand_taxon_set(
+    "vegetation:Seagrass",
+    hierarchy = "functional_group"
+  )
+  algae <- utl_mg_expand_taxon_set(
+    "vegetation:Algae",
+    hierarchy = "functional_group"
+  )
+
+  # The union of the two primary nodes, and nothing beyond them.
+  expect_setequal(
+    primary$scientific_name,
+    union(seagrass$scientific_name, algae$scientific_name)
+  )
+  expect_true("Zostera marina" %in% primary$scientific_name)
+  expect_gt(nrow(primary), nrow(seagrass))
+})
+
+test_that("tree:type= gives the same set as naming the typed nodes by hand", {
+  expect_equal(
+    utl_mg_expand_taxon_set(
+      "vegetation:type=primary",
+      hierarchy = "functional_group"
+    ),
+    utl_mg_expand_taxon_set(
+      c("vegetation:Seagrass", "vegetation:Algae"),
+      hierarchy = "functional_group"
+    )
+  )
+})
+
+test_that("a plain tree:Label is unaffected by the type= branch", {
+  out <- utl_mg_expand_taxon_set(
+    "vegetation:Marine Seagrass",
+    hierarchy = "functional_group"
+  )
+  expect_true("Zostera marina" %in% out$scientific_name)
+  expect_false("Ulva" %in% out$scientific_name)
+})
+
+test_that("a type nothing carries resolves to nothing, not to everything", {
+  expect_warning(
+    out <- utl_mg_expand_taxon_set(
+      "vegetation:type=nope",
+      hierarchy = "functional_group"
+    ),
+    "which no node in tree 'vegetation' carries"
+  )
+  expect_equal(nrow(out), 0L)
+
+  d <- taxa_df("Zostera marina")
+  expect_warning(
+    mask <- .qc_scope_mask(d, "in_functional_group", "vegetation:type=nope"),
+    "types present: primary"
+  )
+  expect_false(any(mask))
+})
+
+test_that("a bare type= with no value is refused", {
+  expect_warning(
+    out <- utl_mg_expand_taxon_set(
+      "vegetation:type=",
+      hierarchy = "functional_group"
+    ),
+    "no node in tree 'vegetation' carries"
+  )
+  expect_equal(nrow(out), 0L)
+})
+
+test_that("type= against a labelset table with no type column is refused", {
+  # Assigned, not `modifyList()`ed: a data frame is a list, so modifyList
+  # merges the two column-wise and `type` survives.
+  meta <- real_meta
+  meta$nested_labelsets <- real_meta$nested_labelsets[,
+    c("from", "to", "scientific_id", "tree_name")
+  ]
+  local_mocked_bindings(
+    marinegeo_metadata = meta,
+    .package = "marinegeo.utils"
+  )
+
+  expect_warning(
+    out <- utl_mg_expand_taxon_set(
+      "vegetation:type=primary",
+      hierarchy = "functional_group"
+    ),
+    "has no `type` column"
+  )
+  expect_equal(nrow(out), 0L)
+})
+
+# ---------------------------------------------------------------------------
 # Unresolvable references warn and match nothing
 # ---------------------------------------------------------------------------
 

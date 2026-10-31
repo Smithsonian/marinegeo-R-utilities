@@ -718,6 +718,8 @@ rls_metadata <- function() {
       column_id = "site_code_marinegeo",
       registry_table = "site_codes",
       registry_column = "site_code",
+      scope_type = NA_character_,
+      scope_value = NA_character_,
       stringsAsFactors = FALSE
     ),
     site_codes = data.frame(
@@ -755,4 +757,149 @@ test_that("the same values under a MarineGEO-coded column_id still fail", {
   bad <- result[result$issue == "unknown_lookup", ]
   expect_equal(nrow(bad), 2L)
   expect_equal(sort(bad$value), c("RLS-1001", "RLS-1002"))
+})
+
+# ---------------------------------------------------------------------------
+# Labelset-scoped registry bindings
+#
+# Two tables whose `scientific_name` column is bound to the same registry but
+# scoped to different parts of the same labelset: the cover table takes any
+# `primary` node (seagrass or algae), the leaf table only the seagrasses. The
+# split exists because re-keying alone left both admitting all 1,696 registry
+# names, oysters included.
+# ---------------------------------------------------------------------------
+
+labelset_metadata <- function() {
+  list(
+    database_structure = data.frame(
+      table_id = c("sav_cover_v1", "sav_leaf_v1"),
+      column_name = c("scientific_name", "scientific_name"),
+      column_id = c(
+        "scientific_name_seagrass_cover",
+        "scientific_name_seagrass_only"
+      ),
+      data_type = c("STRING", "STRING"),
+      stringsAsFactors = FALSE
+    ),
+    column_ids = data.frame(
+      column_id = c(
+        "scientific_name_seagrass_cover",
+        "scientific_name_seagrass_only"
+      ),
+      label = c("Scientific name", "Scientific name"),
+      unit = c(NA_character_, NA_character_),
+      stringsAsFactors = FALSE
+    ),
+    column_lookups = data.frame(
+      column_id = c(
+        "scientific_name_seagrass_cover",
+        "scientific_name_seagrass_only"
+      ),
+      registry_table = c("observation_lookup", "observation_lookup"),
+      registry_column = c("scientific_name", "scientific_name"),
+      scope_type = c("in_labelset", "in_labelset"),
+      scope_value = c("vegetation:type=primary", "vegetation:Seagrass"),
+      stringsAsFactors = FALSE
+    ),
+    observation_lookup = data.frame(
+      scientific_name = c("Zostera marina", "Ulva", "Crassostrea virginica"),
+      scientific_id = c("ID:ZOSMAR", "ID:ULVA", "ID:CRAVIR"),
+      stringsAsFactors = FALSE
+    ),
+    # Seagrass and Algae are the two `primary` nodes; the oyster sits in another
+    # tree entirely, so no vegetation reference can reach it.
+    nested_labelsets = data.frame(
+      from = c("Seagrass", "Algae", "Zostera marina", "Ulva", "Oysters"),
+      to = c(
+        "Vegetation",
+        "Vegetation",
+        "Seagrass",
+        "Algae",
+        "Oyster Composition"
+      ),
+      scientific_id = c(
+        "FUNCTIONAL:SAV",
+        "FUNCTIONAL:ALGAE",
+        "ID:ZOSMAR",
+        "ID:ULVA",
+        "ID:CRAVIR"
+      ),
+      type = c("primary", "primary", NA, NA, "primary"),
+      tree_name = c(
+        "vegetation",
+        "vegetation",
+        "vegetation",
+        "vegetation",
+        "oyster_composition"
+      ),
+      stringsAsFactors = FALSE
+    )
+  )
+}
+
+sav_names_df <- data.frame(
+  scientific_name = c("Zostera marina", "Ulva", "Crassostrea virginica"),
+  stringsAsFactors = FALSE
+)
+
+test_that("a labelset-scoped column accepts only its branch of the tree", {
+  local_mocked_bindings(
+    marinegeo_metadata = labelset_metadata(),
+    .package = "marinegeo.utils"
+  )
+  result <- qc_run(sav_names_df, table_id = "sav_leaf_v1", verbose = FALSE)
+
+  bad <- result[result$check == "qc_check_lookup_values", ]
+  expect_equal(bad$issue, c("out_of_labelset", "out_of_labelset"))
+  expect_equal(sort(bad$value), c("Crassostrea virginica", "Ulva"))
+})
+
+test_that("a wider scope on the same registry admits more of it", {
+  local_mocked_bindings(
+    marinegeo_metadata = labelset_metadata(),
+    .package = "marinegeo.utils"
+  )
+  result <- qc_run(sav_names_df, table_id = "sav_cover_v1", verbose = FALSE)
+
+  bad <- result[result$check == "qc_check_lookup_values", ]
+  expect_equal(nrow(bad), 1L)
+  expect_equal(bad$value, "Crassostrea virginica")
+  expect_equal(bad$issue, "out_of_labelset")
+})
+
+test_that("an unresolvable scope widens to the registry rather than to nothing", {
+  meta <- labelset_metadata()
+  meta$column_lookups$scope_value <- c("vegetation:Nope", "vegetation:Nope")
+  local_mocked_bindings(
+    marinegeo_metadata = meta,
+    .package = "marinegeo.utils"
+  )
+
+  # Two warnings, nested: the reference that did not resolve, then the
+  # narrowing that was therefore dropped.
+  expect_warning(
+    expect_warning(
+      result <- qc_run(sav_names_df, table_id = "sav_leaf_v1", verbose = FALSE),
+      "not in tree 'vegetation'"
+    ),
+    "resolved to no taxa"
+  )
+  # Still checked against the whole registry -- every value is registered, so
+  # nothing is flagged, and nothing is flagged SPURIOUSLY either.
+  expect_equal(nrow(result[result$check == "qc_check_lookup_values", ]), 0L)
+})
+
+test_that("a scope_value with no scope_type is ignored, with a warning", {
+  meta <- labelset_metadata()
+  meta$column_lookups$scope_type <- c(NA_character_, NA_character_)
+  local_mocked_bindings(
+    marinegeo_metadata = meta,
+    .package = "marinegeo.utils"
+  )
+
+  expect_warning(
+    result <- qc_run(sav_names_df, table_id = "sav_leaf_v1", verbose = FALSE),
+    "but no scope_type"
+  )
+  expect_equal(nrow(result[result$check == "qc_check_lookup_values", ]), 0L)
 })

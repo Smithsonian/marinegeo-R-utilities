@@ -180,35 +180,153 @@
   ]
 }
 
-# The entity registries this table's columns are bound to, keyed by the column
-# name they validate.
+# The columns a resolved lookup binding carries. As with the range rules, a
+# column missing from this whitelist is stripped before it is read, and a
+# stripped `scope_type` silently widens a narrowed binding back to the whole
+# registry.
+.qc_lookup_rule_cols <- c(
+  "registry_table",
+  "registry_column",
+  "scope_type",
+  "scope_value"
+)
+
+# The permitted subset of one registry column, for a binding that carries a
+# labelset scope. Returns NULL when the scope cannot be resolved, which the
+# caller reads as "no narrowing".
+#
+# Narrowing is an intersection on `scientific_id`: the labelset places ids, the
+# registry maps ids to the values the data actually holds. A registry without
+# that column therefore cannot be narrowed at all -- the metadata repo's
+# validator rejects such a binding, so reaching this branch means the rules in
+# force are older than the check.
+.qc_lookup_scope_names <- function(registry_table, registry_column, refs) {
+  reg <- .mg_get_registry_table(registry_table)
+  if (
+    is.null(reg) ||
+      !is.data.frame(reg) ||
+      !all(c("scientific_id", registry_column) %in% colnames(reg))
+  ) {
+    warning(
+      "A column_lookups scope narrows registry '",
+      registry_table,
+      "', which has no `scientific_id` column to intersect on; the column was ",
+      "validated against the whole registry instead."
+    )
+    return(NULL)
+  }
+
+  sets <- .qc_fg_sets(refs)
+  if (is.null(sets) || length(sets$set) == 0L) {
+    warning(
+      "A column_lookups scope ('",
+      paste(refs, collapse = " | "),
+      "') resolved to no taxa; the column was validated against the whole ",
+      "registry instead."
+    )
+    return(NULL)
+  }
+
+  keep <- !is.na(reg$scientific_id) & reg$scientific_id %in% sets$set
+  unique(as.character(reg[[registry_column]][keep]))
+}
+
+# The entity registries this table's columns are bound to, and the narrower sets
+# some of them are scoped to -- both keyed by the column name they validate.
 #
 # Bindings are declared per `column_id` in `column_lookups`, not system-wide: a
 # column simply absent from that table gets no registry QC, which is how a
 # partner-coded table opts out of the MarineGEO registries.
+#
+# Returns `list(lookups = <named list>, scopes = <named list>)`. `scopes` holds
+# an entry only for a binding whose labelset scope resolved, so an unresolvable
+# scope leaves the column checked against the whole registry rather than against
+# nothing. That is the permissive direction, chosen to match how every other
+# piece of unusable rule metadata degrades; it is also why the metadata repo
+# fails the build on a scope that does not resolve there.
 .qc_lookup_registries <- function(map) {
   lk <- .qc_bind_column_names(
     .qc_registry_rules_by_column(
       "column_lookups",
-      c("registry_table", "registry_column"),
+      .qc_lookup_rule_cols,
       map$column_id
     ),
     map
   )
   if (nrow(lk) == 0) {
-    return(list())
+    return(list(lookups = list(), scopes = list()))
   }
-  Filter(
-    Negate(is.null),
-    stats::setNames(
-      lapply(
-        seq_len(nrow(lk)),
-        function(i) {
-          .mg_get_registry_table(lk$registry_table[i])[[lk$registry_column[i]]]
+
+  blank <- function(x) {
+    length(x) != 1L || is.na(x) || !nzchar(trimws(x))
+  }
+
+  lookups <- stats::setNames(
+    lapply(
+      seq_len(nrow(lk)),
+      function(i) {
+        .mg_get_registry_table(lk$registry_table[i])[[lk$registry_column[i]]]
+      }
+    ),
+    lk$column_name
+  )
+
+  scopes <- stats::setNames(
+    lapply(
+      seq_len(nrow(lk)),
+      function(i) {
+        st <- lk$scope_type[i]
+        sv <- lk$scope_value[i]
+        if (blank(st)) {
+          # A scope_value with no scope_type is metadata nothing can act on.
+          if (!blank(sv)) {
+            warning(
+              "column_lookups binding for '",
+              lk$column_name[i],
+              "' has scope_value '",
+              trimws(sv),
+              "' but no scope_type; it was ignored."
+            )
+          }
+          return(NULL)
         }
-      ),
-      lk$column_name
-    )
+        st <- trimws(as.character(st))
+        if (!st %in% .qc_lookup_scope_types) {
+          warning(
+            "Unknown column_lookups scope_type '",
+            st,
+            "'; the column was validated against the whole registry. Valid ",
+            "values are: ",
+            paste(.qc_lookup_scope_types, collapse = ", "),
+            "."
+          )
+          return(NULL)
+        }
+        refs <- .qc_split_scope(sv)
+        if (length(refs) == 0L) {
+          warning(
+            "column_lookups scope_type '",
+            st,
+            "' for '",
+            lk$column_name[i],
+            "' has no scope_value; the column was validated against the whole ",
+            "registry."
+          )
+          return(NULL)
+        }
+        .qc_lookup_scope_names(
+          lk$registry_table[i],
+          lk$registry_column[i],
+          refs
+        )
+      }
+    ),
+    lk$column_name
+  )
+
+  list(
+    lookups = Filter(Negate(is.null), lookups),
+    scopes = Filter(Negate(is.null), scopes)
   )
 }
 
@@ -224,6 +342,9 @@
 #   ranges      - `numeric_ranges` rows with a non-NA `range_type`, keyed back
 #                 to column_name
 #   lookups     - named list of the registries this table's columns bind to
+#   lookup_scopes - named list of the narrower permitted sets, for those
+#                 bindings that carry a labelset scope. A column absent from it
+#                 is checked against the whole of its registry.
 .qc_resolve_rules <- function(table_id) {
   tbl_struct <- .qc_filter_by_table(
     .mg_get_registry_table("database_structure"),
@@ -270,13 +391,16 @@
   }
   tbl_ranges <- .qc_bind_column_names(tbl_ranges, map, order_by = "rule_id")
 
+  tbl_lookups <- .qc_lookup_registries(map)
+
   list(
     table_id = table_id,
     structure = tbl_struct,
     column_ids = tbl_ids,
     categorical = tbl_cats,
     ranges = tbl_ranges,
-    lookups = .qc_lookup_registries(map)
+    lookups = tbl_lookups$lookups,
+    lookup_scopes = tbl_lookups$scopes
   )
 }
 

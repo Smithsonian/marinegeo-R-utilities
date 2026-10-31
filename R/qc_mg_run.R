@@ -215,6 +215,7 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   tbl_cats <- rules$categorical
   tbl_ranges <- rules$ranges
   lookup_map <- rules$lookups
+  lookup_scope_map <- rules$lookup_scopes
 
   table_scope <- identical(scope, "table")
   checks_skipped <- if (table_scope) {
@@ -357,7 +358,10 @@ qc_run <- function(x, table_id, sheet = 1L, partial = FALSE, verbose = TRUE) {
   if (length(present_lookup_cols) > 0) {
     results$qc_check_lookup_values <- qc_check_lookup_values(
       data = data,
-      lookups = lookup_map[present_lookup_cols]
+      lookups = lookup_map[present_lookup_cols],
+      scopes = lookup_scope_map[
+        intersect(names(lookup_scope_map), present_lookup_cols)
+      ]
     )
   }
 

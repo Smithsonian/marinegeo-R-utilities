@@ -173,6 +173,21 @@ a table using a partner organisation's own site coding opts out.
 \code{"site_codes"}).
 \item \code{registry_column} — Column of that registry to match against (e.g.,
 \code{"site_code"}).
+\item \code{scope_type} — Optional narrowing operator. Blank means the column admits
+the whole \code{registry_column}. The only operator is \code{"in_labelset"}, which
+restricts it to the entries a nested labelset places at or below a
+reference.
+\item \code{scope_value} — One or more \code{|}-separated references into
+\code{nested_labelsets}, each either \code{"tree:Label"} (that node and its
+descendants) or \code{"tree:type=<value>"} (every node in that tree carrying
+that \code{type}, and their descendants). Several references give the union.
+Set together with \code{scope_type} or not at all.
+
+Narrowing is an intersection on \code{scientific_id}, so a scoped binding must
+name a registry that has one — in practice \code{observation_lookup}. A value
+that is in the registry but outside the scope is reported as
+\code{out_of_labelset} rather than \code{unknown_lookup}. Use
+\code{\link[=utl_mg_expand_taxon_set]{utl_mg_expand_taxon_set()}} to see what a reference resolves to.
 }
 }
 
@@ -205,6 +220,9 @@ error.
 
 # Retrieve numeric range rules for one column_id
 # utl_mg_get_registry("numeric_ranges", column_id = "leaf_length_mm")
+
+# Which registry bindings carry a labelset scope
+# utl_mg_get_registry("column_lookups", scope_type = "in_labelset")
 
 # Which column_ids are bound to a registry lookup
 # utl_mg_get_registry("column_lookups")

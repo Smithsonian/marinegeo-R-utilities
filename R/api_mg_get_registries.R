@@ -56,7 +56,13 @@
     "min_warn"
   ),
   controlled_vocabularies = c("column_id", "value"),
-  column_lookups = c("column_id", "registry_table", "registry_column")
+  column_lookups = c(
+    "column_id",
+    "registry_table",
+    "registry_column",
+    "scope_type",
+    "scope_value"
+  )
 )
 
 .mg_manifest_rel <- "dist/manifest.json"

@@ -309,6 +309,23 @@ test_that("numeric_ranges without the scope columns is refused", {
   )
 })
 
+test_that("column_lookups without the scope columns is refused", {
+  # Same dangerous direction as numeric_ranges: read without the scope columns,
+  # a narrowed binding looks like an unnarrowed one, so a seagrass-only column
+  # would quietly accept the whole species registry again.
+  cols <- c("column_id", "registry_table", "registry_column")
+  schema <- list(
+    rows = 1L,
+    columns = lapply(cols, function(nm) list(name = nm, type = "character"))
+  )
+  rows <- list(stats::setNames(as.list(rep("x", length(cols))), cols))
+
+  expect_error(
+    .mg_coerce_registry_table(rows, schema, "column_lookups"),
+    "scope_type"
+  )
+})
+
 test_that("an unknown declared type is an error", {
   schema <- list(rows = 1L, columns = list(list(name = "a", type = "complex")))
 

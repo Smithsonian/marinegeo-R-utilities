@@ -143,6 +143,21 @@
 #'   `"site_codes"`).
 #' - `registry_column` — Column of that registry to match against (e.g.,
 #'   `"site_code"`).
+#' - `scope_type` — Optional narrowing operator. Blank means the column admits
+#'   the whole `registry_column`. The only operator is `"in_labelset"`, which
+#'   restricts it to the entries a nested labelset places at or below a
+#'   reference.
+#' - `scope_value` — One or more `|`-separated references into
+#'   `nested_labelsets`, each either `"tree:Label"` (that node and its
+#'   descendants) or `"tree:type=<value>"` (every node in that tree carrying
+#'   that `type`, and their descendants). Several references give the union.
+#'   Set together with `scope_type` or not at all.
+#'
+#'   Narrowing is an intersection on `scientific_id`, so a scoped binding must
+#'   name a registry that has one — in practice `observation_lookup`. A value
+#'   that is in the registry but outside the scope is reported as
+#'   `out_of_labelset` rather than `unknown_lookup`. Use
+#'   [utl_mg_expand_taxon_set()] to see what a reference resolves to.
 #'
 #' ## Filtering
 #' Filter values are matched with `%in%`, so a character vector matches any of
@@ -173,6 +188,9 @@
 #'
 #' # Retrieve numeric range rules for one column_id
 #' # utl_mg_get_registry("numeric_ranges", column_id = "leaf_length_mm")
+#'
+#' # Which registry bindings carry a labelset scope
+#' # utl_mg_get_registry("column_lookups", scope_type = "in_labelset")
 #'
 #' # Which column_ids are bound to a registry lookup
 #' # utl_mg_get_registry("column_lookups")

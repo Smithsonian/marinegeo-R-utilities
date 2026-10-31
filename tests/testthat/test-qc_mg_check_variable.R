@@ -48,6 +48,8 @@ var_column_lookups <- data.frame(
   column_id = "scientific_name",
   registry_table = "observation_lookup",
   registry_column = "scientific_name",
+  scope_type = NA_character_,
+  scope_value = NA_character_,
   stringsAsFactors = FALSE
 )
 

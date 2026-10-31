@@ -221,7 +221,14 @@
   )
 }
 
-# Expand functional-group references (`tree:Label`) to the ids beneath them.
+# Expand labelset references to the ids beneath them. Two forms, both prefixed
+# by the tree:
+#
+#   tree:Label      one node and its descendants
+#   tree:type=<v>   every node in that tree whose `type` is <v>, and their
+#                   descendants -- the union, which is what makes
+#                   `vegetation:type=primary` mean "seagrass or algae" without
+#                   naming either
 #
 # Walks the edge list by display label -- `from` is the child, `to` the parent
 # -- so the QC path needs no `data.tree` work at all.
@@ -271,24 +278,68 @@
     }
 
     tree <- trimws(parts[1])
-    label <- trimws(paste(parts[-1], collapse = ":"))
+    selector <- trimws(paste(parts[-1], collapse = ":"))
     sub <- fg[!is.na(fg$tree_name) & fg$tree_name == tree, , drop = FALSE]
 
-    if (!label %in% c(sub$from, sub$to)) {
-      warning(
-        "QC functional group scope references label '",
-        label,
-        "', which is not in tree '",
-        tree,
-        "'; the rule was not applied."
-      )
-      next
+    # The seeds the descent starts from: one named node, or every node carrying
+    # a given `type`. A `type=` selector matching nothing resolves to no seeds
+    # rather than to the whole tree -- same direction as every other failure
+    # path here.
+    if (startsWith(selector, "type=")) {
+      # `substring()`, not `sub()`: `sub` is the tree subset in this scope, and
+      # relying on R to skip a non-function binding in call position is a trap
+      # for the next reader.
+      want <- trimws(substring(selector, nchar("type=") + 1L))
+      if (!"type" %in% colnames(sub)) {
+        warning(
+          "QC labelset scope references type '",
+          want,
+          "', but `nested_labelsets` has no `type` column; the rule was not ",
+          "applied."
+        )
+        next
+      }
+      seeds <- unique(as.character(sub$from[
+        !is.na(sub$type) & trimws(as.character(sub$type)) == want
+      ]))
+      if (length(seeds) == 0L) {
+        present <- sort(unique(trimws(as.character(sub$type[
+          !is.na(sub$type)
+        ]))))
+        warning(
+          "QC labelset scope references type '",
+          want,
+          "', which no node in tree '",
+          tree,
+          "' carries",
+          if (length(present) > 0) {
+            paste0(" (types present: ", paste(present, collapse = ", "), ")")
+          } else {
+            ""
+          },
+          "; the rule was not applied."
+        )
+        next
+      }
+    } else {
+      if (!selector %in% c(sub$from, sub$to)) {
+        warning(
+          "QC functional group scope references label '",
+          selector,
+          "', which is not in tree '",
+          tree,
+          "'; the rule was not applied."
+        )
+        next
+      }
+      seeds <- selector
     }
 
     # Descend by label. The frontier shrinks to nothing on a finite tree; the
     # `setdiff` against what we have already seen also makes a cycle terminate.
-    acc <- label
-    frontier <- label
+    # Seeding with several labels gives the union of their subtrees for free.
+    acc <- seeds
+    frontier <- seeds
     repeat {
       kids <- unique(sub$from[!is.na(sub$to) & sub$to %in% frontier])
       kids <- setdiff(kids, acc)
@@ -359,6 +410,15 @@
   "in_functional_group",
   "not_in_functional_group"
 )
+
+# The closed set of narrowing operators a `column_lookups` row may name, kept
+# beside its numeric_ranges counterpart above so the two cannot drift.
+#
+# Separate from `.qc_scope_types` because the two tables scope different things:
+# a range scope picks ROWS, so it needs negations, while a lookup scope picks a
+# permitted SET of values. "Every vegetation name except the seagrasses" has no
+# caller, so `not_in_labelset` is deliberately absent rather than reserved.
+.qc_lookup_scope_types <- c("in_labelset")
 
 # Split a `|`-delimited scope value into its references. `|` is the only way to
 # express OR; everything else about a scope is a single term.
@@ -467,10 +527,13 @@
 #' @param reference Character vector of one or more references. For
 #'   `hierarchy = "taxonomy"`, either `"Rank:Name"` (e.g. `"Genus:Zostera"`,
 #'   `"Family:Zosteraceae"`) or a full LSID. For
-#'   `hierarchy = "functional_group"`, `"tree:Label"` (e.g.
-#'   `"vegetation:Marine Seagrass"`) — the tree prefix is required, because
-#'   many labels occur in more than one tree. Several references give the union
-#'   of their sets.
+#'   `hierarchy = "functional_group"`, either `"tree:Label"` (e.g.
+#'   `"vegetation:Marine Seagrass"`) or `"tree:type=<value>"` (e.g.
+#'   `"vegetation:type=primary"`), which selects every node in that tree
+#'   carrying that `type` — today `Seagrass` and `Algae` — and their
+#'   descendants. The tree prefix is required either way, because many labels
+#'   occur in more than one tree. Several references give the union of their
+#'   sets.
 #' @param hierarchy Which hierarchy to expand against: `"taxonomy"` (the
 #'   default, using `taxonomic_lookup`) or `"functional_group"` (using
 #'   `nested_labelsets`). Stated explicitly rather than inferred,
@@ -481,6 +544,10 @@
 #'   if the reference resolves to nothing — accompanied by a warning saying why.
 #'
 #' @details
+#' A `column_lookups` row can carry the same kind of reference in its
+#' `scope_value`, which narrows the names that column accepts; this is the way
+#' to see what such a binding will permit before relying on it.
+#'
 #' The result is derived from the registry, so it reflects whatever
 #' `taxonomic_lookup` / `nested_labelsets` is in force. Offline, that is
 #' the copy shipped in the package, which may be older than the live one — so a
@@ -503,6 +570,13 @@
 #' # A functional group, which needs its tree
 #' # utl_mg_expand_taxon_set(
 #' #   "vegetation:Marine Seagrass",
+#' #   hierarchy = "functional_group"
+#' # )
+#'
+#' # Every node typed `primary` in the vegetation tree, and their descendants
+#' # -- what `scientific_name_seagrass_cover` accepts
+#' # utl_mg_expand_taxon_set(
+#' #   "vegetation:type=primary",
 #' #   hierarchy = "functional_group"
 #' # )
 utl_mg_expand_taxon_set <- function(

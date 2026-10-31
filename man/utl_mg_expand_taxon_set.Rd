@@ -13,10 +13,13 @@ utl_mg_expand_taxon_set(
 \item{reference}{Character vector of one or more references. For
 \code{hierarchy = "taxonomy"}, either \code{"Rank:Name"} (e.g. \code{"Genus:Zostera"},
 \code{"Family:Zosteraceae"}) or a full LSID. For
-\code{hierarchy = "functional_group"}, \code{"tree:Label"} (e.g.
-\code{"vegetation:Marine Seagrass"}) — the tree prefix is required, because
-many labels occur in more than one tree. Several references give the union
-of their sets.}
+\code{hierarchy = "functional_group"}, either \code{"tree:Label"} (e.g.
+\code{"vegetation:Marine Seagrass"}) or \code{"tree:type=<value>"} (e.g.
+\code{"vegetation:type=primary"}), which selects every node in that tree
+carrying that \code{type} — today \code{Seagrass} and \code{Algae} — and their
+descendants. The tree prefix is required either way, because many labels
+occur in more than one tree. Several references give the union of their
+sets.}
 
 \item{hierarchy}{Which hierarchy to expand against: \code{"taxonomy"} (the
 default, using \code{taxonomic_lookup}) or \code{"functional_group"} (using
@@ -36,6 +39,10 @@ or a functional group
 how you check what such a reference resolves to \strong{before} relying on it.
 }
 \details{
+A \code{column_lookups} row can carry the same kind of reference in its
+\code{scope_value}, which narrows the names that column accepts; this is the way
+to see what such a binding will permit before relying on it.
+
 The result is derived from the registry, so it reflects whatever
 \code{taxonomic_lookup} / \code{nested_labelsets} is in force. Offline, that is
 the copy shipped in the package, which may be older than the live one — so a
@@ -52,6 +59,13 @@ set can be narrower than it would be online. \code{getOption( "marinegeo.utils.l
 # A functional group, which needs its tree
 # utl_mg_expand_taxon_set(
 #   "vegetation:Marine Seagrass",
+#   hierarchy = "functional_group"
+# )
+
+# Every node typed `primary` in the vegetation tree, and their descendants
+# -- what `scientific_name_seagrass_cover` accepts
+# utl_mg_expand_taxon_set(
+#   "vegetation:type=primary",
 #   hierarchy = "functional_group"
 # )
 }
